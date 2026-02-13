@@ -1,0 +1,7 @@
+{
+  "name": "ProLux Elite Services",
+  "description": "A high-end platform for curated architectural and domestic services, featuring elite curators, detailed professional profiles, and a real-time operational dashboard.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
