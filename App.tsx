@@ -96,11 +96,19 @@ const Navbar = () => {
             }`}>
               Browse Categories
             </Link>
-            <Link to="/listing" className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              isActive('/listing') ? 'text-[#1a2b49] font-semibold' : 'text-gray-500 hover:text-[#1a2b49]'
-            }`}>
+            <button
+              onClick={() => {
+                if (location.pathname === '/') {
+                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  navigate('/');
+                  setTimeout(() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }), 100);
+                }
+              }}
+              className="px-4 py-2 rounded-full text-sm font-medium transition-colors text-gray-500 hover:text-[#1a2b49]"
+            >
               How It Works
-            </Link>
+            </button>
             <Link to="/listing" className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               false ? 'text-[#1a2b49] font-semibold' : 'text-gray-500 hover:text-[#1a2b49]'
             }`}>

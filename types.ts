@@ -63,7 +63,7 @@ export interface Booking {
   userId: string; // The user who hired
   userLat: number;
   userLng: number;
-  status: 'active' | 'pending_payment' | 'completed' | 'cancelled';
+  status: 'active' | 'pending_payment' | 'completed' | 'cancelled' | 'cancellation_pending';
   startTime: string;
   createdAt: string;
   totalValue: number;
@@ -83,6 +83,8 @@ export interface Booking {
   finalTotal?: number;
   paymentStatus?: 'pending' | 'paid';
   paidAt?: string;
+  cancellationReason?: string;
+  cancellationRequestedAt?: string;
 }
 
 export interface SearchIntent {

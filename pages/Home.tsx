@@ -187,7 +187,7 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section className="bg-white py-16 sm:py-20 px-4 sm:px-6">
+      <section id="how-it-works" className="bg-white py-16 sm:py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-3">Simple, Fast, and Secure</h2>
           <p className="text-gray-500 text-sm sm:text-base max-w-xl mx-auto mb-14">

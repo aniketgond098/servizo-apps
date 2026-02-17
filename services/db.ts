@@ -957,6 +957,84 @@ export class DB {
     }
   }
 
+  static async requestCancellation(bookingId: string, reason: string) {
+    try {
+      const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
+      if (!bookingDoc.exists()) return;
+      const booking = bookingDoc.data() as Booking;
+      await updateDoc(doc(db, 'bookings', bookingId), {
+        status: 'cancellation_pending',
+        cancellationReason: reason,
+        cancellationRequestedAt: new Date().toISOString()
+      });
+
+      // Notify worker about cancellation request
+      const specialists = await this.getSpecialists();
+      const specialist = specialists.find(s => s.id === booking.specialistId);
+      const user = await this.getUserById(booking.userId);
+      if (specialist?.userId) {
+        await this.createNotification({
+          userId: specialist.userId,
+          type: 'booking_status',
+          title: 'Cancellation Request',
+          message: `${user?.name || 'A user'} has requested to cancel booking ${bookingId}. Reason: ${reason}`,
+          link: '/worker-dashboard',
+          bookingId
+        });
+      }
+    } catch (error) {
+      console.error('Request cancellation error:', error);
+    }
+  }
+
+  static async approveCancellation(bookingId: string) {
+    try {
+      const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
+      if (!bookingDoc.exists()) return;
+      const booking = bookingDoc.data() as Booking;
+      await updateDoc(doc(db, 'bookings', bookingId), { status: 'cancelled' });
+
+      const specialists = await this.getSpecialists();
+      const specialist = specialists.find(s => s.id === booking.specialistId);
+      await this.createNotification({
+        userId: booking.userId,
+        type: 'booking_status',
+        title: 'Cancellation Approved',
+        message: `Your cancellation request for booking ${bookingId} has been approved by ${specialist?.name || 'the worker'}.`,
+        link: '/dashboard',
+        bookingId
+      });
+    } catch (error) {
+      console.error('Approve cancellation error:', error);
+    }
+  }
+
+  static async rejectCancellation(bookingId: string) {
+    try {
+      const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
+      if (!bookingDoc.exists()) return;
+      const booking = bookingDoc.data() as Booking;
+      await updateDoc(doc(db, 'bookings', bookingId), {
+        status: 'active',
+        cancellationReason: '',
+        cancellationRequestedAt: ''
+      });
+
+      const specialists = await this.getSpecialists();
+      const specialist = specialists.find(s => s.id === booking.specialistId);
+      await this.createNotification({
+        userId: booking.userId,
+        type: 'booking_status',
+        title: 'Cancellation Rejected',
+        message: `Your cancellation request for booking ${bookingId} was declined by ${specialist?.name || 'the worker'}. The booking remains active.`,
+        link: '/booking',
+        bookingId
+      });
+    } catch (error) {
+      console.error('Reject cancellation error:', error);
+    }
+  }
+
   static async cleanupCall(callId: string) {
     try {
       // Delete ICE candidates subcollection

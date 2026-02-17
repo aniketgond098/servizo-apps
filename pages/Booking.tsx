@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Clock, MapPin, CreditCard, MessageCircle, Phone, RefreshCw, Activity, CheckCircle2, Star, Loader2, Share2, X, ArrowLeft, AlertTriangle, Navigation, Info, IndianRupee, Check } from 'lucide-react';
+import { Shield, Clock, MapPin, CreditCard, MessageCircle, Phone, RefreshCw, Activity, CheckCircle2, Star, Loader2, Share2, X, ArrowLeft, AlertTriangle, Navigation, Info, IndianRupee, Check, XCircle } from 'lucide-react';
 import { DB } from '../services/db';
 import { Specialist, Booking as BookingType } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,9 @@ export default function Booking() {
   const [eta, setEta] = useState(12);
   const [showMap, setShowMap] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'review' | 'paying' | 'done'>('review');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelLoading, setCancelLoading] = useState(false);
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
@@ -22,7 +25,7 @@ export default function Booking() {
     const loadData = async () => {
       const bookings = await DB.getBookings();
       // Find active or pending_payment booking for this user
-      const booking = bookings.find(b => b.userId === currentUser.id && (b.status === 'active' || b.status === 'pending_payment'));
+      const booking = bookings.find(b => b.userId === currentUser.id && (b.status === 'active' || b.status === 'pending_payment' || b.status === 'cancellation_pending'));
       if (booking) {
         setActiveBooking(booking);
         const specialists = await DB.getSpecialists();
@@ -42,11 +45,23 @@ export default function Booking() {
   const handleDemoPayment = async () => {
     if (!activeBooking) return;
     setPaymentStep('paying');
-    // Simulate payment processing
     await new Promise(r => setTimeout(r, 2000));
     await DB.markBookingPaid(activeBooking.id);
     setPaymentStep('done');
     setTimeout(() => navigate('/dashboard'), 3000);
+  };
+
+  const handleRequestCancel = async () => {
+    if (!activeBooking || !cancelReason.trim()) return;
+    setCancelLoading(true);
+    try {
+      await DB.requestCancellation(activeBooking.id, cancelReason.trim());
+      setActiveBooking({ ...activeBooking, status: 'cancellation_pending', cancellationReason: cancelReason.trim() });
+      setShowCancelModal(false);
+      setCancelReason('');
+    } finally {
+      setCancelLoading(false);
+    }
   };
 
   if (!activeBooking || !specialist) {
@@ -74,21 +89,21 @@ export default function Booking() {
         </button>
 
           {/* Status Banner */}
-          <div className={`rounded-xl p-6 sm:p-8 mb-6 ${activeBooking.status === 'pending_payment' ? 'bg-amber-50 border border-amber-100' : activeBooking.isEmergency ? 'bg-red-50 border border-red-100' : 'bg-blue-50 border border-blue-100'}`}>
+          <div className={`rounded-xl p-6 sm:p-8 mb-6 ${activeBooking.status === 'cancellation_pending' ? 'bg-orange-50 border border-orange-100' : activeBooking.status === 'pending_payment' ? 'bg-amber-50 border border-amber-100' : activeBooking.isEmergency ? 'bg-red-50 border border-red-100' : 'bg-blue-50 border border-blue-100'}`}>
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  {activeBooking.status === 'pending_payment' ? <IndianRupee className="w-5 h-5 text-amber-600" /> : activeBooking.isEmergency ? <AlertTriangle className="w-5 h-5 text-red-500" /> : <Activity className="w-5 h-5 text-[#1a73e8]" />}
-                  <span className={`text-xs font-bold uppercase tracking-wide ${activeBooking.status === 'pending_payment' ? 'text-amber-600' : activeBooking.isEmergency ? 'text-red-600' : 'text-[#1a73e8]'}`}>
-                    {activeBooking.status === 'pending_payment' ? 'Payment Required' : activeBooking.isEmergency ? 'Emergency Booking' : 'Active Booking'}
+                  {activeBooking.status === 'cancellation_pending' ? <XCircle className="w-5 h-5 text-orange-500" /> : activeBooking.status === 'pending_payment' ? <IndianRupee className="w-5 h-5 text-amber-600" /> : activeBooking.isEmergency ? <AlertTriangle className="w-5 h-5 text-red-500" /> : <Activity className="w-5 h-5 text-[#1a73e8]" />}
+                  <span className={`text-xs font-bold uppercase tracking-wide ${activeBooking.status === 'cancellation_pending' ? 'text-orange-600' : activeBooking.status === 'pending_payment' ? 'text-amber-600' : activeBooking.isEmergency ? 'text-red-600' : 'text-[#1a73e8]'}`}>
+                    {activeBooking.status === 'cancellation_pending' ? 'Cancellation Pending' : activeBooking.status === 'pending_payment' ? 'Payment Required' : activeBooking.isEmergency ? 'Emergency Booking' : 'Active Booking'}
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-1">
-                  {activeBooking.status === 'pending_payment' ? 'Review & Pay' : 'Service In Progress'}
+                  {activeBooking.status === 'cancellation_pending' ? 'Awaiting Worker Approval' : activeBooking.status === 'pending_payment' ? 'Review & Pay' : 'Service In Progress'}
                 </h1>
                 <p className="text-sm text-gray-500">Booking ID: {activeBooking.id}</p>
               </div>
-              {activeBooking.status !== 'pending_payment' && (
+              {activeBooking.status !== 'pending_payment' && activeBooking.status !== 'cancellation_pending' && (
                 <div className={`px-5 py-3 rounded-xl text-center ${activeBooking.isEmergency ? 'bg-red-100' : 'bg-blue-100'}`}>
                   <p className="text-xs text-gray-500 mb-0.5">ETA</p>
                   <p className="text-3xl font-bold text-[#1a2b49]">{eta}<span className="text-sm font-normal text-gray-500 ml-1">min</span></p>
@@ -214,11 +229,34 @@ export default function Booking() {
                       <Navigation className="w-5 h-5 text-gray-400 group-hover:text-[#1a73e8] mx-auto mb-2 transition-colors" />
                       <span className="text-xs font-semibold text-gray-500 group-hover:text-[#1a2b49]">Track Live</span>
                     </button>
+                    <button onClick={() => setShowCancelModal(true)} className="bg-white border border-red-100 rounded-xl p-4 text-center hover:border-red-300 transition-all group">
+                      <XCircle className="w-5 h-5 text-gray-400 group-hover:text-red-500 mx-auto mb-2 transition-colors" />
+                      <span className="text-xs font-semibold text-gray-500 group-hover:text-red-600">Cancel Booking</span>
+                    </button>
                     <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3">
                       <Info className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                       <p className="text-xs text-amber-700 leading-relaxed">The worker will submit final charges when work is done. You'll review and pay to complete the booking.</p>
                     </div>
                   </>
+                )}
+
+                {/* Cancellation Pending Info */}
+                {activeBooking.status === 'cancellation_pending' && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse" />
+                      <h4 className="text-sm font-bold text-orange-800">Cancellation Requested</h4>
+                    </div>
+                    <p className="text-xs text-orange-700 leading-relaxed">
+                      Your cancellation request has been sent to the worker. They need to approve it before the booking can be cancelled.
+                    </p>
+                    {activeBooking.cancellationReason && (
+                      <div className="bg-white/60 rounded-lg p-3">
+                        <p className="text-[10px] font-semibold text-orange-600 uppercase tracking-wide mb-1">Your Reason</p>
+                        <p className="text-xs text-gray-700">{activeBooking.cancellationReason}</p>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {/* Payment Review Section */}
@@ -357,6 +395,55 @@ export default function Booking() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Cancel Booking Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-gray-100">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
+                <XCircle className="w-5 h-5 text-red-500" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#1a2b49]">Cancel Booking</h3>
+                <p className="text-xs text-gray-400">The worker must approve your request</p>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="text-xs font-medium text-gray-500 mb-1.5 block">Reason for cancellation *</label>
+              <textarea
+                rows={3}
+                value={cancelReason}
+                onChange={e => setCancelReason(e.target.value)}
+                placeholder="Please explain why you want to cancel..."
+                className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:border-red-300 resize-none"
+              />
+            </div>
+
+            <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-5 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700 leading-relaxed">This will send a cancellation request to the worker. The booking will only be cancelled once the worker approves it.</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowCancelModal(false); setCancelReason(''); }}
+                className="flex-1 py-3 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                Keep Booking
+              </button>
+              <button
+                onClick={handleRequestCancel}
+                disabled={!cancelReason.trim() || cancelLoading}
+                className="flex-1 py-3 bg-red-600 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cancelLoading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <XCircle className="w-4 h-4" />}
+                Request Cancel
+              </button>
             </div>
           </div>
         </div>

@@ -27,7 +27,7 @@ export default function AdminPanel({ currentUser }: { currentUser: any }) {
 const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerificationRequests(), DB.getUsers(), DB.getSpecialists(), DB.getBookings()]);
       setRequests(reqData); setUsers(userData); setSpecialists(specData);
       setBookings(bookData.sort((a, b) => {
-      const statusOrder: Record<string, number> = { active: 0, pending_payment: 1, pending: 2, completed: 3, cancelled: 4 };
+      const statusOrder: Record<string, number> = { active: 0, cancellation_pending: 1, pending_payment: 2, pending: 3, completed: 4, cancelled: 5 };
       const sa = statusOrder[a.status] ?? 5;
       const sb = statusOrder[b.status] ?? 5;
       if (sa !== sb) return sa - sb;
@@ -229,10 +229,13 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
                     <div className="flex items-center gap-2 mb-1">
                       <h3 className="font-semibold text-[#1a2b49] text-sm">{booking.id}</h3>
                       {booking.isEmergency && <span className="px-2 py-0.5 bg-red-500 text-white rounded text-[10px] font-semibold">EMERGENCY</span>}
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${booking.status === 'active' ? 'bg-green-50 text-green-600' : booking.status === 'completed' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-500'}`}>{booking.status}</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${booking.status === 'active' ? 'bg-green-50 text-green-600' : booking.status === 'cancellation_pending' ? 'bg-orange-50 text-orange-600' : booking.status === 'pending_payment' ? 'bg-amber-50 text-amber-600' : booking.status === 'completed' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-500'}`}>{booking.status === 'cancellation_pending' ? 'Cancel Requested' : booking.status === 'pending_payment' ? 'Awaiting Payment' : booking.status}</span>
                     </div>
                     <p className="text-xs text-gray-400">Client: {user?.name || 'Unknown'} · Worker: {specialist?.name || 'Unknown'} · ₹{booking.totalValue}</p>
                     <p className="text-xs text-gray-400">{new Date(booking.createdAt).toLocaleString()}</p>
+                    {booking.status === 'cancellation_pending' && booking.cancellationReason && (
+                      <p className="text-xs text-orange-600 mt-1">Cancel reason: {booking.cancellationReason}</p>
+                    )}
                   </div>
                   {booking.status === 'active' && (
                       <div className="flex gap-2">

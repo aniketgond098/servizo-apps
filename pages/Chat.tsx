@@ -566,10 +566,10 @@ export default function Chat() {
 
     if (isMinimized) {
       return (
-        <div className="fixed bottom-6 right-6 z-[60] bg-[#1a2b49] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
-          <audio ref={remoteAudioRef} autoPlay />
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
-            <Phone className="w-4 h-4 text-white" />
+          <div className="fixed bottom-6 right-6 z-[1200] bg-[#1a2b49] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
+            <audio ref={remoteAudioRef} autoPlay />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+              <Phone className="w-4 h-4 text-white" />
           </div>
           <div>
             <p className="text-white text-sm font-medium">{chatUser?.name}</p>
@@ -588,13 +588,13 @@ export default function Chat() {
     }
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-[#0f1a2e] to-[#1a2b49]">
-        <audio ref={remoteAudioRef} autoPlay />
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-blue-400 blur-[100px]" />
-          <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full bg-purple-400 blur-[80px]" />
-        </div>
-        <button onClick={() => setIsMinimized(true)} className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-gradient-to-b from-[#0f1a2e] to-[#1a2b49]">
+          <audio ref={remoteAudioRef} autoPlay />
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-blue-400 blur-[100px]" />
+            <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full bg-purple-400 blur-[80px]" />
+          </div>
+          <button onClick={() => setIsMinimized(true)} className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
           <Minimize2 className="w-4 h-4 text-white" />
         </button>
         <div className="relative flex flex-col items-center">
@@ -691,9 +691,9 @@ export default function Chat() {
 
     if (isMinimized) {
       return (
-        <div className="fixed bottom-6 right-6 z-[60] bg-[#1a2b49] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
-            <Video className="w-4 h-4 text-white" />
+          <div className="fixed bottom-6 right-6 z-[1200] bg-[#1a2b49] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+              <Video className="w-4 h-4 text-white" />
           </div>
           <div>
             <p className="text-white text-sm font-medium">{chatUser?.name}</p>
@@ -712,8 +712,8 @@ export default function Chat() {
     }
 
       return (
-        <div className="fixed inset-0 z-50 bg-[#0a0f1a]">
-          <audio ref={remoteAudioRef} autoPlay />
+        <div className="fixed inset-0 z-[1200] bg-[#0a0f1a]">
+            <audio ref={remoteAudioRef} autoPlay />
           <div className="absolute inset-0">
             {callState === 'connected' ? (
             <div className="w-full h-full bg-gradient-to-br from-[#1a2b49] via-[#0f1a2e] to-[#1a2b49] flex items-center justify-center relative">

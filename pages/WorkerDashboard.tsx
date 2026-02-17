@@ -21,9 +21,10 @@ export default function WorkerDashboard() {
   const [chargeDesc, setChargeDesc] = useState<Record<string, string>>({});
   const [chargeAmt, setChargeAmt] = useState<Record<string, string>>({});
   const [chargeLoading, setChargeLoading] = useState<Record<string, boolean>>({});
-      const [submitLoading, setSubmitLoading] = useState<Record<string, boolean>>({});
-      const [senderNames, setSenderNames] = useState<Record<string, string>>({});
-      const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+    const [submitLoading, setSubmitLoading] = useState<Record<string, boolean>>({});
+    const [senderNames, setSenderNames] = useState<Record<string, string>>({});
+    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+    const [cancelActionLoading, setCancelActionLoading] = useState<Record<string, boolean>>({});
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -128,6 +129,26 @@ export default function WorkerDashboard() {
       setStatusDropdownOpen(false);
     };
 
+    const handleApproveCancellation = async (bookingId: string) => {
+      setCancelActionLoading(p => ({ ...p, [bookingId]: true }));
+      try {
+        await DB.approveCancellation(bookingId);
+        setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
+      } finally {
+        setCancelActionLoading(p => ({ ...p, [bookingId]: false }));
+      }
+    };
+
+    const handleRejectCancellation = async (bookingId: string) => {
+      setCancelActionLoading(p => ({ ...p, [bookingId]: true }));
+      try {
+        await DB.rejectCancellation(bookingId);
+        setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
+      } finally {
+        setCancelActionLoading(p => ({ ...p, [bookingId]: false }));
+      }
+    };
+
     const statusConfig = {
       available: { label: 'Available', color: 'bg-green-500', bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
       busy: { label: 'Busy', color: 'bg-red-500', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
@@ -209,10 +230,10 @@ export default function WorkerDashboard() {
                           <div className="flex justify-between items-center">
                             <div>
                               <div className="flex items-center gap-2 mb-1">
-                                <div className={`w-2 h-2 rounded-full ${booking.status === 'active' ? 'bg-green-500 animate-pulse' : booking.status === 'pending_payment' ? 'bg-amber-500 animate-pulse' : booking.status === 'completed' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                                <div className={`w-2 h-2 rounded-full ${booking.status === 'active' ? 'bg-green-500 animate-pulse' : booking.status === 'pending_payment' ? 'bg-amber-500 animate-pulse' : booking.status === 'cancellation_pending' ? 'bg-orange-500 animate-pulse' : booking.status === 'completed' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
                                 <span className="text-sm font-semibold text-[#1a2b49]">Booking {booking.id}</span>
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${booking.status === 'active' ? 'bg-green-50 text-green-600' : booking.status === 'pending_payment' ? 'bg-amber-50 text-amber-600' : booking.status === 'completed' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-500'}`}>
-                                  {booking.status === 'pending_payment' ? 'Awaiting Payment' : booking.status}
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${booking.status === 'active' ? 'bg-green-50 text-green-600' : booking.status === 'pending_payment' ? 'bg-amber-50 text-amber-600' : booking.status === 'cancellation_pending' ? 'bg-orange-50 text-orange-600' : booking.status === 'completed' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-500'}`}>
+                                  {booking.status === 'pending_payment' ? 'Awaiting Payment' : booking.status === 'cancellation_pending' ? 'Cancel Requested' : booking.status}
                                 </span>
                               </div>
                               <p className="text-xs text-gray-400">
@@ -295,6 +316,40 @@ export default function WorkerDashboard() {
                               <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 flex items-center gap-2">
                                 <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
                                 <p className="text-xs text-amber-700">Waiting for customer to review charges and make payment.</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Cancellation Request */}
+                          {booking.status === 'cancellation_pending' && (
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 space-y-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse" />
+                                  <h4 className="text-sm font-bold text-orange-800">Cancellation Request</h4>
+                                </div>
+                                {booking.cancellationReason && (
+                                  <div className="bg-white/60 rounded-lg p-3">
+                                    <p className="text-[10px] font-semibold text-orange-600 uppercase tracking-wide mb-1">Reason</p>
+                                    <p className="text-xs text-gray-700">{booking.cancellationReason}</p>
+                                  </div>
+                                )}
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleApproveCancellation(booking.id)}
+                                    disabled={!!cancelActionLoading[booking.id]}
+                                    className="flex-1 py-2.5 bg-red-600 text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-red-700 transition-colors disabled:opacity-50"
+                                  >
+                                    {cancelActionLoading[booking.id] ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Approve Cancel'}
+                                  </button>
+                                  <button
+                                    onClick={() => handleRejectCancellation(booking.id)}
+                                    disabled={!!cancelActionLoading[booking.id]}
+                                    className="flex-1 py-2.5 border border-gray-200 text-gray-700 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                  >
+                                    {cancelActionLoading[booking.id] ? <div className="w-3.5 h-3.5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" /> : 'Reject'}
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           )}
