@@ -25,7 +25,10 @@ export default function Booking() {
     const loadData = async () => {
       const bookings = await DB.getBookings();
       // Find active or pending_payment booking for this user
-      const booking = bookings.find(b => b.userId === currentUser.id && (b.status === 'active' || b.status === 'pending_payment' || b.status === 'cancellation_pending'));
+        const userBookings = bookings
+          .filter(b => b.userId === currentUser.id && (b.status === 'active' || b.status === 'pending_payment' || b.status === 'cancellation_pending'))
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const booking = userBookings[0] || null;
       if (booking) {
         setActiveBooking(booking);
         const specialists = await DB.getSpecialists();

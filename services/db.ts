@@ -220,6 +220,11 @@ export class DB {
         link: '/booking',
         bookingId: newBooking.id
       });
+
+      // Auto-set worker status to busy
+      if (specialist) {
+        await updateDoc(doc(db, 'specialists', specialist.id), { availability: 'busy' });
+      }
       
       return newBooking;
     } catch (error) {
@@ -268,6 +273,11 @@ export class DB {
         link: '/booking',
         bookingId: newBooking.id
       });
+
+      // Auto-set worker status to busy
+      if (specialist) {
+        await updateDoc(doc(db, 'specialists', specialist.id), { availability: 'busy' });
+      }
       
       return newBooking;
     } catch (error) {
@@ -297,8 +307,13 @@ export class DB {
         const booking = bookingDoc.data() as Booking;
         const specialists = await this.getSpecialists();
         const specialist = specialists.find(s => s.id === booking.specialistId);
-        
-        // Notify user about status change
+
+          // Set worker back to available
+          if (specialist) {
+            await updateDoc(doc(db, 'specialists', specialist.id), { availability: 'available' });
+          }
+          
+          // Notify user about status change
         await this.createNotification({
           userId: booking.userId,
           type: 'booking_status',
@@ -324,12 +339,13 @@ export class DB {
         const specialists = await this.getSpecialists();
         const specialist = specialists.find(s => s.id === booking.specialistId);
         
-        // Increment specialist's project count
-        if (specialist) {
-          await updateDoc(doc(db, 'specialists', specialist.id), {
-            projects: (specialist.projects || 0) + 1
-          });
-        }
+        // Increment specialist's project count and set available
+          if (specialist) {
+            await updateDoc(doc(db, 'specialists', specialist.id), {
+              projects: (specialist.projects || 0) + 1,
+              availability: 'available'
+            });
+          }
 
         // Notify user: booking completed
         await this.createNotification({
@@ -924,13 +940,14 @@ export class DB {
         const specialists = await this.getSpecialists();
         const specialist = specialists.find(s => s.id === booking.specialistId);
 
-        if (specialist) {
-          await updateDoc(doc(db, 'specialists', specialist.id), {
-            projects: (specialist.projects || 0) + 1
-          });
-        }
+          if (specialist) {
+            await updateDoc(doc(db, 'specialists', specialist.id), {
+              projects: (specialist.projects || 0) + 1,
+              availability: 'available'
+            });
+          }
 
-        // Notify worker
+          // Notify worker
         if (specialist?.userId) {
           await this.createNotification({
             userId: specialist.userId,
@@ -996,6 +1013,12 @@ export class DB {
 
       const specialists = await this.getSpecialists();
       const specialist = specialists.find(s => s.id === booking.specialistId);
+
+      // Set worker back to available
+      if (specialist) {
+        await updateDoc(doc(db, 'specialists', specialist.id), { availability: 'available' });
+      }
+
       await this.createNotification({
         userId: booking.userId,
         type: 'booking_status',

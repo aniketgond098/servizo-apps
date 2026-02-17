@@ -23,6 +23,7 @@ import CreateProfile from './pages/CreateProfile';
 import BookingHistory from './pages/BookingHistory';
 import ReviewPage from './pages/ReviewPage';
 import IncomingCall from './components/IncomingCall';
+import NotificationToast from './components/NotificationToast';
 import { AuthService } from './services/auth';
 import { User } from './types';
 import { useTheme } from './contexts/ThemeContext';
@@ -392,8 +393,9 @@ function AppContent() {
           </div>
         </div>
       </footer>
-      <IncomingCall />
-      </div>
+        <IncomingCall />
+        <NotificationToast />
+        </div>
     );
   }
 
