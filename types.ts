@@ -89,6 +89,15 @@ export interface Review {
   createdAt: string;
 }
 
+export type MessageType = 'text' | 'image' | 'document';
+
+export interface MessageAttachment {
+  type: 'image' | 'document';
+  url: string;
+  name: string;
+  size?: number;
+}
+
 export interface Message {
   id: string;
   senderId: string;
@@ -96,6 +105,8 @@ export interface Message {
   content: string;
   createdAt: string;
   read: boolean;
+  messageType?: MessageType;
+  attachment?: MessageAttachment;
 }
 
 export type NotificationType = 'booking' | 'message' | 'booking_status' | 'emergency_booking' | 'push';
@@ -111,6 +122,31 @@ export interface Notification {
   link?: string;
   bookingId?: string;
   pushSent?: boolean;
+}
+
+export type CallStatus = 'ringing' | 'connected' | 'ended' | 'missed' | 'rejected';
+
+export interface Call {
+  id: string;
+  callerId: string;
+  callerName: string;
+  receiverId: string;
+  receiverName: string;
+  type: 'voice' | 'video';
+  status: CallStatus;
+  createdAt: string;
+  answeredAt?: string;
+  endedAt?: string;
+  offer?: string; // SDP offer (JSON stringified)
+  answer?: string; // SDP answer (JSON stringified)
+}
+
+export interface IceCandidate {
+  id: string;
+  callId: string;
+  fromUserId: string;
+  candidate: string; // JSON stringified RTCIceCandidate
+  createdAt: string;
 }
 
 export interface PriceRange {

@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, Star, Shield, Zap, Award, ArrowLeft, Users, TrendingUp, CheckCircle } from 'lucide-react';
+import { Search, ChevronRight, Star, Shield, Zap, Award, Users, TrendingUp, CheckCircle, Wrench, Paintbrush, Plug, Bot, Droplets, Ruler } from 'lucide-react';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
 
 export default function Home() {
   const [query, setQuery] = useState("");
+  const [location, setLocation] = useState("");
   const [specialistCount, setSpecialistCount] = useState(12);
   const navigate = useNavigate();
   const user = AuthService.getCurrentUser();
@@ -24,230 +25,98 @@ export default function Home() {
     }
   };
 
-  return (
-    <div className="space-y-24 pb-24 overflow-x-hidden">
-      {/* Hero Section */}
-      <section className="relative min-h-[85vh] flex items-center px-4 sm:px-6 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_70%)]"></div>
-        
-        {/* Animated Grid */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `
-              linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px)
-            `,
-            backgroundSize: '50px 50px',
-            animation: 'gridMove 20s linear infinite'
-          }}></div>
-        </div>
-        
-        {/* Floating Service Icons */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[10%] left-[5%] animate-orbit-1">
-            <div className="w-16 h-16 bg-blue-600/10 backdrop-blur-sm border border-blue-500/20 rounded-2xl flex items-center justify-center">
-              <span className="text-2xl">🔧</span>
-            </div>
-          </div>
-          <div className="absolute top-[20%] right-[10%] animate-orbit-2">
-            <div className="w-20 h-20 bg-purple-600/10 backdrop-blur-sm border border-purple-500/20 rounded-2xl flex items-center justify-center">
-              <span className="text-3xl">⚡</span>
-            </div>
-          </div>
-          <div className="absolute bottom-[15%] left-[15%] animate-orbit-3">
-            <div className="w-14 h-14 bg-green-600/10 backdrop-blur-sm border border-green-500/20 rounded-2xl flex items-center justify-center">
-              <span className="text-xl">🎨</span>
-            </div>
-          </div>
-          <div className="absolute top-[50%] right-[5%] animate-orbit-4">
-            <div className="w-18 h-18 bg-yellow-600/10 backdrop-blur-sm border border-yellow-500/20 rounded-2xl flex items-center justify-center">
-              <span className="text-2xl">🔨</span>
-            </div>
-          </div>
-          <div className="absolute bottom-[25%] right-[20%] animate-orbit-5">
-            <div className="w-16 h-16 bg-red-600/10 backdrop-blur-sm border border-red-500/20 rounded-2xl flex items-center justify-center">
-              <span className="text-2xl">💧</span>
-            </div>
-          </div>
-          <div className="absolute top-[35%] left-[8%] animate-orbit-6">
-            <div className="w-12 h-12 bg-indigo-600/10 backdrop-blur-sm border border-indigo-500/20 rounded-2xl flex items-center justify-center">
-              <span className="text-xl">📐</span>
-            </div>
-          </div>
-        </div>
-        
-        <div className="max-w-7xl mx-auto w-full relative z-10 py-12 sm:py-20">
-          <div className="flex flex-col items-center text-center space-y-6 sm:space-y-8 lg:space-y-12">
-             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] sm:text-[10px] tracking-[0.2em] font-bold uppercase text-gray-400">
-                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
-                Exquisite Craftsmanship Only
-             </div>
-             
-             <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-9xl font-black tracking-tighter leading-none italic px-4">
-                ELEVATED<br/>
-                <span className="text-blue-500 font-normal serif">Lifestyles</span>
-             </h1>
+  const categories = [
+    { name: 'Plumbing', icon: Droplets, count: '240+', color: 'bg-blue-50 text-blue-600' },
+    { name: 'Aesthetics', icon: Paintbrush, count: '150+', color: 'bg-pink-50 text-pink-600' },
+    { name: 'Mechanical', icon: Wrench, count: '310+', color: 'bg-orange-50 text-orange-600' },
+    { name: 'Electrical', icon: Plug, count: '180+', color: 'bg-yellow-50 text-yellow-700' },
+    { name: 'Architecture', icon: Ruler, count: '120+', color: 'bg-indigo-50 text-indigo-600' },
+    { name: 'Automation', icon: Bot, count: '200+', color: 'bg-purple-50 text-purple-600' },
+  ];
 
-             <form onSubmit={handleSearch} className="max-w-2xl w-full relative group px-4">
-                <Search className="absolute left-6 sm:left-8 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-gray-500 group-focus-within:text-blue-500 transition-colors" />
-                <input 
-                    type="text" 
+  const topPros = [
+    { name: 'Sarah Jenkins', title: 'Professional Makeup Artist', rate: 85, rating: 4.9, reviews: 124, img: 'https://picsum.photos/seed/sarah/400/400' },
+    { name: 'David Miller', title: 'Master Electrician', rate: 120, rating: 5.0, reviews: 89, img: 'https://picsum.photos/seed/david/400/400' },
+    { name: 'Michael Wong', title: 'Mathematics Tutor', rate: 60, rating: 4.8, reviews: 215, img: 'https://picsum.photos/seed/michael/400/400' },
+    { name: 'James Rodriguez', title: 'Emergency Plumbing', rate: 95, rating: 4.7, reviews: 98, img: 'https://picsum.photos/seed/james/400/400' },
+  ];
+
+  return (
+    <div className="overflow-x-hidden">
+      {/* Hero Section */}
+      <section className="bg-white pt-8 sm:pt-12 pb-16 sm:pb-20 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Trust badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-full mb-6">
+            <span className="text-xs font-semibold text-[#1a73e8] uppercase tracking-wide">Trusted by 50,000+ users</span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+            {/* Left: Copy */}
+            <div className="space-y-6">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#1a2b49] leading-[1.1] tracking-tight">
+                Find the perfect professional for{' '}
+                <span className="text-[#1a73e8]">any task.</span>
+              </h1>
+              <p className="text-gray-500 text-base sm:text-lg max-w-lg leading-relaxed">
+                Discover top-rated experts for plumbing, makeup, cleaning, and more in your neighborhood. Quality guaranteed.
+              </p>
+
+              {/* Search Bar */}
+              <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-stretch bg-white border border-gray-200 rounded-xl sm:rounded-full shadow-lg overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 sm:py-0 flex-1 border-b sm:border-b-0 sm:border-r border-gray-200">
+                  <Search className="w-5 h-5 text-gray-400 flex-shrink-0" />
+                  <input
+                    type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search Plumbers, Artisans, Names..."
-                    className="w-full bg-black/40 backdrop-blur-xl border border-white/10 rounded-3xl py-4 sm:py-5 lg:py-6 pl-12 sm:pl-14 lg:pl-16 pr-20 sm:pr-28 text-base sm:text-lg lg:text-xl focus:outline-none focus:border-blue-500/50 transition-all shadow-2xl"
-                />
-                <button type="submit" className="absolute right-6 sm:right-8 top-1/2 -translate-y-1/2 px-4 sm:px-6 lg:px-8 py-2 sm:py-2.5 lg:py-3 bg-blue-600 rounded-full font-bold text-xs sm:text-sm hover:bg-blue-500 transition-colors">
-                    DISCOVER
+                    placeholder="What service do you need?"
+                    className="w-full text-sm text-gray-700 placeholder-gray-400 outline-none bg-transparent"
+                  />
+                </div>
+                <div className="flex items-center gap-2 px-4 py-3 sm:py-0 flex-1 border-b sm:border-b-0 sm:border-r border-gray-200">
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  <input
+                    type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    placeholder="Location"
+                    className="w-full text-sm text-gray-700 placeholder-gray-400 outline-none bg-transparent"
+                  />
+                </div>
+                <button type="submit" className="px-6 py-3 sm:py-3.5 bg-[#1a2b49] text-white text-sm font-semibold sm:rounded-full hover:bg-[#0f1d35] transition-colors flex-shrink-0">
+                  Search Now
                 </button>
-             </form>
+              </form>
 
-             {!user && (
-               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 w-full max-w-md px-4">
-                  <Link to="/signup" className="w-full sm:w-auto px-8 sm:px-10 py-3 sm:py-4 bg-blue-600 rounded-full font-bold text-xs sm:text-sm uppercase tracking-widest shadow-xl shadow-blue-600/30 text-center">Sign up</Link>
-                  <Link to="/login" className="w-full sm:w-auto px-8 sm:px-10 py-3 sm:py-4 border border-zinc-800 rounded-full font-bold text-xs sm:text-sm uppercase tracking-widest hover:bg-zinc-900 transition-all text-center">Login</Link>
-               </div>
-             )}
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Sectors - Redesigned */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl sm:text-5xl font-black tracking-tighter mb-3">Why Choose <span className="text-blue-500">Servizo</span></h2>
-          <p className="text-gray-500 text-sm sm:text-base">Premium service marketplace for discerning clients</p>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="relative bg-gradient-to-br from-blue-600/5 to-blue-600/0 border border-zinc-800 p-8 rounded-3xl hover:border-blue-500/50 transition-all group overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl group-hover:bg-blue-500/10 transition-all"></div>
-                <div className="relative">
-                  <div className="w-14 h-14 bg-blue-600/10 border border-blue-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <Zap className="text-blue-500 w-7 h-7" />
-                  </div>
-                  <h3 className="text-2xl font-black mb-3">Verified Artisans</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed mb-6">Every specialist undergoes rigorous background checks, skill verification, and insurance validation before joining our platform.</p>
-                  <Link to="/signup" className="inline-flex items-center gap-2 text-sm font-bold text-blue-500 hover:gap-3 transition-all">
-                    Join as Artisan <ChevronRight className="w-4 h-4" />
+              {/* Popular tags */}
+              <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                <span className="font-medium">Popular:</span>
+                {['Plumbing', 'House Cleaning', 'Handyman'].map(tag => (
+                  <Link key={tag} to={`/listing?q=${tag}`} className="text-gray-600 hover:text-[#1a73e8] transition-colors underline underline-offset-2">
+                    {tag}
                   </Link>
-                </div>
+                ))}
+              </div>
             </div>
-            <div className="relative bg-gradient-to-br from-purple-600/5 to-purple-600/0 border border-zinc-800 p-8 rounded-3xl hover:border-purple-500/50 transition-all group overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl group-hover:bg-purple-500/10 transition-all"></div>
-                <div className="relative">
-                  <div className="w-14 h-14 bg-purple-600/10 border border-purple-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <Shield className="text-purple-500 w-7 h-7" />
-                  </div>
-                  <h3 className="text-2xl font-black mb-3">Real-Time Tracking</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed mb-6">Monitor your service professional's location in real-time with live routing, ETA updates, and instant communication channels.</p>
-                  <Link to="/listing" className="inline-flex items-center gap-2 text-sm font-bold text-purple-500 hover:gap-3 transition-all">
-                    Browse Services <ChevronRight className="w-4 h-4" />
-                  </Link>
-                </div>
-            </div>
-            <div className="relative bg-gradient-to-br from-green-600/5 to-green-600/0 border border-zinc-800 p-8 rounded-3xl hover:border-green-500/50 transition-all group overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/5 rounded-full blur-3xl group-hover:bg-green-500/10 transition-all"></div>
-                <div className="relative">
-                  <div className="w-14 h-14 bg-green-600/10 border border-green-500/20 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                    <Award className="text-green-500 w-7 h-7" />
-                  </div>
-                  <h3 className="text-2xl font-black mb-3">Quality Guaranteed</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed mb-6">Photo evidence system, detailed analytics, and comprehensive review system ensure accountability and excellence in every job.</p>
-                  <Link to="/booking-history" className="inline-flex items-center gap-2 text-sm font-bold text-green-500 hover:gap-3 transition-all">
-                    View Analytics <ChevronRight className="w-4 h-4" />
-                  </Link>
-                </div>
-            </div>
-        </div>
-      </section>
 
-      {/* Stats Section - Redesigned */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="relative bg-gradient-to-br from-zinc-900/50 to-zinc-900/20 border border-zinc-800 rounded-3xl p-12 overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.1),transparent_50%)]"></div>
-          <div className="relative grid grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center group">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600/10 border border-blue-500/20 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-                <Users className="w-8 h-8 text-blue-500" />
+            {/* Right: Hero Image */}
+            <div className="relative hidden lg:block">
+              <div className="rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=500&fit=crop"
+                  alt="Professional service"
+                  className="w-full h-[420px] object-cover"
+                />
               </div>
-              <div className="text-5xl font-black text-white mb-2">{specialistCount}+</div>
-              <div className="text-sm text-gray-400 font-medium">Elite Specialists</div>
-            </div>
-            <div className="text-center group">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-600/10 border border-green-500/20 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-                <CheckCircle className="w-8 h-8 text-green-500" />
-              </div>
-              <div className="text-5xl font-black text-white mb-2">98%</div>
-              <div className="text-sm text-gray-400 font-medium">Success Rate</div>
-            </div>
-            <div className="text-center group">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-600/10 border border-purple-500/20 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-                <Shield className="w-8 h-8 text-purple-500" />
-              </div>
-              <div className="text-5xl font-black text-white mb-2">24/7</div>
-              <div className="text-sm text-gray-400 font-medium">Support Available</div>
-            </div>
-            <div className="text-center group">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-600/10 border border-yellow-500/20 rounded-2xl mb-4 group-hover:scale-110 transition-transform">
-                <TrendingUp className="w-8 h-8 text-yellow-500" />
-              </div>
-              <div className="text-5xl font-black text-white mb-2">5K+</div>
-              <div className="text-sm text-gray-400 font-medium">Projects Completed</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works - Redesigned */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tighter mb-4">How It <span className="text-blue-500">Works</span></h2>
-          <p className="text-gray-400 text-base max-w-2xl mx-auto">Three simple steps to connect with verified professionals</p>
-        </div>
-        <div className="relative">
-          {/* Connection Line */}
-          <div className="hidden md:block absolute top-24 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-blue-500/20 to-transparent"></div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="relative">
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-8 hover:border-blue-500/50 transition-all group">
-                <div className="absolute -top-6 left-8">
-                  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-xl font-black shadow-lg shadow-blue-600/50 group-hover:scale-110 transition-transform">1</div>
+              {/* Floating badge */}
+              <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#1a2b49] rounded-full flex items-center justify-center flex-shrink-0">
+                  <Shield className="w-5 h-5 text-white" />
                 </div>
-                <div className="pt-8">
-                  <div className="w-12 h-12 bg-blue-600/10 border border-blue-500/20 rounded-xl flex items-center justify-center mb-4">
-                    <Search className="w-6 h-6 text-blue-500" />
-                  </div>
-                  <h3 className="text-xl font-black mb-3">Search & Filter</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">Browse verified specialists by category, location, rating, and availability. Use advanced filters to find the perfect match.</p>
-                </div>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-8 hover:border-blue-500/50 transition-all group">
-                <div className="absolute -top-6 left-8">
-                  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-xl font-black shadow-lg shadow-blue-600/50 group-hover:scale-110 transition-transform">2</div>
-                </div>
-                <div className="pt-8">
-                  <div className="w-12 h-12 bg-purple-600/10 border border-purple-500/20 rounded-xl flex items-center justify-center mb-4">
-                    <CheckCircle className="w-6 h-6 text-purple-500" />
-                  </div>
-                  <h3 className="text-xl font-black mb-3">Book Instantly</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">Review profiles, credentials, and past work. Book regular or emergency services with instant confirmation and real-time tracking.</p>
-                </div>
-              </div>
-            </div>
-            <div className="relative">
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-8 hover:border-blue-500/50 transition-all group">
-                <div className="absolute -top-6 left-8">
-                  <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-xl font-black shadow-lg shadow-blue-600/50 group-hover:scale-110 transition-transform">3</div>
-                </div>
-                <div className="pt-8">
-                  <div className="w-12 h-12 bg-green-600/10 border border-green-500/20 rounded-xl flex items-center justify-center mb-4">
-                    <Star className="w-6 h-6 text-green-500" />
-                  </div>
-                  <h3 className="text-xl font-black mb-3">Track & Review</h3>
-                  <p className="text-gray-400 text-sm leading-relaxed">Monitor progress with photo evidence, live location tracking, and direct messaging. Rate your experience when complete.</p>
+                <div>
+                  <p className="text-sm font-semibold text-[#1a2b49]">Certified Professionals</p>
+                  <p className="text-xs text-gray-500">Every expert is background checked</p>
                 </div>
               </div>
             </div>
@@ -255,59 +124,128 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Categories - Redesigned */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl sm:text-5xl font-black tracking-tighter mb-4">Service <span className="text-blue-500">Categories</span></h2>
-          <p className="text-gray-400 text-base">Expert professionals across all major service sectors</p>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[
-            {name: 'Architecture', icon: '📐', color: 'blue'},
-            {name: 'Plumbing', icon: '💧', color: 'cyan'},
-            {name: 'Mechanical', icon: '🔧', color: 'orange'},
-            {name: 'Aesthetics', icon: '🎨', color: 'pink'},
-            {name: 'Electrical', icon: '⚡', color: 'yellow'},
-            {name: 'Automation', icon: '🤖', color: 'purple'}
-          ].map(cat => (
-            <Link key={cat.name} to={`/listing?filter=${cat.name}`} className="group relative bg-zinc-900/30 border border-zinc-800 rounded-2xl p-6 text-center hover:border-blue-500/50 transition-all overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-600/0 to-blue-600/0 group-hover:from-blue-600/5 group-hover:to-transparent transition-all"></div>
-              <div className="relative">
-                <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">{cat.icon}</div>
-                <div className="text-sm font-bold mb-1">{cat.name}</div>
-                <div className="text-xs text-gray-500 group-hover:text-blue-500 transition-colors">Explore →</div>
-              </div>
+      {/* Featured Categories */}
+      <section className="bg-gray-50 py-16 sm:py-20 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-end justify-between mb-10">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-2">Featured Categories</h2>
+              <p className="text-gray-500 text-sm sm:text-base">Explore high-quality services by category</p>
+            </div>
+            <Link to="/listing" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#1a73e8] hover:underline">
+              View All Categories <ChevronRight className="w-4 h-4" />
             </Link>
-          ))}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {categories.map(cat => (
+              <Link
+                key={cat.name}
+                to={`/listing?filter=${cat.name}`}
+                className="bg-white rounded-xl border border-gray-100 p-5 text-center hover:shadow-lg hover:border-gray-200 transition-all group"
+              >
+                <div className={`w-14 h-14 ${cat.color} rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform`}>
+                  <cat.icon className="w-7 h-7" />
+                </div>
+                <p className="text-sm font-semibold text-[#1a2b49] mb-1">{cat.name}</p>
+                <p className="text-xs text-gray-400">{cat.count} Pros</p>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* CTA - Redesigned */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6">
-        <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 rounded-3xl p-12 sm:p-16 text-center overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent_50%)]"></div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/20 rounded-full blur-3xl"></div>
-          
-          <div className="relative space-y-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-xs font-bold uppercase tracking-widest">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-              Join 5,000+ Happy Customers
+      {/* How It Works */}
+      <section className="bg-white py-16 sm:py-20 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-3">Simple, Fast, and Secure</h2>
+          <p className="text-gray-500 text-sm sm:text-base max-w-xl mx-auto mb-14">
+            Get your project started in just three easy steps. We handle the hard part so you can focus on the results.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-4xl mx-auto relative">
+            {/* Connector line */}
+            <div className="hidden md:block absolute top-10 left-[20%] right-[20%] border-t-2 border-dashed border-gray-200"></div>
+
+            <div className="flex flex-col items-center text-center relative">
+              <div className="w-16 h-16 bg-[#1a2b49] rounded-full flex items-center justify-center mb-5 shadow-lg relative z-10">
+                <Search className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-[#1a2b49] mb-2">1. Search for a service</h3>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-xs">Tell us what you need and where. We'll show you the best pros for the job.</p>
             </div>
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tighter">Ready to Experience<br/>Premium Service?</h2>
-            <p className="text-blue-100 text-base max-w-2xl mx-auto">Connect with verified professionals in minutes. Real-time tracking, quality guaranteed, and 24/7 support.</p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
-              <Link to="/listing" className="group px-8 py-4 bg-white text-blue-600 rounded-full font-bold text-sm uppercase tracking-widest hover:bg-gray-100 transition-all inline-flex items-center justify-center gap-2">
-                Browse Specialists
-                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            <div className="flex flex-col items-center text-center relative">
+              <div className="w-16 h-16 bg-[#1a73e8] rounded-full flex items-center justify-center mb-5 shadow-lg relative z-10">
+                <CheckCircle className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-[#1a2b49] mb-2">2. Compare Quotes</h3>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-xs">Review profiles, ratings, and quotes. Message professionals directly through our platform.</p>
+            </div>
+            <div className="flex flex-col items-center text-center relative">
+              <div className="w-16 h-16 bg-[#1a2b49] rounded-full flex items-center justify-center mb-5 shadow-lg relative z-10">
+                <Shield className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-[#1a2b49] mb-2">3. Book & Pay</h3>
+              <p className="text-sm text-gray-500 leading-relaxed max-w-xs">Schedule your appointment and pay securely. Your satisfaction is our priority.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Top-Rated Professionals */}
+      <section className="bg-white py-16 sm:py-20 px-4 sm:px-6 border-t border-gray-100">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-end justify-between mb-10">
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-2">Top-Rated Professionals</h2>
+              <p className="text-gray-500 text-sm sm:text-base">Highly recommended experts ready to help you</p>
+            </div>
+            <Link to="/listing" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#1a73e8] hover:underline">
+              View All <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {topPros.map(pro => (
+              <Link key={pro.name} to="/listing" className="group">
+                <div className="relative rounded-xl overflow-hidden mb-3 aspect-[4/5]">
+                  <img src={pro.img} alt={pro.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
+                    <span className="text-xs font-bold text-[#1a2b49]">{pro.rating} ({pro.reviews})</span>
+                  </div>
+                </div>
+                <h3 className="text-sm font-bold text-[#1a2b49]">{pro.name}</h3>
+                <p className="text-xs text-[#1a73e8] font-medium mb-2">{pro.title}</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">Starting at</span>
+                    <p className="text-base font-bold text-[#1a2b49]">${pro.rate}/hr</p>
+                  </div>
+                  <div className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center group-hover:bg-[#1a2b49] group-hover:text-white group-hover:border-[#1a2b49] transition-all">
+                    <ChevronRight className="w-4 h-4" />
+                  </div>
+                </div>
               </Link>
-              <Link to="/signup" className="px-8 py-4 bg-transparent border-2 border-white text-white rounded-full font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all">
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      {!user && (
+        <section className="bg-gray-50 py-16 sm:py-20 px-4 sm:px-6">
+          <div className="max-w-3xl mx-auto text-center space-y-6">
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#1a2b49]">Ready to get started?</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">Join thousands of satisfied customers. Find and book trusted professionals in minutes.</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link to="/listing" className="px-8 py-3.5 bg-[#1a2b49] text-white rounded-lg text-sm font-semibold hover:bg-[#0f1d35] transition-colors inline-flex items-center justify-center gap-2">
+                Browse Specialists <ChevronRight className="w-4 h-4" />
+              </Link>
+              <Link to="/signup" className="px-8 py-3.5 border border-[#1a2b49] text-[#1a2b49] rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors">
                 Sign Up Free
               </Link>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

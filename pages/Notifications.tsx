@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, ArrowLeft, MessageCircle, Calendar, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import { Bell, ArrowLeft, MessageCircle, Calendar, AlertTriangle, CheckCircle, X, BellOff, Sparkles } from 'lucide-react';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
 import { Notification } from '../types';
@@ -9,137 +9,202 @@ export default function Notifications() {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
+    if (!currentUser) { navigate('/login'); return; }
     loadNotifications();
   }, []);
 
   const loadNotifications = async () => {
     if (!currentUser) return;
     setLoading(true);
-    const notifs = await DB.getNotifications(currentUser.id);
-    setNotifications(notifs);
+    setNotifications(await DB.getNotifications(currentUser.id));
     setLoading(false);
   };
 
-  const handleMarkAsRead = async (notificationId: string) => {
-    await DB.markNotificationAsRead(notificationId);
-    loadNotifications();
-  };
-
-  const handleMarkAllAsRead = async () => {
-    if (!currentUser) return;
-    await DB.markAllNotificationsAsRead(currentUser.id);
-    loadNotifications();
-  };
+  const handleMarkAsRead = async (id: string) => { await DB.markNotificationAsRead(id); loadNotifications(); };
+  const handleMarkAllAsRead = async () => { if (!currentUser) return; await DB.markAllNotificationsAsRead(currentUser.id); loadNotifications(); };
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'message':
-        return <MessageCircle className="w-5 h-5 text-green-500" />;
-      case 'booking':
-        return <Calendar className="w-5 h-5 text-blue-500" />;
-      case 'emergency_booking':
-        return <AlertTriangle className="w-5 h-5 text-red-500" />;
-      case 'booking_status':
-        return <CheckCircle className="w-5 h-5 text-purple-500" />;
-      default:
-        return <Bell className="w-5 h-5 text-gray-500" />;
+      case 'message': return <MessageCircle className="w-5 h-5" />;
+      case 'booking': return <Calendar className="w-5 h-5" />;
+      case 'emergency_booking': return <AlertTriangle className="w-5 h-5" />;
+      case 'booking_status': return <CheckCircle className="w-5 h-5" />;
+      default: return <Bell className="w-5 h-5" />;
     }
+  };
+
+  const getIconStyle = (type: string, read: boolean) => {
+    if (read) return 'bg-gray-100 text-gray-400';
+    switch (type) {
+      case 'message': return 'bg-emerald-50 text-emerald-600';
+      case 'booking': return 'bg-blue-50 text-[#1a73e8]';
+      case 'emergency_booking': return 'bg-red-50 text-red-500';
+      case 'booking_status': return 'bg-purple-50 text-purple-600';
+      default: return 'bg-gray-100 text-gray-500';
+    }
+  };
+
+  const filteredNotifications = filter === 'unread'
+    ? notifications.filter(n => !n.read)
+    : notifications;
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const mins = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
   };
 
   if (!currentUser) return null;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-24">
-      <button 
-        onClick={() => navigate(-1)} 
-        className="fixed top-20 left-4 sm:left-6 z-40 p-3 bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-full hover:bg-zinc-800 transition-all group"
-      >
-        <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
-      </button>
-
-      <div className="pt-8 sm:pt-12">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <Bell className="w-8 h-8 text-blue-500" />
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">
-              <span className="text-blue-500">Notifications</span>
-            </h1>
+    <div className="bg-white min-h-[calc(100vh-64px)]">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-8 animate-fadeIn">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-8">
+          <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+            <ArrowLeft className="w-4 h-4 text-[#1a2b49]" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-xl font-bold text-[#1a2b49]">Notifications</h1>
+            {unreadCount > 0 && (
+              <p className="text-xs text-gray-400 mt-0.5">{unreadCount} unread</p>
+            )}
           </div>
-          {notifications.some(n => !n.read) && (
-            <button
-              onClick={handleMarkAllAsRead}
-              className="px-4 py-2 bg-blue-600 rounded-xl text-xs font-bold hover:bg-blue-500 transition-all"
-            >
+          {unreadCount > 0 && (
+            <button onClick={handleMarkAllAsRead} className="px-4 py-2 bg-[#1a2b49] text-white rounded-lg text-xs font-semibold hover:bg-[#0f1d35] transition-colors">
               Mark All Read
             </button>
           )}
         </div>
 
-        {loading ? (
-          <div className="text-center py-20">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        {/* Filter Tabs */}
+        {notifications.length > 0 && (
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
+                filter === 'all'
+                  ? 'bg-[#1a2b49] text-white'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilter('unread')}
+              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                filter === 'unread'
+                  ? 'bg-[#1a2b49] text-white'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+            >
+              Unread
+              {unreadCount > 0 && (
+                <span className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold ${
+                  filter === 'unread' ? 'bg-white/20 text-white' : 'bg-[#1a73e8] text-white'
+                }`}>
+                  {unreadCount}
+                </span>
+              )}
+            </button>
           </div>
-        ) : notifications.length > 0 ? (
-          <div className="space-y-3">
-            {notifications.map(notif => (
+        )}
+
+        {/* Content */}
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-10 h-10 border-[3px] border-gray-200 border-t-[#1a2b49] rounded-full animate-spin"></div>
+          </div>
+        ) : filteredNotifications.length > 0 ? (
+          <div className="space-y-1">
+            {filteredNotifications.map((notif, idx) => (
               <div
                 key={notif.id}
-                className={`bg-zinc-900/30 border rounded-2xl p-6 transition-all ${
-                  notif.read ? 'border-zinc-800' : 'border-blue-500/40 bg-blue-500/5'
+                className={`group relative flex items-start gap-3.5 p-4 rounded-xl transition-all cursor-default ${
+                  notif.read
+                    ? 'hover:bg-gray-50'
+                    : 'bg-blue-50/40 hover:bg-blue-50/60'
                 }`}
+                style={{ animationDelay: `${idx * 40}ms` }}
               >
-                <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    notif.read ? 'bg-zinc-800' : 'bg-blue-600/20'
-                  }`}>
-                    {getIcon(notif.type)}
+                {/* Unread indicator */}
+                {!notif.read && (
+                  <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#1a73e8]"></div>
+                )}
+
+                {/* Icon */}
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${getIconStyle(notif.type, notif.read)}`}>
+                  {getIcon(notif.type)}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <h3 className={`text-sm leading-snug ${notif.read ? 'font-medium text-gray-600' : 'font-semibold text-[#1a2b49]'}`}>
+                        {notif.title}
+                      </h3>
+                      <p className="text-sm text-gray-400 mt-0.5 leading-relaxed">{notif.message}</p>
+                    </div>
+                    {!notif.read && (
+                      <button
+                        onClick={() => handleMarkAsRead(notif.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-white rounded-lg transition-all flex-shrink-0"
+                        title="Mark as read"
+                      >
+                        <X className="w-3.5 h-3.5 text-gray-400" />
+                      </button>
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <h3 className="font-bold text-base">{notif.title}</h3>
-                      {!notif.read && (
-                        <button
-                          onClick={() => handleMarkAsRead(notif.id)}
-                          className="p-1 hover:bg-zinc-800 rounded-full transition-all"
-                          title="Mark as read"
-                        >
-                          <X className="w-4 h-4 text-gray-500" />
-                        </button>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-400 mb-2">{notif.message}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-600">
-                        {new Date(notif.createdAt).toLocaleString()}
-                      </span>
-                      {notif.link && (
-                        <Link
-                          to={notif.link}
-                          className="text-xs font-bold text-blue-500 hover:text-blue-400 transition-colors"
-                        >
-                          View Details →
-                        </Link>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="text-[11px] text-gray-400 font-medium">{formatTime(notif.createdAt)}</span>
+                    {notif.link && (
+                      <Link to={notif.link} className="text-[11px] font-semibold text-[#1a73e8] hover:underline">
+                        View Details
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="text-center py-20">
-            <Bell className="w-16 h-16 mx-auto mb-4 text-zinc-700" />
-            <p className="text-gray-500 font-bold uppercase tracking-widest text-sm">No notifications yet</p>
-            <Link to="/listing" className="inline-block mt-4 px-6 py-3 bg-blue-600 rounded-full text-sm font-bold hover:bg-blue-500 transition-all">
-              Browse Specialists
-            </Link>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">
+              <BellOff className="w-7 h-7 text-gray-300" />
+            </div>
+            <h3 className="text-sm font-semibold text-[#1a2b49] mb-1">
+              {filter === 'unread' ? 'All caught up!' : 'No notifications yet'}
+            </h3>
+            <p className="text-xs text-gray-400 mb-5 text-center max-w-xs">
+              {filter === 'unread'
+                ? "You've read all your notifications"
+                : "When you receive bookings, messages, or updates they'll appear here"}
+            </p>
+            {filter === 'unread' ? (
+              <button onClick={() => setFilter('all')} className="px-5 py-2.5 bg-gray-100 text-[#1a2b49] rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors">
+                View All Notifications
+              </button>
+            ) : (
+              <Link to="/listing" className="px-5 py-2.5 bg-[#1a2b49] text-white rounded-lg text-xs font-semibold hover:bg-[#0f1d35] transition-colors inline-block">
+                Browse Specialists
+              </Link>
+            )}
           </div>
         )}
       </div>

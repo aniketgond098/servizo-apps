@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MessageCircle, ArrowLeft } from 'lucide-react';
+import { MessageCircle, ArrowLeft, Search, Edit3 } from 'lucide-react';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
 import { Message } from '../types';
@@ -8,118 +8,161 @@ import { Message } from '../types';
 export default function Messages() {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState<{ userId: string; userName: string; lastMessage: Message; unread: number; specialistId?: string }[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
-    
+    if (!currentUser) { navigate('/login'); return; }
     const loadMessages = async () => {
       const allMessages = await DB.getMessages();
       const userMessages = allMessages.filter(m => m.senderId === currentUser.id || m.receiverId === currentUser.id);
-      
       const convMap = new Map<string, Message[]>();
       userMessages.forEach(msg => {
         const otherId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
         if (!convMap.has(otherId)) convMap.set(otherId, []);
         convMap.get(otherId)!.push(msg);
       });
-      
       const convList = await Promise.all(
         Array.from(convMap.entries()).map(async ([userId, msgs]) => {
           const sortedMsgs = msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
           const unread = msgs.filter(m => m.receiverId === currentUser.id && !m.read).length;
           const user = await DB.getUserById(userId);
-          
           let displayName = 'User';
           let specialistId: string | undefined;
           if (user) {
             if (user.role === 'worker') {
               const specialists = await DB.getSpecialists();
               const specialist = specialists.find(s => s.userId === user.id || s.id === user.id);
-              if (specialist) {
-                displayName = `${user.name} (${specialist.category})`;
-                specialistId = specialist.id;
-              } else {
-                displayName = `${user.name} (Service Provider)`;
-              }
-            } else {
-              displayName = user.name;
-            }
+              displayName = specialist ? `${user.name} (${specialist.category})` : `${user.name} (Service Provider)`;
+              specialistId = specialist?.id;
+            } else { displayName = user.name; }
           }
-          
-          return {
-            userId,
-            userName: displayName,
-            lastMessage: sortedMsgs[0],
-            unread,
-            specialistId
-          };
+          return { userId, userName: displayName, lastMessage: sortedMsgs[0], unread, specialistId };
         })
       );
-      
-      const sortedConvList = convList.sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime());
-      setConversations(sortedConvList);
+      setConversations(convList.sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()));
     };
     loadMessages();
   }, []);
 
   if (!currentUser) return null;
 
+  const filteredConversations = conversations.filter(c =>
+    c.userName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const formatTime = (date: string) => {
+    const d = new Date(date);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return d.toLocaleDateString([], { weekday: 'short' }).toUpperCase();
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric' }).toUpperCase();
+  };
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-24">
-      <button 
-        onClick={() => navigate(-1)} 
-        className="fixed top-20 left-4 sm:left-6 z-40 p-3 bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-full hover:bg-zinc-800 transition-all group"
-      >
-        <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
-      </button>
+    <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {/* Back button */}
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#1a2b49] mb-6 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
 
-      <div className="pt-8 sm:pt-12">
-        <div className="flex items-center gap-3 mb-8">
-          <MessageCircle className="w-8 h-8 text-green-500" />
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tighter">My <span className="text-green-500">Messages</span></h1>
-        </div>
+        {/* Messages Container */}
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm" style={{ minHeight: 'calc(100vh - 220px)' }}>
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+            <h1 className="text-xl font-bold text-[#1a2b49]">Messages</h1>
+            <button className="w-9 h-9 rounded-lg bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition-colors">
+              <Edit3 className="w-4 h-4 text-[#1a73e8]" />
+            </button>
+          </div>
 
-        {conversations.length > 0 ? (
-          <div className="space-y-3">
-            {conversations.map(conv => (
-              <Link 
-                key={conv.userId} 
-                to={`/chat/${conv.userId}`}
-                className="block bg-zinc-900/30 border border-zinc-800 p-6 rounded-2xl hover:border-green-500/40 transition-all"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-lg font-bold flex-shrink-0">
-                    {conv.userName.charAt(0)}
+          {/* Search */}
+          <div className="px-6 py-3 border-b border-gray-100">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-[#1a2b49] placeholder-gray-400 focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]/20 transition-all"
+              />
+            </div>
+          </div>
+
+          {/* Conversation List */}
+          {filteredConversations.length > 0 ? (
+            <div className="divide-y divide-gray-50">
+              {filteredConversations.map(conv => (
+                <Link key={conv.userId} to={`/chat/${conv.userId}`}
+                  className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors group">
+                  {/* Avatar */}
+                  <div className="relative flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a2b49] to-[#2a4a7f] flex items-center justify-center text-white font-semibold text-sm">
+                      {conv.userName.charAt(0).toUpperCase()}
+                    </div>
+                    {conv.unread > 0 && (
+                      <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-[#1a73e8] rounded-full border-2 border-white" />
+                    )}
                   </div>
+                  {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className="font-bold truncate">{conv.userName}</h3>
-                      <span className="text-xs text-gray-500 ml-2 flex-shrink-0">{new Date(conv.lastMessage.createdAt).toLocaleDateString()}</span>
+                      <h3 className={`text-sm truncate ${conv.unread > 0 ? 'font-bold text-[#1a2b49]' : 'font-medium text-[#1a2b49]'}`}>
+                        {conv.userName}
+                      </h3>
+                      <span className={`text-xs ml-3 flex-shrink-0 ${conv.unread > 0 ? 'text-[#1a73e8] font-semibold' : 'text-gray-400'}`}>
+                        {formatTime(conv.lastMessage.createdAt)}
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-400 truncate">{conv.lastMessage.content}</p>
+                    <div className="flex items-center gap-2">
+                        <p className={`text-sm truncate flex-1 ${conv.unread > 0 ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+                          {conv.lastMessage.senderId === currentUser.id && (
+                            <span className="text-gray-400">You: </span>
+                          )}
+                          {conv.lastMessage.messageType === 'image' ? '📷 Photo' : conv.lastMessage.messageType === 'document' ? `📎 ${conv.lastMessage.attachment?.name || 'Document'}` : conv.lastMessage.content}
+                        </p>
+                      {conv.unread > 0 && (
+                        <div className="w-5 h-5 bg-[#1a73e8] rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-[10px] font-bold text-white">{conv.unread}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {conv.unread > 0 && (
-                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
-                      {conv.unread}
-                    </div>
-                  )}
-                </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <MessageCircle className="w-7 h-7 text-gray-300" />
+              </div>
+              <p className="text-[#1a2b49] font-semibold mb-1">No messages yet</p>
+              <p className="text-sm text-gray-400 mb-5">Start a conversation with a service provider</p>
+              <Link to="/listing" className="px-5 py-2.5 bg-[#1a2b49] text-white rounded-xl text-sm font-semibold hover:bg-[#0f1d35] transition-colors">
+                Browse Specialists
               </Link>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-20">
-            <MessageCircle className="w-16 h-16 mx-auto mb-4 text-zinc-700" />
-            <p className="text-gray-500 font-bold uppercase tracking-widest text-sm">No messages yet</p>
-            <Link to="/listing" className="inline-block mt-4 px-6 py-3 bg-blue-600 rounded-full text-sm font-bold hover:bg-blue-500 transition-all">
-              Browse Specialists
-            </Link>
-          </div>
-        )}
+            </div>
+          )}
+
+          {/* Footer - User info */}
+          {currentUser && (
+            <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-[#1a73e8] flex items-center justify-center text-white text-xs font-bold">
+                  {currentUser.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[#1a2b49]">{currentUser.name}</p>
+                  <p className="text-xs text-gray-400">Active now</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

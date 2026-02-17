@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, FileText, User, ArrowLeft, Users, Briefcase, Calendar, Trash2, Edit, Shield } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, User, Users, Briefcase, Calendar, Trash2, Edit, Shield, Eye, X, Download, Image, File } from 'lucide-react';
 import { DB } from '../services/db';
 import type { VerificationRequest, User as UserType, Specialist, Booking } from '../types';
 
@@ -16,283 +16,219 @@ export default function AdminPanel({ currentUser }: { currentUser: any }) {
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('pending');
   const [editingUser, setEditingUser] = useState<UserType | null>(null);
   const [editingSpecialist, setEditingSpecialist] = useState<Specialist | null>(null);
+  const [viewingDoc, setViewingDoc] = useState<{ url: string; label: string } | null>(null);
 
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'admin') {
-      navigate('/', { replace: true });
-      return;
-    }
+    if (!currentUser || currentUser.role !== 'admin') { navigate('/', { replace: true }); return; }
     loadAllData();
   }, [activeTab]);
 
   const loadAllData = async () => {
-    const [reqData, userData, specData, bookData] = await Promise.all([
-      DB.getVerificationRequests(),
-      DB.getUsers(),
-      DB.getSpecialists(),
-      DB.getBookings()
-    ]);
-    setRequests(reqData);
-    setUsers(userData);
-    setSpecialists(specData);
-    setBookings(bookData);
+    const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerificationRequests(), DB.getUsers(), DB.getSpecialists(), DB.getBookings()]);
+    setRequests(reqData); setUsers(userData); setSpecialists(specData); setBookings(bookData);
   };
 
-  const handleApprove = async (requestId: string) => {
-    await DB.approveVerification(requestId, currentUser.id);
-    loadAllData();
-  };
-
-  const handleReject = async (requestId: string) => {
-    await DB.rejectVerification(requestId, currentUser.id);
-    loadAllData();
-  };
-
-  const handleDeleteUser = async (userId: string) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-      const userDoc = await DB.getUserById(userId);
-      if (userDoc) {
-        await DB.updateUser({ ...userDoc, email: `deleted_${userId}@deleted.com` });
-        loadAllData();
-      }
-    }
-  };
-
-  const handleDeleteSpecialist = async (specialistId: string) => {
-    if (confirm('Are you sure you want to delete this specialist?')) {
-      await DB.deleteSpecialist(specialistId);
-      loadAllData();
-    }
-  };
-
-  const handleUpdateUser = async () => {
-    if (editingUser) {
-      await DB.updateUser(editingUser);
-      setEditingUser(null);
-      loadAllData();
-    }
-  };
-
-  const handleUpdateSpecialist = async () => {
-    if (editingSpecialist) {
-      await DB.updateSpecialist(editingSpecialist);
-      setEditingSpecialist(null);
-      loadAllData();
-    }
-  };
-
-  const handleCancelBooking = async (bookingId: string) => {
-    if (confirm('Cancel this booking?')) {
-      await DB.updateBookingStatus(bookingId, 'cancelled');
-      loadAllData();
-    }
-  };
+  const handleApprove = async (requestId: string) => { await DB.approveVerification(requestId, currentUser.id); loadAllData(); };
+  const handleReject = async (requestId: string) => { await DB.rejectVerification(requestId, currentUser.id); loadAllData(); };
+  const handleDeleteUser = async (userId: string) => { if (confirm('Delete this user?')) { const u = await DB.getUserById(userId); if (u) { await DB.updateUser({ ...u, email: `deleted_${userId}@deleted.com` }); loadAllData(); } } };
+  const handleDeleteSpecialist = async (id: string) => { if (confirm('Delete this specialist?')) { await DB.deleteSpecialist(id); loadAllData(); } };
+  const handleUpdateUser = async () => { if (editingUser) { await DB.updateUser(editingUser); setEditingUser(null); loadAllData(); } };
+  const handleUpdateSpecialist = async () => { if (editingSpecialist) { await DB.updateSpecialist(editingSpecialist); setEditingSpecialist(null); loadAllData(); } };
+  const handleCancelBooking = async (id: string) => { if (confirm('Cancel this booking?')) { await DB.updateBookingStatus(id, 'cancelled'); loadAllData(); } };
 
   const filteredRequests = requests.filter(r => filter === 'all' || r.status === filter);
 
   if (!currentUser || currentUser.role !== 'admin') return null;
 
-  return (
-    <div className="min-h-screen bg-primary pb-24">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <button 
-          onClick={() => navigate(-1)} 
-          className="fixed top-20 left-4 sm:left-6 z-40 p-3 bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-full hover:bg-zinc-800 transition-all group"
-        >
-          <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
-        </button>
+  const tabs = [
+    { id: 'verifications' as TabType, label: 'Verifications', icon: Shield, count: requests.length },
+    { id: 'users' as TabType, label: 'Users', icon: Users, count: users.length },
+    { id: 'specialists' as TabType, label: 'Specialists', icon: Briefcase, count: specialists.length },
+    { id: 'bookings' as TabType, label: 'Bookings', icon: Calendar, count: bookings.length },
+  ];
 
-        <div className="py-8 sm:py-12 border-b border-zinc-900">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter italic">ADMIN<span className="text-red-500">PANEL</span></h1>
-          <p className="text-xs text-gray-500 uppercase tracking-widest font-bold mt-2">Full System Control</p>
+  return (
+    <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#1a2b49]">Admin Panel</h1>
+          <p className="text-sm text-gray-500 mt-1">Manage users, specialists, and bookings</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 my-6 overflow-x-auto pb-2 scrollbar-hide">
-          <button onClick={() => setActiveTab('verifications')} className={`px-3 sm:px-4 py-2 rounded-full font-bold text-[10px] sm:text-xs uppercase whitespace-nowrap flex items-center gap-2 ${activeTab === 'verifications' ? 'bg-red-600' : 'bg-zinc-800 hover:bg-zinc-700'}`}>
-            <Shield className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Verifications</span><span className="sm:hidden">Verify</span> ({requests.length})
-          </button>
-          <button onClick={() => setActiveTab('users')} className={`px-3 sm:px-4 py-2 rounded-full font-bold text-[10px] sm:text-xs uppercase whitespace-nowrap flex items-center gap-2 ${activeTab === 'users' ? 'bg-red-600' : 'bg-zinc-800 hover:bg-zinc-700'}`}>
-            <Users className="w-3 h-3 sm:w-4 sm:h-4" /> Users ({users.length})
-          </button>
-          <button onClick={() => setActiveTab('specialists')} className={`px-3 sm:px-4 py-2 rounded-full font-bold text-[10px] sm:text-xs uppercase whitespace-nowrap flex items-center gap-2 ${activeTab === 'specialists' ? 'bg-red-600' : 'bg-zinc-800 hover:bg-zinc-700'}`}>
-            <Briefcase className="w-3 h-3 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Specialists</span><span className="sm:hidden">Specs</span> ({specialists.length})
-          </button>
-          <button onClick={() => setActiveTab('bookings')} className={`px-3 sm:px-4 py-2 rounded-full font-bold text-[10px] sm:text-xs uppercase whitespace-nowrap flex items-center gap-2 ${activeTab === 'bookings' ? 'bg-red-600' : 'bg-zinc-800 hover:bg-zinc-700'}`}>
-            <Calendar className="w-3 h-3 sm:w-4 sm:h-4" /> Bookings ({bookings.length})
-          </button>
+        <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
+          {tabs.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${activeTab === tab.id ? 'bg-[#1a2b49] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+              <tab.icon className="w-4 h-4" /> {tab.label} ({tab.count})
+            </button>
+          ))}
         </div>
 
-        {/* Verifications Tab */}
+        {/* Verifications */}
         {activeTab === 'verifications' && (
           <>
-            <div className="flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
+            <div className="flex gap-2 mb-5 overflow-x-auto pb-1 scrollbar-hide">
               {(['all', 'pending', 'approved', 'rejected'] as const).map(f => (
-                <button key={f} onClick={() => setFilter(f)} className={`px-3 sm:px-4 py-2 rounded-full font-bold text-[10px] sm:text-xs uppercase whitespace-nowrap ${filter === f ? 'bg-blue-600' : 'bg-zinc-800 hover:bg-zinc-700'}`}>
+                <button key={f} onClick={() => setFilter(f)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${filter === f ? 'bg-[#1a73e8] text-white' : 'bg-white border border-gray-200 text-gray-500'}`}>
                   {f} ({requests.filter(r => f === 'all' || r.status === f).length})
                 </button>
               ))}
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {filteredRequests.length === 0 ? (
-                <div className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-12 text-center">
-                  <p className="text-gray-400">No {filter !== 'all' ? filter : ''} requests</p>
-                </div>
-              ) : (
-                filteredRequests.map(request => {
-                  const user = users.find(u => u.id === request.userId);
-                  return (
-                    <div key={request.id} className="bg-zinc-900/30 border border-zinc-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6">
-                      <div className="flex flex-col gap-4 sm:gap-6">
-                        <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-                          <div className="flex items-center gap-3 w-full sm:w-auto">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                              <User className="w-5 h-5 sm:w-6 sm:h-6" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <h3 className="font-bold text-base sm:text-lg truncate">{user?.name || 'Unknown'}</h3>
-                              <p className="text-xs sm:text-sm text-gray-400 truncate">{user?.email}</p>
-                              <p className="text-[10px] sm:text-xs text-gray-500 mt-1">{new Date(request.createdAt).toLocaleString()}</p>
-                            </div>
-                          </div>
-                          {request.status !== 'pending' && (
-                            <div className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[10px] sm:text-xs font-bold whitespace-nowrap ${request.status === 'approved' ? 'bg-green-600/20 text-green-500' : 'bg-red-600/20 text-red-500'}`}>
-                              {request.status.toUpperCase()}
-                            </div>
-                          )}
+                <div className="bg-white border border-gray-100 rounded-xl p-12 text-center"><p className="text-gray-400 text-sm">No {filter !== 'all' ? filter : ''} requests</p></div>
+              ) : filteredRequests.map(request => {
+                const user = users.find(u => u.id === request.userId);
+                return (
+                  <div key={request.id} className="bg-white border border-gray-100 rounded-xl p-5">
+                    <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-[#1a2b49] flex items-center justify-center text-white font-medium">{user?.name?.charAt(0) || 'U'}</div>
+                        <div>
+                          <h3 className="font-semibold text-[#1a2b49]">{user?.name || 'Unknown'}</h3>
+                          <p className="text-xs text-gray-400">{user?.email} · {new Date(request.createdAt).toLocaleDateString()}</p>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-                          <div className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-zinc-800 rounded-xl sm:rounded-2xl">
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0" />
-                            <span className="font-bold text-xs sm:text-sm truncate">{request.aadhaarUrl}</span>
-                          </div>
-                          <div className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-zinc-800 rounded-xl sm:rounded-2xl">
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500 flex-shrink-0" />
-                            <span className="font-bold text-xs sm:text-sm truncate">{request.panUrl}</span>
-                          </div>
-                          <div className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-3 bg-zinc-800 rounded-xl sm:rounded-2xl">
-                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
-                            <span className="font-bold text-xs sm:text-sm truncate">{request.cvUrl}</span>
-                          </div>
-                        </div>
-                        {request.status === 'pending' && (
-                          <div className="flex flex-col sm:flex-row gap-3">
-                            <button onClick={() => handleApprove(request.id)} className="flex-1 flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-green-600 rounded-xl sm:rounded-2xl font-bold text-sm hover:bg-green-500 transition-all">
-                              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" /> Approve
-                            </button>
-                            <button onClick={() => handleReject(request.id)} className="flex-1 flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-red-600 rounded-xl sm:rounded-2xl font-bold text-sm hover:bg-red-500 transition-all">
-                              <XCircle className="w-4 h-4 sm:w-5 sm:h-5" /> Reject
-                            </button>
-                          </div>
-                        )}
                       </div>
+                      {request.status !== 'pending' && (
+                        <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${request.status === 'approved' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>{request.status}</span>
+                      )}
                     </div>
-                  );
-                })
-              )}
+                    <div className="grid grid-cols-3 gap-3 mb-4">
+                        {[{ label: 'Aadhaar', value: request.aadhaarUrl, color: 'blue' }, { label: 'PAN', value: request.panUrl, color: 'purple' }, { label: 'CV', value: request.cvUrl, color: 'green' }].map(doc => {
+                          const isDataUrl = doc.value && doc.value.startsWith('data:');
+                          const isImage = isDataUrl && doc.value.startsWith('data:image');
+                          const isPdf = isDataUrl && doc.value.startsWith('data:application/pdf');
+                          const hasData = doc.value && doc.value.length > 0;
+                          return (
+                            <div key={doc.label} className="relative group">
+                              {isImage ? (
+                                <button
+                                  onClick={() => setViewingDoc({ url: doc.value, label: doc.label })}
+                                  className="w-full aspect-[4/3] rounded-lg border border-gray-200 overflow-hidden hover:border-blue-400 transition-colors relative cursor-pointer"
+                                >
+                                  <img src={doc.value} alt={doc.label} className="w-full h-full object-cover" />
+                                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                    <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                  <span className={`absolute top-1.5 left-1.5 px-2 py-0.5 rounded text-[10px] font-bold text-white bg-${doc.color}-600`}>{doc.label}</span>
+                                </button>
+                              ) : isPdf ? (
+                                <button
+                                  onClick={() => {
+                                    const w = window.open();
+                                    if (w) { w.document.write(`<iframe src="${doc.value}" style="width:100%;height:100%;border:none"></iframe>`); }
+                                  }}
+                                  className="w-full aspect-[4/3] rounded-lg border border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2 hover:border-blue-400 transition-colors cursor-pointer"
+                                >
+                                  <File className={`w-8 h-8 text-${doc.color}-600`} />
+                                  <span className="text-xs font-semibold text-gray-600">{doc.label} (PDF)</span>
+                                  <span className="text-[10px] text-blue-600 font-medium">Click to view</span>
+                                </button>
+                              ) : hasData ? (
+                                <div className="w-full aspect-[4/3] rounded-lg border border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2">
+                                  <FileText className={`w-8 h-8 text-${doc.color}-600`} />
+                                  <span className="text-xs font-semibold text-gray-600">{doc.label}</span>
+                                  <span className="text-[10px] text-gray-400 truncate max-w-[90%]">{doc.value.substring(0, 30)}...</span>
+                                </div>
+                              ) : (
+                                <div className="w-full aspect-[4/3] rounded-lg border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-1">
+                                  <FileText className="w-6 h-6 text-gray-300" />
+                                  <span className="text-[10px] text-gray-400">{doc.label}</span>
+                                  <span className="text-[10px] text-gray-300">Not provided</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                    </div>
+                    {request.status === 'pending' && (
+                      <div className="flex gap-3">
+                        <button onClick={() => handleApprove(request.id)} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-lg font-semibold text-sm hover:bg-green-700 transition-colors">
+                          <CheckCircle className="w-4 h-4" /> Approve
+                        </button>
+                        <button onClick={() => handleReject(request.id)} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-lg font-semibold text-sm hover:bg-red-600 transition-colors">
+                          <XCircle className="w-4 h-4" /> Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </>
         )}
 
-        {/* Users Tab */}
+        {/* Users */}
         {activeTab === 'users' && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {users.map(user => (
-              <div key={user.id} className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center">
-                      <User className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold">{user.name}</h3>
-                      <p className="text-sm text-gray-400">{user.email}</p>
-                      <div className="flex gap-2 mt-1">
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${user.role === 'admin' ? 'bg-red-600/20 text-red-500' : user.role === 'worker' ? 'bg-blue-600/20 text-blue-500' : 'bg-green-600/20 text-green-500'}`}>
-                          {user.role}
-                        </span>
-                        {user.verificationStatus && (
-                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${user.verificationStatus === 'approved' ? 'bg-green-600/20 text-green-500' : user.verificationStatus === 'pending' ? 'bg-yellow-600/20 text-yellow-500' : 'bg-red-600/20 text-red-500'}`}>
-                            {user.verificationStatus}
-                          </span>
-                        )}
-                      </div>
+              <div key={user.id} className="bg-white border border-gray-100 rounded-xl p-5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[#1a2b49] flex items-center justify-center text-white font-medium">{user.name.charAt(0)}</div>
+                  <div>
+                    <h3 className="font-semibold text-[#1a2b49] text-sm">{user.name}</h3>
+                    <p className="text-xs text-gray-400">{user.email}</p>
+                    <div className="flex gap-1.5 mt-1">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${user.role === 'admin' ? 'bg-red-50 text-red-500' : user.role === 'worker' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>{user.role}</span>
+                      {user.verificationStatus && <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${user.verificationStatus === 'approved' ? 'bg-green-50 text-green-600' : user.verificationStatus === 'pending' ? 'bg-yellow-50 text-yellow-600' : 'bg-red-50 text-red-500'}`}>{user.verificationStatus}</span>}
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => setEditingUser(user)} className="p-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-all">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleDeleteUser(user.id)} className="p-2 bg-red-600 rounded-lg hover:bg-red-500 transition-all">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setEditingUser(user)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"><Edit className="w-4 h-4" /></button>
+                  <button onClick={() => handleDeleteUser(user.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Specialists Tab */}
+        {/* Specialists */}
         {activeTab === 'specialists' && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {specialists.map(spec => (
-              <div key={spec.id} className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <img src={spec.avatar} className="w-16 h-16 rounded-2xl object-cover" alt={spec.name} />
-                    <div>
-                      <h3 className="font-bold text-lg">{spec.name}</h3>
-                      <p className="text-sm text-blue-500">{spec.category}</p>
-                      <div className="flex gap-3 mt-1 text-xs text-gray-400">
-                        <span>⭐ {spec.rating}</span>
-                        <span>₹{spec.hourlyRate}/hr</span>
-                        <span>{spec.projects} projects</span>
-                      </div>
+              <div key={spec.id} className="bg-white border border-gray-100 rounded-xl p-5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <img src={spec.avatar} className="w-12 h-12 rounded-xl object-cover" alt={spec.name} />
+                  <div>
+                    <h3 className="font-semibold text-[#1a2b49]">{spec.name}</h3>
+                    <p className="text-xs text-[#1a73e8] font-medium">{spec.category}</p>
+                    <div className="flex gap-3 mt-0.5 text-xs text-gray-400">
+                      <span>Rating: {spec.rating}</span><span>₹{spec.hourlyRate}/hr</span><span>{spec.projects} projects</span>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => setEditingSpecialist(spec)} className="p-2 bg-blue-600 rounded-lg hover:bg-blue-500 transition-all">
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button onClick={() => handleDeleteSpecialist(spec.id)} className="p-2 bg-red-600 rounded-lg hover:bg-red-500 transition-all">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setEditingSpecialist(spec)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"><Edit className="w-4 h-4" /></button>
+                  <button onClick={() => handleDeleteSpecialist(spec.id)} className="p-2 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"><Trash2 className="w-4 h-4" /></button>
                 </div>
               </div>
             ))}
           </div>
         )}
 
-        {/* Bookings Tab */}
+        {/* Bookings */}
         {activeTab === 'bookings' && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {bookings.map(booking => {
               const specialist = specialists.find(s => s.id === booking.specialistId);
               const user = users.find(u => u.id === booking.userId);
               return (
-                <div key={booking.id} className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-bold">{booking.id}</h3>
-                        {booking.isEmergency && <span className="px-2 py-0.5 bg-red-600 rounded text-xs font-bold">EMERGENCY</span>}
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${booking.status === 'active' ? 'bg-green-600/20 text-green-500' : booking.status === 'completed' ? 'bg-blue-600/20 text-blue-500' : 'bg-red-600/20 text-red-500'}`}>
-                          {booking.status}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-400">Client: {user?.name || 'Unknown'}</p>
-                      <p className="text-sm text-gray-400">Worker: {specialist?.name || 'Unknown'}</p>
-                      <p className="text-sm text-gray-400">Amount: ₹{booking.totalValue}</p>
-                      <p className="text-xs text-gray-500 mt-1">{new Date(booking.createdAt).toLocaleString()}</p>
+                <div key={booking.id} className="bg-white border border-gray-100 rounded-xl p-5 flex items-center justify-between">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-[#1a2b49] text-sm">{booking.id}</h3>
+                      {booking.isEmergency && <span className="px-2 py-0.5 bg-red-500 text-white rounded text-[10px] font-semibold">EMERGENCY</span>}
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${booking.status === 'active' ? 'bg-green-50 text-green-600' : booking.status === 'completed' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-500'}`}>{booking.status}</span>
                     </div>
-                    {booking.status === 'active' && (
-                      <button onClick={() => handleCancelBooking(booking.id)} className="px-4 py-2 bg-red-600 rounded-lg hover:bg-red-500 transition-all font-bold text-sm">
-                        Cancel
-                      </button>
-                    )}
+                    <p className="text-xs text-gray-400">Client: {user?.name || 'Unknown'} · Worker: {specialist?.name || 'Unknown'} · ₹{booking.totalValue}</p>
+                    <p className="text-xs text-gray-400">{new Date(booking.createdAt).toLocaleString()}</p>
                   </div>
+                  {booking.status === 'active' && (
+                    <button onClick={() => handleCancelBooking(booking.id)} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 transition-colors">Cancel</button>
+                  )}
                 </div>
               );
             })}
@@ -301,49 +237,71 @@ export default function AdminPanel({ currentUser }: { currentUser: any }) {
 
         {/* Edit User Modal */}
         {editingUser && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 max-w-md w-full space-y-6">
-              <h3 className="text-2xl font-black">Edit User</h3>
-              <div className="space-y-4">
-                <input value={editingUser.name} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm" placeholder="Name" />
-                <input value={editingUser.email} onChange={(e) => setEditingUser({...editingUser, email: e.target.value})} className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm" placeholder="Email" />
-                <select value={editingUser.role} onChange={(e) => setEditingUser({...editingUser, role: e.target.value as any})} className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm">
-                  <option value="user">User</option>
-                  <option value="worker">Worker</option>
-                  <option value="admin">Admin</option>
-                </select>
-              </div>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4">
+              <h3 className="text-xl font-bold text-[#1a2b49]">Edit User</h3>
+              <input value={editingUser.name} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Name" />
+              <input value={editingUser.email} onChange={(e) => setEditingUser({...editingUser, email: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Email" />
+              <select value={editingUser.role} onChange={(e) => setEditingUser({...editingUser, role: e.target.value as any})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm">
+                <option value="user">User</option><option value="worker">Worker</option><option value="admin">Admin</option>
+              </select>
               <div className="flex gap-3">
-                <button onClick={handleUpdateUser} className="flex-1 px-6 py-3 bg-blue-600 rounded-xl font-bold hover:bg-blue-500 transition-all">Save</button>
-                <button onClick={() => setEditingUser(null)} className="flex-1 px-6 py-3 bg-zinc-800 rounded-xl font-bold hover:bg-zinc-700 transition-all">Cancel</button>
+                <button onClick={handleUpdateUser} className="flex-1 px-4 py-2.5 bg-[#1a2b49] text-white rounded-lg font-semibold text-sm">Save</button>
+                <button onClick={() => setEditingUser(null)} className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-semibold text-sm">Cancel</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Edit Specialist Modal */}
-        {editingSpecialist && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 max-w-md w-full space-y-6 max-h-[90vh] overflow-y-auto">
-              <h3 className="text-2xl font-black">Edit Specialist</h3>
-              <div className="space-y-4">
-                <input value={editingSpecialist.name} onChange={(e) => setEditingSpecialist({...editingSpecialist, name: e.target.value})} className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm" placeholder="Name" />
-                <input value={editingSpecialist.title} onChange={(e) => setEditingSpecialist({...editingSpecialist, title: e.target.value})} className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm" placeholder="Title" />
-                <input type="number" value={editingSpecialist.hourlyRate} onChange={(e) => setEditingSpecialist({...editingSpecialist, hourlyRate: Number(e.target.value)})} className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm" placeholder="Hourly Rate" />
-                <input type="number" step="0.01" value={editingSpecialist.rating} onChange={(e) => setEditingSpecialist({...editingSpecialist, rating: Number(e.target.value)})} className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm" placeholder="Rating" />
-                <select value={editingSpecialist.availability} onChange={(e) => setEditingSpecialist({...editingSpecialist, availability: e.target.value as any})} className="w-full bg-black border border-zinc-800 rounded-xl p-3 text-sm">
-                  <option value="available">Available</option>
-                  <option value="busy">Busy</option>
-                  <option value="unavailable">Unavailable</option>
+          {/* Edit Specialist Modal */}
+          {editingSpecialist && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto">
+                <h3 className="text-xl font-bold text-[#1a2b49]">Edit Specialist</h3>
+                <input value={editingSpecialist.name} onChange={(e) => setEditingSpecialist({...editingSpecialist, name: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Name" />
+                <input value={editingSpecialist.title} onChange={(e) => setEditingSpecialist({...editingSpecialist, title: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Title" />
+                <input type="number" value={editingSpecialist.hourlyRate} onChange={(e) => setEditingSpecialist({...editingSpecialist, hourlyRate: Number(e.target.value)})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Rate" />
+                <input type="number" step="0.01" value={editingSpecialist.rating} onChange={(e) => setEditingSpecialist({...editingSpecialist, rating: Number(e.target.value)})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Rating" />
+                <select value={editingSpecialist.availability} onChange={(e) => setEditingSpecialist({...editingSpecialist, availability: e.target.value as any})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm">
+                  <option value="available">Available</option><option value="busy">Busy</option><option value="unavailable">Unavailable</option>
                 </select>
-              </div>
-              <div className="flex gap-3">
-                <button onClick={handleUpdateSpecialist} className="flex-1 px-6 py-3 bg-blue-600 rounded-xl font-bold hover:bg-blue-500 transition-all">Save</button>
-                <button onClick={() => setEditingSpecialist(null)} className="flex-1 px-6 py-3 bg-zinc-800 rounded-xl font-bold hover:bg-zinc-700 transition-all">Cancel</button>
+                <div className="flex gap-3">
+                  <button onClick={handleUpdateSpecialist} className="flex-1 px-4 py-2.5 bg-[#1a2b49] text-white rounded-lg font-semibold text-sm">Save</button>
+                  <button onClick={() => setEditingSpecialist(null)} className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-semibold text-sm">Cancel</button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+          {/* Document Viewer Modal */}
+          {viewingDoc && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={() => setViewingDoc(null)}>
+              <div className="relative max-w-4xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-white font-semibold text-lg">{viewingDoc.label} Document</h3>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={viewingDoc.url}
+                      download={`${viewingDoc.label.toLowerCase()}_document`}
+                      className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                    >
+                      <Download className="w-5 h-5 text-white" />
+                    </a>
+                    <button onClick={() => setViewingDoc(null)} className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors">
+                      <X className="w-5 h-5 text-white" />
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-white rounded-xl overflow-hidden">
+                  {viewingDoc.url.startsWith('data:application/pdf') ? (
+                    <iframe src={viewingDoc.url} className="w-full h-[80vh]" />
+                  ) : (
+                    <img src={viewingDoc.url} alt={viewingDoc.label} className="w-full h-auto max-h-[80vh] object-contain" />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
       </div>
     </div>
   );

@@ -58,22 +58,36 @@ export default function DocumentUpload({ currentUser }: { currentUser: any }) {
     }
   };
 
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!aadhaar || !pan || !cv) return;
+    if (!aadhaar || !pan) return;
 
     setUploading(true);
     
-    const aadhaarName = aadhaar.name;
-    const panName = pan.name;
-    const cvName = cv.name;
-    
-    await DB.createVerificationRequest(currentUser.id, aadhaarName, panName, cvName);
-    
-    setTimeout(() => {
+    try {
+      const aadhaarData = await fileToBase64(aadhaar);
+      const panData = await fileToBase64(pan);
+      const cvData = cv ? await fileToBase64(cv) : '';
+      
+      await DB.createVerificationRequest(currentUser.id, aadhaarData, panData, cvData);
+      
+      setTimeout(() => {
+        setUploading(false);
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error('Upload error:', error);
       setUploading(false);
-      window.location.reload();
-    }, 1500);
+    }
   };
 
   return (
@@ -164,7 +178,7 @@ export default function DocumentUpload({ currentUser }: { currentUser: any }) {
 
             <button
               type="submit"
-              disabled={!aadhaar || !pan || !cv || uploading}
+                disabled={!aadhaar || !pan || uploading}
               className="w-full py-4 bg-blue-600 rounded-full font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {uploading ? 'Uploading...' : 'Submit for Verification'}

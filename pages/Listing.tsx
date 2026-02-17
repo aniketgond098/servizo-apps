@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, ChevronDown, Filter, ChevronRight, Star, ArrowUpRight, MapPin, Loader2, X, ArrowLeft, List, Map as MapIcon, Heart, DollarSign, TrendingUp, Award } from 'lucide-react';
+import { Search, Filter, Star, MapPin, Loader2, X, List, Map as MapIcon, Heart, DollarSign, TrendingUp, Award, ChevronDown } from 'lucide-react';
 import { DB } from '../services/db';
 import { Specialist, ServiceCategory, AvailabilityStatus, SortOption, PriceRange } from '../types';
 import { parseSearchIntent } from '../services/ai';
@@ -57,20 +57,13 @@ export default function Listing() {
     }
     all = approvedSpecialists;
     
-    // 1. Filter by category
     if (category !== 'All') {
       all = all.filter(s => s.category === category);
     }
-
-    // 2. Filter by availability
     if (availabilityFilter !== 'all') {
       all = all.filter(s => s.availability === availabilityFilter);
     }
-
-    // 3. Filter by price range
     all = all.filter(s => s.hourlyRate >= priceRange.min && s.hourlyRate <= priceRange.max);
-
-    // 4. Filter by name if explicitly a name match
     if (query.trim()) {
       const lowerQuery = query.toLowerCase();
       all = all.filter(s => 
@@ -79,22 +72,12 @@ export default function Listing() {
         s.category.toLowerCase().includes(lowerQuery)
       );
     }
-
-    // 5. Sort
-    if (sortBy === 'rating') {
-      all.sort((a, b) => b.rating - a.rating);
-    } else if (sortBy === 'price-low') {
-      all.sort((a, b) => a.hourlyRate - b.hourlyRate);
-    } else if (sortBy === 'price-high') {
-      all.sort((a, b) => b.hourlyRate - a.hourlyRate);
-    } else if (sortBy === 'experience') {
-      all.sort((a, b) => b.experience - a.experience);
-    } else if (sortBy === 'distance' && userLoc) {
-      all.sort((a, b) => {
-        const distA = calculateDistance(userLoc.lat, userLoc.lng, a.lat, a.lng);
-        const distB = calculateDistance(userLoc.lat, userLoc.lng, b.lat, b.lng);
-        return distA - distB;
-      });
+    if (sortBy === 'rating') all.sort((a, b) => b.rating - a.rating);
+    else if (sortBy === 'price-low') all.sort((a, b) => a.hourlyRate - b.hourlyRate);
+    else if (sortBy === 'price-high') all.sort((a, b) => b.hourlyRate - a.hourlyRate);
+    else if (sortBy === 'experience') all.sort((a, b) => b.experience - a.experience);
+    else if (sortBy === 'distance' && userLoc) {
+      all.sort((a, b) => calculateDistance(userLoc.lat, userLoc.lng, a.lat, a.lng) - calculateDistance(userLoc.lat, userLoc.lng, b.lat, b.lng));
     }
 
     setSpecialists(all);
@@ -104,25 +87,16 @@ export default function Listing() {
   const toggleFavorite = async (specialistId: string, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
-    
+    if (!currentUser) { navigate('/login'); return; }
     setCardLoading(prev => [...prev, specialistId]);
-    
     const newFavorites = favorites.includes(specialistId)
       ? favorites.filter(id => id !== specialistId)
       : [...favorites, specialistId];
-    
     setFavorites(newFavorites);
     const updatedUser = { ...currentUser, favorites: newFavorites };
     await DB.updateUser(updatedUser);
     AuthService.updateSession(updatedUser);
-    
-    setTimeout(() => {
-      setCardLoading(prev => prev.filter(id => id !== specialistId));
-    }, 300);
+    setTimeout(() => setCardLoading(prev => prev.filter(id => id !== specialistId)), 300);
   };
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -152,232 +126,226 @@ export default function Listing() {
     return calculateDistance(userLoc.lat, userLoc.lng, lat, lng);
   };
 
+  const categories = ['All', 'Plumbing', 'Mechanical', 'Electrical', 'Automation', 'Aesthetics', 'Architecture'];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-24">
-      {/* Back Button */}
-      <button 
-        onClick={() => navigate(-1)} 
-        className="fixed top-20 left-4 sm:left-6 z-40 p-3 bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-full hover:bg-zinc-800 transition-all group"
-      >
-        <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
-      </button>
-      
-      <header className="space-y-6 sm:space-y-8 pt-8 sm:pt-12 pb-6 sm:pb-8 border-b border-zinc-900">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
-          <div className="space-y-3 sm:space-y-4">
-             <div className="flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] text-blue-500 uppercase">
-                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
-                {specialists.length} Specialists in Vector Range
-             </div>
-             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter">
-               Search <span className="text-blue-500">Curators</span>
-             </h1>
-          </div>
-          
-          <div className="flex items-center gap-3 sm:gap-4 w-full lg:w-auto">
-            <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-1">
-              <button 
-                onClick={() => setViewMode('list')}
-                className={`p-2 rounded-xl transition-all ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white'}`}
-              >
-                <List className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => setViewMode('map')}
-                className={`p-2 rounded-xl transition-all ${viewMode === 'map' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:text-white'}`}
-              >
-                <MapIcon className="w-4 h-4" />
-              </button>
+    <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#1a2b49]">Find Specialists</h1>
+              <p className="text-sm text-gray-500 mt-1">{specialists.length} professionals available</p>
             </div>
-            <form onSubmit={handleSearchSubmit} className="flex-1 lg:w-96 relative group">
-              <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${loading ? 'text-blue-500 animate-spin' : 'text-gray-500'}`} />
+            <div className="flex items-center gap-3">
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <button 
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-[#1a2b49]' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+                <button 
+                  onClick={() => setViewMode('map')}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'map' ? 'bg-white shadow-sm text-[#1a2b49]' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  <MapIcon className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Search Bar */}
+          <form onSubmit={handleSearchSubmit} className="flex items-center gap-3 mb-5">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Name or specific task..."
-                className="w-full bg-zinc-900 border border-zinc-800 rounded-2xl py-3 sm:py-4 pl-11 sm:pl-12 pr-4 text-sm focus:outline-none focus:border-blue-500 transition-all"
+                placeholder="Search by name, service, or category..."
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/20 focus:border-[#1a73e8] transition-all"
               />
-            </form>
+            </div>
             <button 
+              type="button"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`p-3 sm:p-4 rounded-2xl border transition-all flex items-center gap-2 font-bold text-xs uppercase tracking-widest ${isFilterOpen ? 'bg-blue-600 border-blue-600 text-white' : 'bg-zinc-900 border-zinc-800 text-gray-400 hover:border-zinc-600'}`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${isFilterOpen ? 'bg-[#1a2b49] border-[#1a2b49] text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}
             >
               <Filter className="w-4 h-4" /> 
               <span className="hidden sm:inline">Filters</span>
             </button>
-          </div>
-        </div>
+          </form>
 
-        {/* Collapsible Filters */}
-        {isFilterOpen && (
-          <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 animate-in fade-in slide-in-from-top-4 duration-300">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div className="space-y-4 w-full">
-                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Select Category Protocol</span>
-                <div className="flex flex-wrap gap-2">
-                  {['All', 'Plumbing', 'Mechanical', 'Electrical', 'Automation', 'Aesthetics', 'Architecture'].map(cat => (
-                    <button 
-                      key={cat}
-                      onClick={() => {
-                        setActiveCategory(cat);
-                        setSearchParams({ q: searchQuery, filter: cat });
-                      }}
-                      className={`px-3 sm:px-4 lg:px-6 py-2 rounded-full border text-[10px] font-bold uppercase tracking-widest transition-all ${activeCategory === cat ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-800 text-gray-500 hover:border-zinc-600'}`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-                
-                <div className="pt-4">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-3">Availability Status</span>
+          {/* Category Pills */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {categories.map(cat => (
+              <button 
+                key={cat}
+                onClick={() => {
+                  setActiveCategory(cat);
+                  setSearchParams({ q: searchQuery, filter: cat });
+                }}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${activeCategory === cat ? 'bg-[#1a2b49] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Expanded Filters */}
+          {isFilterOpen && (
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-5 animate-fadeIn">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Availability</label>
                   <div className="flex flex-wrap gap-2">
-                    {[{val: 'all', label: 'All'}, {val: 'available', label: 'Available'}, {val: 'busy', label: 'Busy'}, {val: 'unavailable', label: 'Not Available'}].map(opt => (
+                    {[{val: 'all', label: 'All'}, {val: 'available', label: 'Available'}, {val: 'busy', label: 'Busy'}, {val: 'unavailable', label: 'Unavailable'}].map(opt => (
                       <button 
                         key={opt.val}
                         onClick={() => setAvailabilityFilter(opt.val)}
-                        className={`px-3 sm:px-4 lg:px-6 py-2 rounded-full border text-[10px] font-bold uppercase tracking-widest transition-all ${availabilityFilter === opt.val ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-800 text-gray-500 hover:border-zinc-600'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${availabilityFilter === opt.val ? 'bg-[#1a73e8] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'}`}
                       >
                         {opt.label}
                       </button>
                     ))}
                   </div>
                 </div>
-
-                <div className="pt-4">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-3">Sort By</span>
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Sort By</label>
                   <div className="flex flex-wrap gap-2">
                     {[
-                      {val: 'rating', label: 'Rating', icon: Star},
-                      {val: 'price-low', label: 'Price: Low', icon: DollarSign},
-                      {val: 'price-high', label: 'Price: High', icon: TrendingUp},
-                      {val: 'distance', label: 'Distance', icon: MapPin},
-                      {val: 'experience', label: 'Experience', icon: Award}
+                      {val: 'rating', label: 'Rating'},
+                      {val: 'price-low', label: 'Price: Low'},
+                      {val: 'price-high', label: 'Price: High'},
+                      {val: 'distance', label: 'Distance'},
+                      {val: 'experience', label: 'Experience'}
                     ].map(opt => (
                       <button 
                         key={opt.val}
                         onClick={() => setSortBy(opt.val as SortOption)}
-                        className={`px-3 sm:px-4 lg:px-6 py-2 rounded-full border text-[10px] font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${sortBy === opt.val ? 'bg-blue-600 border-blue-600 text-white' : 'border-zinc-800 text-gray-500 hover:border-zinc-600'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${sortBy === opt.val ? 'bg-[#1a73e8] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'}`}
                       >
-                        <opt.icon className="w-3 h-3" /> {opt.label}
+                        {opt.label}
                       </button>
                     ))}
                   </div>
                 </div>
-
-                <div className="pt-4">
-                  <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-3">Price Range (₹/hr)</span>
-                  <div className="flex gap-4 items-center">
+                <div>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Price Range (₹/hr)</label>
+                  <div className="flex gap-3 items-center">
                     <input 
                       type="number" 
                       value={priceRange.min} 
                       onChange={(e) => setPriceRange(prev => ({ ...prev, min: Number(e.target.value) }))}
-                      className="w-24 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                      className="w-24 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1a73e8]"
                       placeholder="Min"
                     />
-                    <span className="text-gray-600">-</span>
+                    <span className="text-gray-400">-</span>
                     <input 
                       type="number" 
                       value={priceRange.max} 
                       onChange={(e) => setPriceRange(prev => ({ ...prev, max: Number(e.target.value) }))}
-                      className="w-24 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                      className="w-24 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1a73e8]"
                       placeholder="Max"
                     />
                   </div>
                 </div>
               </div>
-              <button 
-                onClick={clearFilters}
-                className="text-[10px] font-bold text-gray-500 hover:text-white uppercase tracking-[0.2em] flex items-center gap-2 whitespace-nowrap"
-              >
-                <X className="w-3 h-3" /> RESET ALL
-              </button>
+              <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end">
+                <button onClick={clearFilters} className="text-xs font-semibold text-[#1a73e8] hover:underline flex items-center gap-1">
+                  <X className="w-3 h-3" /> Reset All Filters
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-      </header>
-
-      {loading ? (
-        <div className="h-64 flex flex-col items-center justify-center gap-4">
-          <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-          <p className="text-[10px] font-bold uppercase tracking-widest text-gray-600">Processing Intent...</p>
+          )}
         </div>
-      ) : viewMode === 'map' ? (
-        <div className="mt-8 sm:mt-12">
+      </div>
+
+      {/* Results */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        {loading ? (
+          <div className="h-64 flex flex-col items-center justify-center gap-3">
+            <Loader2 className="w-8 h-8 text-[#1a73e8] animate-spin" />
+            <p className="text-sm text-gray-500">Searching specialists...</p>
+          </div>
+        ) : viewMode === 'map' ? (
           <MapView 
             specialists={specialists} 
             userLoc={userLoc} 
             getAvailabilityColor={getAvailabilityColor}
           />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-8 sm:mt-12">
-          {specialists.length > 0 ? specialists.map(specialist => {
-            const distance = getDistance(specialist.lat, specialist.lng);
-            const isFavorite = favorites.includes(specialist.id);
-            const isLoading = cardLoading.includes(specialist.id);
-            
-            return (
-            <Link key={specialist.id} to={`/profile/${specialist.id}`} className="bg-zinc-900/30 border border-zinc-800 p-5 sm:p-6 lg:p-8 rounded-3xl sm:rounded-[32px] group hover:border-blue-500/40 transition-all flex flex-col h-full relative">
-              <button
-                onClick={(e) => toggleFavorite(specialist.id, e)}
-                className={`absolute top-4 right-4 p-2 rounded-full transition-all z-10 ${isFavorite ? 'bg-red-500 text-white' : 'bg-zinc-800 text-gray-400 hover:text-red-500'}`}
-              >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className={`w-4 h-4 ${isFavorite ? 'fill-white' : ''}`} />}
-              </button>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {specialists.length > 0 ? specialists.map(specialist => {
+              const distance = getDistance(specialist.lat, specialist.lng);
+              const isFavorite = favorites.includes(specialist.id);
+              const isLoading = cardLoading.includes(specialist.id);
               
-              <div className="flex justify-between items-start mb-6">
-                <div className="flex gap-3 sm:gap-4 items-center">
-                  <div className="relative flex-shrink-0">
-                    <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl overflow-hidden border-4 ${getAvailabilityColor(specialist.availability)}`}>
-                      <img src={specialist.avatar} alt={specialist.name} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
+              return (
+              <Link key={specialist.id} to={`/profile/${specialist.id}`} className="bg-white border border-gray-100 rounded-xl overflow-hidden group hover:shadow-lg hover:border-gray-200 transition-all flex flex-col h-full relative">
+                {/* Card Header with Avatar */}
+                <div className="p-5">
+                  <button
+                    onClick={(e) => toggleFavorite(specialist.id, e)}
+                    className={`absolute top-4 right-4 p-2 rounded-full transition-all z-10 ${isFavorite ? 'bg-red-50 text-red-500' : 'bg-gray-50 text-gray-300 hover:text-red-400'}`}
+                  >
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500' : ''}`} />}
+                  </button>
+                  
+                  <div className="flex gap-3 items-center mb-4">
+                    <div className="relative flex-shrink-0">
+                      <div className={`w-14 h-14 rounded-xl overflow-hidden border-2 ${getAvailabilityColor(specialist.availability)}`}>
+                        <img src={specialist.avatar} alt={specialist.name} className="w-full h-full object-cover" />
+                      </div>
+                      <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${
+                        specialist.availability === 'available' ? 'bg-green-500' :
+                        specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
+                      }`}></div>
                     </div>
-                    <div className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full border-2 border-zinc-900 ${
-                      specialist.availability === 'available' ? 'bg-green-500' :
-                      specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
-                    }`}></div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-[#1a2b49] truncate">{specialist.name}</h4>
+                      <span className="text-xs font-medium text-[#1a73e8]">{specialist.category}</span>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="font-bold text-base sm:text-lg leading-none mb-1 truncate">{specialist.name}</h4>
-                    <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">{specialist.category}</span>
+
+                  <p className="text-sm text-gray-500 line-clamp-2 mb-4 leading-relaxed">
+                    {specialist.description}
+                  </p>
+
+                  <div className="mb-3">
+                    <VerificationBadges specialist={specialist} size="sm" />
+                  </div>
+
+                  {distance && (
+                    <div className="flex items-center gap-1 text-xs text-gray-400 mb-3">
+                      <MapPin className="w-3 h-3" /> {formatDistance(distance)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Footer */}
+                <div className="flex justify-between items-center px-5 py-3.5 border-t border-gray-100 mt-auto bg-gray-50/50">
+                  <div>
+                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">From</span>
+                    <p className="text-lg font-bold text-[#1a2b49]">₹{specialist.hourlyRate}<span className="text-xs font-normal text-gray-400">/hr</span></p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    <span className="text-sm font-bold text-[#1a2b49]">{specialist.rating}</span>
+                    <span className="text-xs text-gray-400">({specialist.projects})</span>
                   </div>
                 </div>
-                {distance && (
-                  <div className="flex items-center gap-1 text-[9px] font-bold text-gray-500 uppercase bg-black/40 px-2 py-1 rounded flex-shrink-0">
-                    <MapPin className="w-3 h-3" /> {formatDistance(distance)}
-                  </div>
-                )}
+              </Link>
+            )}) : (
+              <div className="col-span-full py-20 text-center space-y-3">
+                <p className="text-gray-500 text-sm">No specialists found matching your criteria.</p>
+                <button onClick={clearFilters} className="text-[#1a73e8] font-semibold text-sm hover:underline">Clear all filters</button>
               </div>
-
-              <p className="text-sm text-gray-500 line-clamp-2 mb-6 sm:mb-8 leading-relaxed flex-1">
-                {specialist.description}
-              </p>
-
-              <div className="mb-4">
-                <VerificationBadges specialist={specialist} size="sm" />
-              </div>
-
-              <div className="flex justify-between items-end pt-4 sm:pt-6 border-t border-zinc-800 mt-auto">
-                 <div>
-                    <span className="block text-[8px] text-gray-600 font-bold uppercase tracking-widest mb-1">Standard Rate</span>
-                    <span className="text-lg sm:text-xl font-black">₹{specialist.hourlyRate}</span>
-                 </div>
-                 <div className="text-right space-y-1">
-                    <div className="flex items-center gap-1 text-sm font-bold justify-end">
-                      <Star className="w-3 h-3 fill-blue-500 text-blue-500" /> {specialist.rating}
-                    </div>
-                    <span className="block text-[8px] text-gray-600 font-bold uppercase tracking-widest">{specialist.projects} Projects</span>
-                 </div>
-              </div>
-            </Link>
-          )}) : (
-            <div className="col-span-full py-20 text-center space-y-4">
-              <p className="text-gray-500 font-bold uppercase tracking-[0.2em] text-xs">No Specialists Found in Current Vector</p>
-              <button onClick={clearFilters} className="text-blue-500 font-black tracking-widest text-[10px] uppercase">Expand Search Range</button>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

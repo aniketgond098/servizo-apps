@@ -1,6 +1,6 @@
-import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, addDoc } from 'firebase/firestore';
+import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, addDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
-import { Specialist, Booking, User, Review, Message, VerificationRequest, Notification } from '../types';
+import { Specialist, Booking, User, Review, Message, MessageAttachment, VerificationRequest, Notification, Call, IceCandidate } from '../types';
 
 const INITIAL_SPECIALISTS: Specialist[] = [
   {
@@ -396,9 +396,11 @@ export class DB {
         ...message,
         id: `MSG-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         createdAt: new Date().toISOString(),
-        read: false
-      };
-      await setDoc(doc(db, 'messages', newMessage.id), newMessage);
+        read: false,
+        messageType: message.messageType || 'text',
+          ...(message.attachment ? { attachment: message.attachment } : {})
+        };
+        await setDoc(doc(db, 'messages', newMessage.id), newMessage);
       
       // Get sender info
       const sender = await this.getUserById(message.senderId);
@@ -635,7 +637,7 @@ export class DB {
     }
   }
 
-  static async addAfterPhotos(bookingId: string, photos: string[]) {
+    static async addAfterPhotos(bookingId: string, photos: string[]) {
     try {
       const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
       if (bookingDoc.exists()) {
@@ -646,6 +648,123 @@ export class DB {
       }
     } catch (error) {
       console.error('Add after photos error:', error);
+    }
+  }
+
+  // ─── Call Signaling ───
+
+  static async createCall(call: Omit<Call, 'id' | 'createdAt'>): Promise<Call> {
+    try {
+      const newCall: Call = {
+        ...call,
+        id: `CALL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        createdAt: new Date().toISOString(),
+      };
+      const data: Record<string, any> = {
+        id: newCall.id,
+        callerId: newCall.callerId,
+        callerName: newCall.callerName,
+        receiverId: newCall.receiverId,
+        receiverName: newCall.receiverName,
+        type: newCall.type,
+        status: newCall.status,
+        createdAt: newCall.createdAt,
+      };
+      if (newCall.offer) data.offer = newCall.offer;
+      if (newCall.answer) data.answer = newCall.answer;
+      await setDoc(doc(db, 'calls', newCall.id), data);
+      return newCall;
+    } catch (error) {
+      console.error('Create call error:', error);
+      throw error;
+    }
+  }
+
+  static async updateCall(callId: string, updates: Partial<Call>) {
+    try {
+      // Filter out undefined values
+      const cleanUpdates: Record<string, any> = {};
+      for (const [key, value] of Object.entries(updates)) {
+        if (value !== undefined) cleanUpdates[key] = value;
+      }
+      await updateDoc(doc(db, 'calls', callId), cleanUpdates);
+    } catch (error) {
+      console.error('Update call error:', error);
+    }
+  }
+
+  static async getCall(callId: string): Promise<Call | null> {
+    try {
+      const snap = await getDoc(doc(db, 'calls', callId));
+      return snap.exists() ? (snap.data() as Call) : null;
+    } catch (error) {
+      console.error('Get call error:', error);
+      return null;
+    }
+  }
+
+  static onCallUpdated(callId: string, callback: (call: Call | null) => void): () => void {
+    return onSnapshot(doc(db, 'calls', callId), (snap) => {
+      callback(snap.exists() ? (snap.data() as Call) : null);
+    });
+  }
+
+  static onIncomingCall(userId: string, callback: (call: Call) => void): () => void {
+    return onSnapshot(collection(db, 'calls'), (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added' || change.type === 'modified') {
+          const call = change.doc.data() as Call;
+          if (call.receiverId === userId && call.status === 'ringing') {
+            callback(call);
+          }
+        }
+      });
+    });
+  }
+
+  static async addIceCandidate(callId: string, fromUserId: string, candidate: RTCIceCandidate) {
+    try {
+      const id = `ICE-${Math.random().toString(36).substr(2, 12)}`;
+      await setDoc(doc(db, 'calls', callId, 'iceCandidates', id), {
+        id,
+        callId,
+        fromUserId,
+        candidate: JSON.stringify(candidate.toJSON()),
+        createdAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Add ICE candidate error:', error);
+    }
+  }
+
+  static onIceCandidates(callId: string, excludeUserId: string, callback: (candidate: RTCIceCandidate) => void): () => void {
+    return onSnapshot(collection(db, 'calls', callId, 'iceCandidates'), (snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          if (data.fromUserId !== excludeUserId) {
+            try {
+              const parsed = JSON.parse(data.candidate);
+              callback(new RTCIceCandidate(parsed));
+            } catch (e) {
+              console.error('Failed to parse ICE candidate:', e);
+            }
+          }
+        }
+      });
+    });
+  }
+
+  static async cleanupCall(callId: string) {
+    try {
+      // Delete ICE candidates subcollection
+      const iceDocs = await getDocs(collection(db, 'calls', callId, 'iceCandidates'));
+      for (const iceDoc of iceDocs.docs) {
+        await deleteDoc(iceDoc.ref);
+      }
+      await deleteDoc(doc(db, 'calls', callId));
+    } catch (error) {
+      console.error('Cleanup call error:', error);
     }
   }
 }

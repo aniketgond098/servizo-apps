@@ -1,9 +1,36 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Send, Loader2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Send, Loader2, ExternalLink, Phone, Video, Info, Image, Smile, Lock, Check, CheckCheck, Paperclip, X, FileText, Download, ZoomIn, Mic, MicOff, Volume2, VolumeX, PhoneOff, VideoOff, Camera, Minimize2, Maximize2 } from 'lucide-react';
 import { DB } from '../services/db';
 import { AuthService } from '../services/auth';
-import { Message } from '../types';
+import { Message, MessageAttachment, Call } from '../types';
+import { startOutgoingRing, stopOutgoingRing, playConnectedSound, playEndCallSound, playBusySound } from '../utils/callSounds';
+
+const EMOJI_CATEGORIES = [
+  {
+    name: 'Smileys',
+    emojis: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🫣','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🫥','😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥵','🥶','🥴','😵','🤯','🤠','🥳','🥸','😎','🤓','🧐']
+  },
+  {
+    name: 'Gestures',
+    emojis: ['👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','🫵','👍','👎','👏','🙌','🫶','🤝','🙏','💪','🦾','🫂']
+  },
+  {
+    name: 'Hearts',
+    emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','💕','💞','💓','💗','💖','💘','💝','💟']
+  },
+  {
+    name: 'Objects',
+    emojis: ['🔧','🔨','⚡','🔩','🛠️','🪛','🪜','🧰','🪠','🔑','🏠','🏡','🏢','🚗','📱','💻','📸','📦','💰','💳','📋','📌','✅','⭐','🔔','💡','🎯','🚀','💎','🏆']
+  }
+];
+
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' },
+  ],
+};
 
 export default function Chat() {
   const { userId } = useParams();
@@ -13,21 +40,47 @@ export default function Chat() {
   const [loading, setLoading] = useState(false);
   const [chatUser, setChatUser] = useState<any>(null);
   const [specialistId, setSpecialistId] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [emojiCategory, setEmojiCategory] = useState(0);
+
+  // Call state
+  const [activeCall, setActiveCall] = useState<Call | null>(null);
+  const [callState, setCallState] = useState<'idle' | 'ringing' | 'connected' | 'ended' | 'not_answering'>('idle');
+  const [callDuration, setCallDuration] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSpeaker, setIsSpeaker] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const docInputRef = useRef<HTMLInputElement>(null);
+  const emojiRef = useRef<HTMLDivElement>(null);
+  const attachRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+    const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const callTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
+  const pcRef = useRef<RTCPeerConnection | null>(null);
+  const unsubCallRef = useRef<(() => void) | null>(null);
+  const unsubIceRef = useRef<(() => void) | null>(null);
+  const pendingCandidatesRef = useRef<RTCIceCandidate[]>([]);
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
-    if (!currentUser) {
-      navigate('/login');
-      return;
-    }
-    
+    if (!currentUser) { navigate('/login'); return; }
     const loadData = async () => {
       if (userId) {
         loadMessages();
         DB.markMessagesAsRead(currentUser.id, userId);
         const user = await DB.getUserById(userId);
-        
         if (user) {
           if (user.role === 'worker') {
             const specialists = await DB.getSpecialists();
@@ -53,6 +106,43 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) setShowEmojiPicker(false);
+      if (attachRef.current && !attachRef.current.contains(e.target as Node)) setShowAttachMenu(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  // Call timer
+  useEffect(() => {
+    if (callState === 'connected') {
+      callTimerRef.current = setInterval(() => setCallDuration(prev => prev + 1), 1000);
+    } else {
+      if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
+    }
+    return () => { if (callTimerRef.current) clearInterval(callTimerRef.current); };
+  }, [callState]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { cleanupCall(); };
+  }, []);
+
+    const cleanupCall = () => {
+      stopOutgoingRing();
+      if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(t => t.stop());
+        localStreamRef.current = null;
+      }
+      if (pcRef.current) { pcRef.current.close(); pcRef.current = null; }
+      if (unsubCallRef.current) { unsubCallRef.current(); unsubCallRef.current = null; }
+      if (unsubIceRef.current) { unsubIceRef.current(); unsubIceRef.current = null; }
+      pendingCandidatesRef.current = [];
+    };
+
   const loadMessages = async () => {
     const user = AuthService.getCurrentUser();
     if (user && userId) {
@@ -64,96 +154,865 @@ export default function Chat() {
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !currentUser || !userId) return;
-
     setLoading(true);
-    await DB.sendMessage({
-      senderId: currentUser.id,
-      receiverId: userId,
-      content: newMessage
-    });
+    await DB.sendMessage({ senderId: currentUser.id, receiverId: userId, content: newMessage, messageType: 'text' });
     setNewMessage('');
     await loadMessages();
     setLoading(false);
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    setNewMessage(prev => prev + emoji);
+    inputRef.current?.focus();
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser || !userId) return;
+    if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) return;
+    setUploadingFile(true); setShowAttachMenu(false);
+    try {
+      const url = await DB.uploadPhoto(file);
+      await DB.sendMessage({ senderId: currentUser.id, receiverId: userId, content: '📷 Photo', messageType: 'image', attachment: { type: 'image', url, name: file.name, size: file.size } });
+      await loadMessages();
+    } catch (err) { console.error('Photo upload failed:', err); }
+    setUploadingFile(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleDocUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser || !userId) return;
+    if (file.size > 25 * 1024 * 1024) return;
+    setUploadingFile(true); setShowAttachMenu(false);
+    try {
+      const url = await DB.uploadPhoto(file);
+      await DB.sendMessage({ senderId: currentUser.id, receiverId: userId, content: `📎 ${file.name}`, messageType: 'document', attachment: { type: 'document', url, name: file.name, size: file.size } });
+      await loadMessages();
+    } catch (err) { console.error('Document upload failed:', err); }
+    setUploadingFile(false);
+    if (docInputRef.current) docInputRef.current.value = '';
+  };
+
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  // ─── WebRTC Call Functions (Caller side) ───
+
+    const startCall = async (type: 'voice' | 'video') => {
+      if (!currentUser || !userId || !chatUser) return;
+
+      setCallState('ringing');
+      setCallDuration(0);
+      setIsMuted(false);
+      setIsSpeaker(false);
+      setIsCameraOff(false);
+      setIsMinimized(false);
+
+      try {
+        // Get local media with fallbacks
+        let stream: MediaStream;
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const hasAudio = devices.some(d => d.kind === 'audioinput');
+          const hasVideo = devices.some(d => d.kind === 'videoinput');
+
+          const constraints: MediaStreamConstraints = {
+            audio: hasAudio ? true : false,
+            video: type === 'video' && hasVideo ? true : false,
+          };
+
+          // Need at least one track
+          if (!constraints.audio && !constraints.video) {
+            // Create a silent audio track as fallback
+            const ctx = new AudioContext();
+            const oscillator = ctx.createOscillator();
+            const dst = ctx.createMediaStreamDestination();
+            oscillator.connect(dst);
+            oscillator.start();
+            oscillator.frequency.setValueAtTime(0, ctx.currentTime);
+            stream = dst.stream;
+            if (type === 'video') setIsCameraOff(true);
+            setIsMuted(true);
+          } else {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+            if (type === 'video' && !hasVideo) setIsCameraOff(true);
+            if (!hasAudio) setIsMuted(true);
+          }
+        } catch (mediaErr: any) {
+          // Permission denied or no devices - create silent fallback
+          console.warn('Media access failed, using silent fallback:', mediaErr.message);
+          const ctx = new AudioContext();
+          const oscillator = ctx.createOscillator();
+          const dst = ctx.createMediaStreamDestination();
+          oscillator.connect(dst);
+          oscillator.start();
+          oscillator.frequency.setValueAtTime(0, ctx.currentTime);
+          stream = dst.stream;
+          if (type === 'video') setIsCameraOff(true);
+          setIsMuted(true);
+        }
+
+        localStreamRef.current = stream;
+        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+
+      // Create peer connection
+      const pc = new RTCPeerConnection(ICE_SERVERS);
+      pcRef.current = pc;
+
+      // Add local tracks
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+
+      // Handle remote stream
+      remoteStreamRef.current = new MediaStream();
+      pc.ontrack = (event) => {
+        event.streams[0].getTracks().forEach(track => {
+          remoteStreamRef.current!.addTrack(track);
+        });
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStreamRef.current;
+        if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStreamRef.current;
+      };
+
+      // Create offer
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      // Create call in Firestore
+      const call = await DB.createCall({
+        callerId: currentUser.id,
+        callerName: currentUser.name,
+        receiverId: userId,
+        receiverName: chatUser.name || 'User',
+        type,
+        status: 'ringing',
+        offer: JSON.stringify(offer),
+      });
+
+      setActiveCall(call);
+
+      // Start ringing sound
+      startOutgoingRing();
+
+      // ICE candidates - send to Firestore
+      pc.onicecandidate = (event) => {
+        if (event.candidate && call) {
+          DB.addIceCandidate(call.id, currentUser.id, event.candidate);
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === 'connected') {
+          stopOutgoingRing();
+          playConnectedSound();
+          setCallState('connected');
+        } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+          endCall();
+        }
+      };
+
+      // Listen for answer and status changes
+      unsubCallRef.current = DB.onCallUpdated(call.id, async (updatedCall) => {
+        if (!updatedCall) return;
+
+        if (updatedCall.status === 'connected' && updatedCall.answer && pc.signalingState !== 'stable') {
+          try {
+            stopOutgoingRing();
+            playConnectedSound();
+            const answer = JSON.parse(updatedCall.answer);
+            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+            // Flush pending ICE candidates
+            for (const candidate of pendingCandidatesRef.current) {
+              await pc.addIceCandidate(candidate);
+            }
+            pendingCandidatesRef.current = [];
+            setCallState('connected');
+          } catch (e) {
+            console.error('Error setting remote description:', e);
+          }
+        }
+
+        if (updatedCall.status === 'rejected') {
+          stopOutgoingRing();
+          playBusySound();
+          setCallState('not_answering');
+          cleanupCall();
+          if (userId && currentUser) {
+            await DB.sendMessage({
+              senderId: currentUser.id,
+              receiverId: userId,
+              content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · Declined`,
+              messageType: 'text',
+            });
+            await loadMessages();
+          }
+          setTimeout(() => {
+            setActiveCall(null);
+            setCallState('idle');
+          }, 3000);
+          return;
+        }
+
+        if (updatedCall.status === 'missed' || updatedCall.status === 'ended') {
+          endCall();
+        }
+      });
+
+      // Listen for ICE candidates from receiver
+      unsubIceRef.current = DB.onIceCandidates(call.id, currentUser.id, async (candidate) => {
+        try {
+          if (pc.remoteDescription) {
+            await pc.addIceCandidate(candidate);
+          } else {
+            pendingCandidatesRef.current.push(candidate);
+          }
+        } catch (e) {
+          console.error('Error adding ICE candidate:', e);
+        }
+      });
+
+      // Auto-timeout after 30s - "not answering"
+      callTimeoutRef.current = setTimeout(async () => {
+        stopOutgoingRing();
+        playBusySound();
+        setCallState('not_answering');
+        cleanupCall();
+        await DB.updateCall(call.id, { status: 'missed', endedAt: new Date().toISOString() });
+        if (userId && currentUser) {
+          await DB.sendMessage({
+            senderId: currentUser.id,
+            receiverId: userId,
+            content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · No answer`,
+            messageType: 'text',
+          });
+          await loadMessages();
+        }
+        setTimeout(() => {
+          setActiveCall(null);
+          setCallState('idle');
+        }, 3000);
+      }, 30000);
+
+    } catch (error) {
+      console.error('Failed to start call:', error);
+      setCallState('idle');
+      cleanupCall();
+    }
+  };
+
+    const endCall = async () => {
+      const call = activeCall;
+      const duration = callDuration;
+      const type = call?.type;
+
+      stopOutgoingRing();
+      playEndCallSound();
+      cleanupCall();
+      setCallState('ended');
+
+    if (call && currentUser) {
+      await DB.updateCall(call.id, { status: 'ended', endedAt: new Date().toISOString() });
+
+      if (duration > 0 && userId) {
+        const emoji = type === 'video' ? '📹' : '📞';
+        const m = Math.floor(duration / 60);
+        const s = duration % 60;
+        const dur = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        await DB.sendMessage({
+          senderId: currentUser.id,
+          receiverId: userId,
+          content: `${emoji} ${type === 'video' ? 'Video' : 'Voice'} call · ${dur}`,
+          messageType: 'text',
+        });
+        await loadMessages();
+      }
+
+      setTimeout(() => DB.cleanupCall(call.id), 5000);
+    }
+
+    setTimeout(() => {
+      setActiveCall(null);
+      setCallState('idle');
+      setCallDuration(0);
+      setIsMuted(false);
+      setIsSpeaker(false);
+      setIsCameraOff(false);
+      setIsMinimized(false);
+    }, 1500);
+  };
+
+  const toggleMute = () => {
+    setIsMuted(prev => {
+      const newVal = !prev;
+      if (localStreamRef.current) localStreamRef.current.getAudioTracks().forEach(t => { t.enabled = !newVal; });
+      return newVal;
+    });
+  };
+
+  const toggleSpeaker = () => setIsSpeaker(prev => !prev);
+
+  const toggleCamera = () => {
+    setIsCameraOff(prev => {
+      const newVal = !prev;
+      if (localStreamRef.current) localStreamRef.current.getVideoTracks().forEach(t => { t.enabled = !newVal; });
+      return newVal;
+    });
+  };
+
+  const formatCallDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   if (!currentUser) {
-    return <div className="max-w-7xl mx-auto px-4 sm:px-6 py-24 text-center">Please login to send messages</div>;
+    return (
+      <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex items-center justify-center">
+        <p className="text-gray-500">Please login to send messages</p>
+      </div>
+    );
   }
 
-  if (!chatUser) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>;
+  if (!chatUser) {
+    return (
+      <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-[#1a73e8]" />
+      </div>
+    );
+  }
+
+  const formatTime = (date: string) => new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const formatDateLabel = (date: string) => {
+    const d = new Date(date);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return 'TODAY';
+    if (diffDays === 1) return 'YESTERDAY';
+    return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+  };
+
+  const groupedMessages: { label: string; msgs: Message[] }[] = [];
+  messages.forEach(msg => {
+    const label = formatDateLabel(msg.createdAt);
+    const lastGroup = groupedMessages[groupedMessages.length - 1];
+    if (lastGroup && lastGroup.label === label) lastGroup.msgs.push(msg);
+    else groupedMessages.push({ label, msgs: [msg] });
+  });
+
+  const renderMessageContent = (msg: Message, isOwn: boolean) => {
+    if (msg.messageType === 'image' && msg.attachment) {
+      return (
+        <div className="relative group/img">
+          <img src={msg.attachment.url} alt={msg.attachment.name} className="max-w-[240px] max-h-[240px] rounded-lg object-cover cursor-pointer" onClick={() => setPreviewImage(msg.attachment!.url)} />
+          <button onClick={() => setPreviewImage(msg.attachment!.url)} className="absolute top-2 right-2 w-7 h-7 bg-black/40 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover/img:opacity-100 transition-opacity">
+            <ZoomIn className="w-3.5 h-3.5 text-white" />
+          </button>
+          {msg.attachment.name && <p className={`text-[10px] mt-1.5 ${isOwn ? 'text-white/70' : 'text-gray-400'}`}>{msg.attachment.name}</p>}
+        </div>
+      );
+    }
+    if (msg.messageType === 'document' && msg.attachment) {
+      return (
+        <a href={msg.attachment.url} download={msg.attachment.name} className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isOwn ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-50 hover:bg-gray-100'}`}>
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isOwn ? 'bg-white/20' : 'bg-[#1a73e8]/10'}`}>
+            <FileText className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-[#1a73e8]'}`} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className={`text-sm font-medium truncate ${isOwn ? 'text-white' : 'text-[#1a2b49]'}`}>{msg.attachment.name}</p>
+            {msg.attachment.size && <p className={`text-[10px] ${isOwn ? 'text-white/60' : 'text-gray-400'}`}>{formatFileSize(msg.attachment.size)}</p>}
+          </div>
+          <Download className={`w-4 h-4 flex-shrink-0 ${isOwn ? 'text-white/70' : 'text-gray-400'}`} />
+        </a>
+      );
+    }
+    if (msg.content.startsWith('📞') || msg.content.startsWith('📹')) {
+      return (
+        <div className="flex items-center gap-2">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isOwn ? 'bg-white/15' : 'bg-green-50'}`}>
+            {msg.content.startsWith('📹') ? <Video className={`w-3.5 h-3.5 ${isOwn ? 'text-white' : 'text-green-600'}`} /> : <Phone className={`w-3.5 h-3.5 ${isOwn ? 'text-white' : 'text-green-600'}`} />}
+          </div>
+          <p className="text-sm">{msg.content.replace('📞 ', '').replace('📹 ', '')}</p>
+        </div>
+      );
+    }
+    return <p className="text-sm leading-relaxed">{msg.content}</p>;
+  };
+
+  // ─── Voice Call Overlay (Caller) ───
+  const renderVoiceCallOverlay = () => {
+    if (!activeCall || activeCall.type !== 'voice') return null;
+
+    if (isMinimized) {
+      return (
+        <div className="fixed bottom-6 right-6 z-[60] bg-[#1a2b49] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
+          <audio ref={remoteAudioRef} autoPlay />
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
+            <Phone className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="text-white text-sm font-medium">{chatUser?.name}</p>
+            <p className="text-green-400 text-xs font-mono">{formatCallDuration(callDuration)}</p>
+          </div>
+          <div className="flex items-center gap-2 ml-2">
+            <button onClick={() => setIsMinimized(false)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+              <Maximize2 className="w-3.5 h-3.5 text-white" />
+            </button>
+            <button onClick={endCall} className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors">
+              <PhoneOff className="w-3.5 h-3.5 text-white" />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-b from-[#0f1a2e] to-[#1a2b49]">
+        <audio ref={remoteAudioRef} autoPlay />
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-blue-400 blur-[100px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full bg-purple-400 blur-[80px]" />
+        </div>
+        <button onClick={() => setIsMinimized(true)} className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+          <Minimize2 className="w-4 h-4 text-white" />
+        </button>
+        <div className="relative flex flex-col items-center">
+          <div className="relative mb-8">
+            {callState === 'ringing' && (
+              <>
+                <div className="absolute inset-0 rounded-full bg-green-500/20 animate-ping" style={{ animationDuration: '2s' }} />
+                <div className="absolute -inset-4 rounded-full bg-green-500/10 animate-pulse" />
+              </>
+            )}
+            {callState === 'connected' && <div className="absolute -inset-3 rounded-full border-2 border-green-400/30 animate-pulse" />}
+            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#1a73e8] flex items-center justify-center text-white text-4xl font-bold shadow-lg relative z-10">
+              {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
+          </div>
+          <h2 className="text-white text-2xl font-semibold mb-1">{chatUser?.name || 'User'}</h2>
+          <div className="flex items-center gap-2 mb-2">
+            {callState === 'ringing' && (
+              <>
+                <div className="flex gap-1">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+                <p className="text-green-400 text-sm">Calling...</p>
+              </>
+            )}
+            {callState === 'not_answering' && (
+              <>
+                <div className="w-2 h-2 bg-red-400 rounded-full" />
+                <p className="text-red-400 text-sm">Not answering</p>
+              </>
+            )}
+            {callState === 'connected' && (
+              <>
+                <div className="w-2 h-2 bg-green-400 rounded-full" />
+                <p className="text-green-400 text-sm font-mono">{formatCallDuration(callDuration)}</p>
+              </>
+            )}
+            {callState === 'ended' && <p className="text-red-400 text-sm">Call ended</p>}
+          </div>
+          {callState === 'connected' && !isMuted && (
+            <div className="flex items-center gap-1 mb-8 h-6">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="w-1 bg-green-400/60 rounded-full animate-pulse" style={{ height: `${12 + Math.random() * 12}px`, animationDelay: `${i * 100}ms`, animationDuration: '0.8s' }} />
+              ))}
+            </div>
+          )}
+          {(callState !== 'connected' || isMuted) && <div className="mb-8 h-6" />}
+          {callState === 'not_answering' && (
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-red-500/15 flex items-center justify-center mb-2">
+                <PhoneOff className="w-7 h-7 text-red-400" />
+              </div>
+              <p className="text-white/60 text-sm">The person you're calling is not available right now</p>
+              <div className="flex items-center gap-4 mt-2">
+                <button onClick={() => { setActiveCall(null); setCallState('idle'); }} className="px-6 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm font-medium transition-colors">
+                  Close
+                </button>
+                <button onClick={() => { setActiveCall(null); setCallState('idle'); setTimeout(() => startCall(activeCall?.type || 'voice'), 100); }} className="px-6 py-2.5 bg-green-500 hover:bg-green-600 rounded-xl text-white text-sm font-medium transition-colors flex items-center gap-2">
+                  <Phone className="w-4 h-4" /> Call Again
+                </button>
+              </div>
+            </div>
+          )}
+          {callState !== 'ended' && callState !== 'not_answering' && (
+            <>
+              <div className="flex items-center gap-5">
+                <button onClick={toggleMute} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-red-500/20 border border-red-500/40' : 'bg-white/10 hover:bg-white/20 border border-white/10'}`}>
+                  {isMuted ? <MicOff className="w-5 h-5 text-red-400" /> : <Mic className="w-5 h-5 text-white" />}
+                </button>
+                <button onClick={toggleSpeaker} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isSpeaker ? 'bg-blue-500/20 border border-blue-500/40' : 'bg-white/10 hover:bg-white/20 border border-white/10'}`}>
+                  {isSpeaker ? <Volume2 className="w-5 h-5 text-blue-400" /> : <VolumeX className="w-5 h-5 text-white" />}
+                </button>
+                <button onClick={endCall} className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors shadow-lg shadow-red-500/30">
+                  <PhoneOff className="w-6 h-6 text-white" />
+                </button>
+              </div>
+              <div className="flex items-center gap-5 mt-3">
+                <span className={`text-[11px] w-14 text-center ${isMuted ? 'text-red-400' : 'text-white/50'}`}>{isMuted ? 'Unmute' : 'Mute'}</span>
+                <span className={`text-[11px] w-14 text-center ${isSpeaker ? 'text-blue-400' : 'text-white/50'}`}>Speaker</span>
+                <span className="text-[11px] w-16 text-center text-red-400">End</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // ─── Video Call Overlay (Caller) ───
+  const renderVideoCallOverlay = () => {
+    if (!activeCall || activeCall.type !== 'video') return null;
+
+    if (isMinimized) {
+      return (
+        <div className="fixed bottom-6 right-6 z-[60] bg-[#1a2b49] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
+            <Video className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <p className="text-white text-sm font-medium">{chatUser?.name}</p>
+            <p className="text-blue-400 text-xs font-mono">{formatCallDuration(callDuration)}</p>
+          </div>
+          <div className="flex items-center gap-2 ml-2">
+            <button onClick={() => setIsMinimized(false)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+              <Maximize2 className="w-3.5 h-3.5 text-white" />
+            </button>
+            <button onClick={endCall} className="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors">
+              <PhoneOff className="w-3.5 h-3.5 text-white" />
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="fixed inset-0 z-50 bg-[#0a0f1a]">
+        <div className="absolute inset-0">
+          {callState === 'connected' ? (
+            <div className="w-full h-full bg-gradient-to-br from-[#1a2b49] via-[#0f1a2e] to-[#1a2b49] flex items-center justify-center relative">
+              <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+              {(!remoteStreamRef.current || remoteStreamRef.current.getVideoTracks().length === 0) && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#1a73e8] flex items-center justify-center text-white text-5xl font-bold mx-auto mb-4 shadow-xl">
+                      {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                    <p className="text-white/60 text-sm">{chatUser?.name}'s camera</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : callState === 'ringing' ? (
+            <div className="w-full h-full bg-gradient-to-b from-[#0f1a2e] to-[#1a2b49] flex items-center justify-center">
+              <div className="text-center">
+                <div className="relative mb-6">
+                  <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" style={{ animationDuration: '2s' }} />
+                  <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#1a73e8] flex items-center justify-center text-white text-4xl font-bold relative z-10 mx-auto">
+                    {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
+                  </div>
+                </div>
+                <h2 className="text-white text-xl font-semibold mb-1">{chatUser?.name}</h2>
+                <div className="flex items-center justify-center gap-2">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <p className="text-blue-400 text-sm">Calling...</p>
+                </div>
+              </div>
+            </div>
+          ) : callState === 'not_answering' ? (
+            <div className="w-full h-full bg-gradient-to-b from-[#0f1a2e] to-[#1a2b49] flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#1a73e8] flex items-center justify-center text-white text-4xl font-bold mx-auto mb-6 opacity-60">
+                  {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <h2 className="text-white text-xl font-semibold mb-1">{chatUser?.name}</h2>
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <div className="w-2 h-2 bg-red-400 rounded-full" />
+                  <p className="text-red-400 text-sm">Not answering</p>
+                </div>
+                <p className="text-white/50 text-sm mb-6">The person you're calling is not available right now</p>
+                <div className="flex items-center justify-center gap-4">
+                  <button onClick={() => { setActiveCall(null); setCallState('idle'); }} className="px-6 py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm font-medium transition-colors">
+                    Close
+                  </button>
+                  <button onClick={() => { setActiveCall(null); setCallState('idle'); setTimeout(() => startCall('video'), 100); }} className="px-6 py-2.5 bg-blue-500 hover:bg-blue-600 rounded-xl text-white text-sm font-medium transition-colors flex items-center gap-2">
+                    <Video className="w-4 h-4" /> Call Again
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="w-full h-full bg-[#0a0f1a] flex items-center justify-center">
+              <p className="text-red-400 text-sm">Call ended</p>
+            </div>
+          )}
+        </div>
+
+        {callState === 'connected' && (
+          <div className="absolute top-6 right-6 w-40 h-28 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl bg-[#0a0f1a]">
+            {!isCameraOff ? (
+              <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-[#1a2b49] to-[#2a4a7f] flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                  <VideoOff className="w-5 h-5 text-white/50" />
+                </div>
+              </div>
+            )}
+            <div className="absolute bottom-2 left-2">
+              <span className="text-[10px] text-white/60 bg-black/40 px-1.5 py-0.5 rounded">You</span>
+            </div>
+          </div>
+        )}
+
+        <div className="absolute top-6 left-6 flex items-center gap-3">
+          <button onClick={() => setIsMinimized(true)} className="w-10 h-10 rounded-full bg-black/30 backdrop-blur-sm hover:bg-black/50 flex items-center justify-center transition-colors">
+            <Minimize2 className="w-4 h-4 text-white" />
+          </button>
+          {callState === 'connected' && (
+            <div className="bg-black/30 backdrop-blur-sm rounded-full px-4 py-2 flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <span className="text-white text-sm font-mono">{formatCallDuration(callDuration)}</span>
+            </div>
+          )}
+        </div>
+
+        {callState !== 'ended' && callState !== 'not_answering' && (
+          <div className="absolute bottom-0 left-0 right-0 pb-10 pt-20 bg-gradient-to-t from-black/60 to-transparent">
+            <div className="flex items-center justify-center gap-5">
+              <div className="flex flex-col items-center gap-1.5">
+                <button onClick={toggleMute} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isMuted ? 'bg-red-500/80 backdrop-blur-sm' : 'bg-white/15 backdrop-blur-sm hover:bg-white/25'}`}>
+                  {isMuted ? <MicOff className="w-5 h-5 text-white" /> : <Mic className="w-5 h-5 text-white" />}
+                </button>
+                <span className="text-[11px] text-white/60">{isMuted ? 'Unmute' : 'Mute'}</span>
+              </div>
+              <div className="flex flex-col items-center gap-1.5">
+                <button onClick={toggleCamera} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isCameraOff ? 'bg-red-500/80 backdrop-blur-sm' : 'bg-white/15 backdrop-blur-sm hover:bg-white/25'}`}>
+                  {isCameraOff ? <VideoOff className="w-5 h-5 text-white" /> : <Camera className="w-5 h-5 text-white" />}
+                </button>
+                <span className="text-[11px] text-white/60">{isCameraOff ? 'Start' : 'Stop'}</span>
+              </div>
+              <div className="flex flex-col items-center gap-1.5">
+                <button onClick={endCall} className="w-16 h-16 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors shadow-lg shadow-red-500/30">
+                  <PhoneOff className="w-6 h-6 text-white" />
+                </button>
+                <span className="text-[11px] text-red-400">End</span>
+              </div>
+              <div className="flex flex-col items-center gap-1.5">
+                <button onClick={toggleSpeaker} className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${isSpeaker ? 'bg-blue-500/80 backdrop-blur-sm' : 'bg-white/15 backdrop-blur-sm hover:bg-white/25'}`}>
+                  {isSpeaker ? <Volume2 className="w-5 h-5 text-white" /> : <VolumeX className="w-5 h-5 text-white" />}
+                </button>
+                <span className="text-[11px] text-white/60">Speaker</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-24">
-      <button 
-        onClick={() => navigate(-1)} 
-        className="fixed top-20 left-4 sm:left-6 z-40 p-3 bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-full hover:bg-zinc-800 transition-all group"
-      >
-        <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
-      </button>
+    <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
+      {renderVoiceCallOverlay()}
+      {renderVideoCallOverlay()}
 
-      <div className="pt-8 sm:pt-12">
-        <div className="bg-zinc-900/30 border border-zinc-800 rounded-3xl overflow-hidden flex flex-col h-[calc(100vh-200px)]">
-          {/* Header */}
-          <div className="p-6 border-b border-zinc-800 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-lg font-bold">
-              {chatUser?.name?.charAt(0) || 'U'}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#1a2b49] mb-4 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back to Messages
+        </button>
+
+        <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
+          {/* Chat Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a2b49] to-[#2a4a7f] flex items-center justify-center text-white font-semibold text-sm">
+                  {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
+              </div>
+              <div>
+                {specialistId ? (
+                  <Link to={`/profile/${specialistId}`} className="font-semibold text-[#1a2b49] hover:text-[#1a73e8] transition-colors flex items-center gap-1.5 group text-sm">
+                    {chatUser?.displayName || chatUser?.name || 'User'}
+                    <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </Link>
+                ) : (
+                  <h2 className="font-semibold text-[#1a2b49] text-sm">{chatUser?.displayName || chatUser?.name || 'User'}</h2>
+                )}
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                  <p className="text-xs text-green-600">Online</p>
+                </div>
+              </div>
             </div>
-            <div className="flex-1">
-              {specialistId ? (
-                <Link 
-                  to={`/profile/${specialistId}`}
-                  className="font-bold text-lg hover:text-blue-500 transition-colors flex items-center gap-2 group"
-                >
-                  {chatUser?.displayName || chatUser?.name || 'User'}
-                  <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
-              ) : (
-                <h2 className="font-bold text-lg">{chatUser?.displayName || chatUser?.name || 'User'}</h2>
-              )}
-              <p className="text-xs text-gray-500 uppercase tracking-widest">{chatUser?.role || 'user'}</p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => startCall('video')}
+                disabled={callState !== 'idle'}
+                className="w-9 h-9 rounded-lg hover:bg-blue-50 flex items-center justify-center transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Video className="w-4 h-4 text-gray-500 group-hover:text-[#1a73e8]" />
+              </button>
+              <button
+                onClick={() => startCall('voice')}
+                disabled={callState !== 'idle'}
+                className="w-9 h-9 rounded-lg hover:bg-green-50 flex items-center justify-center transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Phone className="w-4 h-4 text-gray-500 group-hover:text-green-600" />
+              </button>
+              <button className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors">
+                <Info className="w-4 h-4 text-gray-500" />
+              </button>
             </div>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {messages.length > 0 ? messages.map(msg => {
-              const isOwn = msg.senderId === currentUser.id;
-              return (
-                <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[70%] p-4 rounded-2xl ${isOwn ? 'bg-blue-600' : 'bg-zinc-800'}`}>
-                    <p className="text-sm leading-relaxed">{msg.content}</p>
-                    <p className="text-[10px] text-gray-400 mt-2">{new Date(msg.createdAt).toLocaleTimeString()}</p>
+          {/* Messages Area */}
+          <div className="flex-1 overflow-y-auto px-6 py-4 bg-gray-50/50">
+            {messages.length > 0 ? (
+              <>
+                {groupedMessages.map((group, gi) => (
+                  <div key={gi}>
+                    <div className="flex items-center justify-center my-4">
+                      <span className="px-3 py-1 bg-white border border-gray-200 rounded-full text-[10px] font-semibold text-gray-400 tracking-wider">
+                        {group.label}
+                      </span>
+                    </div>
+                    {group.msgs.map((msg, mi) => {
+                      const isOwn = msg.senderId === currentUser.id;
+                      const showAvatar = !isOwn && (mi === 0 || group.msgs[mi - 1]?.senderId === currentUser.id);
+                      return (
+                        <div key={msg.id} className={`flex mb-3 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                          {!isOwn && (
+                            <div className="flex-shrink-0 mr-2 mt-auto">
+                              {showAvatar ? (
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1a2b49] to-[#2a4a7f] flex items-center justify-center text-white text-xs font-semibold">
+                                  {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
+                                </div>
+                              ) : (
+                                <div className="w-8" />
+                              )}
+                            </div>
+                          )}
+                          <div className={`max-w-[65%] ${isOwn ? 'items-end' : 'items-start'}`}>
+                            <div className={`${msg.messageType === 'image' ? 'p-1.5' : 'px-4 py-2.5'} ${isOwn ? 'bg-gradient-to-br from-[#1a9be8] to-[#0ea5e9] text-white rounded-2xl rounded-br-md' : 'bg-white border border-gray-100 text-[#1a2b49] rounded-2xl rounded-bl-md shadow-sm'}`}>
+                              {renderMessageContent(msg, isOwn)}
+                            </div>
+                            <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                              <span className="text-[10px] text-gray-400">{formatTime(msg.createdAt)}</span>
+                              {isOwn && <CheckCheck className="w-3 h-3 text-[#1a73e8]" />}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
+                ))}
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                  <Send className="w-6 h-6 text-gray-300" />
                 </div>
-              );
-            }) : (
-              <div className="text-center text-gray-500 py-12">
-                <p className="text-sm">No messages yet. Start the conversation!</p>
+                <p className="text-sm text-gray-500 font-medium">No messages yet</p>
+                <p className="text-xs text-gray-400 mt-1">Start the conversation!</p>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
-          <form onSubmit={handleSend} className="p-6 border-t border-zinc-800">
-            <div className="flex gap-3">
-              <input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500"
-              />
-              <button
-                type="submit"
-                disabled={loading || !newMessage.trim()}
-                className="px-6 py-3 bg-blue-600 rounded-2xl font-bold text-sm hover:bg-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              </button>
+          {uploadingFile && (
+            <div className="px-6 py-2 border-t border-gray-100 bg-blue-50 flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-[#1a73e8]" />
+              <span className="text-xs text-[#1a73e8] font-medium">Uploading file...</span>
             </div>
-          </form>
+          )}
+
+          {/* Message Input */}
+          <div className="border-t border-gray-100 bg-white px-4 py-3 relative">
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+            <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.rar" className="hidden" onChange={handleDocUpload} />
+
+            <form onSubmit={handleSend} className="flex items-center gap-2">
+              <div className="relative" ref={attachRef}>
+                <button type="button" onClick={() => { setShowAttachMenu(!showAttachMenu); setShowEmojiPicker(false); }} className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${showAttachMenu ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'hover:bg-gray-100 text-gray-400'}`}>
+                  <Paperclip className="w-5 h-5" />
+                </button>
+                {showAttachMenu && (
+                  <div className="absolute bottom-12 left-0 bg-white border border-gray-200 rounded-xl shadow-lg py-2 w-48 z-50">
+                    <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
+                      <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><Image className="w-4 h-4 text-green-600" /></div>
+                      <div><p className="text-sm font-medium text-[#1a2b49]">Photo</p><p className="text-[10px] text-gray-400">Up to 10 MB</p></div>
+                    </button>
+                    <button type="button" onClick={() => docInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
+                      <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center"><FileText className="w-4 h-4 text-purple-600" /></div>
+                      <div><p className="text-sm font-medium text-[#1a2b49]">Document</p><p className="text-[10px] text-gray-400">PDF, DOC, XLS, etc.</p></div>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors flex-shrink-0">
+                <Image className="w-5 h-5 text-gray-400" />
+              </button>
+
+              <input ref={inputRef} value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-[#1a2b49] placeholder-gray-400 focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]/20 transition-all" />
+
+              <div className="relative" ref={emojiRef}>
+                <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowAttachMenu(false); }} className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${showEmojiPicker ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'hover:bg-gray-100 text-gray-400'}`}>
+                  <Smile className="w-5 h-5" />
+                </button>
+                {showEmojiPicker && (
+                  <div className="absolute bottom-12 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-[320px]">
+                    <div className="flex border-b border-gray-100 px-2 pt-2">
+                      {EMOJI_CATEGORIES.map((cat, i) => (
+                        <button key={cat.name} type="button" onClick={() => setEmojiCategory(i)} className={`px-3 py-1.5 text-xs font-medium rounded-t-lg transition-colors ${emojiCategory === i ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'text-gray-400 hover:text-gray-600'}`}>
+                          {cat.name}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="p-3 grid grid-cols-8 gap-0.5 max-h-[200px] overflow-y-auto">
+                      {EMOJI_CATEGORIES[emojiCategory].emojis.map((emoji, i) => (
+                        <button key={i} type="button" onClick={() => handleEmojiSelect(emoji)} className="w-9 h-9 flex items-center justify-center text-xl hover:bg-gray-100 rounded-lg transition-colors">
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <button type="submit" disabled={loading || !newMessage.trim()} className="w-10 h-10 bg-[#1a73e8] rounded-xl flex items-center justify-center hover:bg-[#1557b0] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0">
+                {loading ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Send className="w-4 h-4 text-white" />}
+              </button>
+            </form>
+            <div className="flex items-center justify-center gap-1.5 mt-2">
+              <Lock className="w-3 h-3 text-gray-300" />
+              <span className="text-[10px] text-gray-300 tracking-wider font-medium">END-TO-END ENCRYPTED</span>
+            </div>
+          </div>
         </div>
       </div>
+
+      {previewImage && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
+          <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors">
+            <X className="w-5 h-5 text-white" />
+          </button>
+          <img src={previewImage} alt="Preview" className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   );
 }
