@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
 import { ServiceCategory } from '../types';
-import { Save, ArrowLeft } from 'lucide-react';
+import { Save } from 'lucide-react';
 
 export default function CreateProfile() {
   const navigate = useNavigate();
@@ -56,44 +56,37 @@ export default function CreateProfile() {
     };
 
     await DB.updateSpecialist(specialist);
-    navigate('/dashboard');
+    navigate('/worker-dashboard');
   };
 
   if (!user) return null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-24">
-      <button 
-        onClick={() => navigate(-1)} 
-        className="fixed top-20 left-4 sm:left-6 z-40 p-3 bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-full hover:bg-zinc-800 transition-all group"
-      >
-        <ArrowLeft className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors" />
-      </button>
-
       <div className="pt-8 sm:pt-12">
         <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tighter mb-2">Create Your <span className="text-blue-500">Profile</span></h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-2">Create Your Profile</h1>
           <p className="text-gray-500 text-sm">Your documents have been approved. Complete your profile to start receiving bookings.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-zinc-900/30 border border-zinc-800 rounded-3xl p-6 sm:p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 sm:p-8 space-y-6">
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Professional Title</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Professional Title</label>
             <input 
               required
               value={formData.title}
               onChange={e => setFormData({...formData, title: e.target.value})}
               placeholder="e.g., Senior Plumber, Master Electrician"
-              className="w-full bg-black border border-zinc-800 rounded-xl p-4 text-sm focus:border-blue-500 outline-none"
+              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Category</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Category</label>
             <select 
               value={formData.category}
               onChange={e => setFormData({...formData, category: e.target.value as ServiceCategory})}
-              className="w-full bg-black border border-zinc-800 rounded-xl p-4 text-sm focus:border-blue-500 outline-none"
+              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
             >
               <option>Architecture</option>
               <option>Plumbing</option>
@@ -105,67 +98,67 @@ export default function CreateProfile() {
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Description</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Description</label>
             <textarea 
               required
               rows={4}
               value={formData.description}
               onChange={e => setFormData({...formData, description: e.target.value})}
               placeholder="Describe your expertise and experience..."
-              className="w-full bg-black border border-zinc-800 rounded-xl p-4 text-sm focus:border-blue-500 outline-none"
+              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Hourly Rate (₹)</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Hourly Rate (Rs.)</label>
               <input 
                 type="number"
                 required
                 value={formData.hourlyRate}
                 onChange={e => setFormData({...formData, hourlyRate: Number(e.target.value)})}
-                className="w-full bg-black border border-zinc-800 rounded-xl p-4 text-sm focus:border-blue-500 outline-none"
+                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Location</label>
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Location</label>
               <input 
                 required
                 value={formData.location}
                 onChange={e => setFormData({...formData, location: e.target.value})}
                 placeholder="City, State"
-                className="w-full bg-black border border-zinc-800 rounded-xl p-4 text-sm focus:border-blue-500 outline-none"
+                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Skills (comma separated)</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Skills (comma separated)</label>
             <input 
               value={formData.skills}
               onChange={e => setFormData({...formData, skills: e.target.value})}
               placeholder="e.g., Welding, Pipe Fitting, Leak Detection"
-              className="w-full bg-black border border-zinc-800 rounded-xl p-4 text-sm focus:border-blue-500 outline-none"
+              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Credentials (comma separated)</label>
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Credentials (comma separated)</label>
             <input 
               value={formData.credentials}
               onChange={e => setFormData({...formData, credentials: e.target.value})}
               placeholder="e.g., ITI Certified, 10 Years Experience"
-              className="w-full bg-black border border-zinc-800 rounded-xl p-4 text-sm focus:border-blue-500 outline-none"
+              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
             />
           </div>
 
           <button 
             type="submit"
-            className="w-full bg-blue-600 py-4 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 transition-all"
+            className="w-full bg-[#1a2b49] text-white py-3.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#0f1d35] transition-colors"
           >
             <Save className="w-5 h-5" />
-            CREATE PROFILE
+            Create Profile
           </button>
         </form>
       </div>

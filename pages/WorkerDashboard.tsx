@@ -18,13 +18,25 @@ export default function WorkerDashboard() {
 
   useEffect(() => {
     if (!user || user.role !== 'worker') { navigate('/login', { replace: true }); return; }
-    if (!user.verificationStatus || user.verificationStatus === 'rejected' || user.verificationStatus === 'pending') {
-      navigate('/document-upload', { replace: true }); return;
-    }
     const loadData = async () => {
+      // Refresh user data from DB to get latest verificationStatus
+      const freshUser = await DB.getUserById(user.id);
+      if (freshUser) {
+        AuthService.updateSession(freshUser);
+        if (!freshUser.verificationStatus || freshUser.verificationStatus === 'rejected') {
+          navigate('/document-upload', { replace: true }); return;
+        }
+        if (freshUser.verificationStatus === 'pending') {
+          navigate('/document-upload', { replace: true }); return;
+        }
+      } else {
+        if (!user.verificationStatus || user.verificationStatus === 'rejected' || user.verificationStatus === 'pending') {
+          navigate('/document-upload', { replace: true }); return;
+        }
+      }
       const specialists = await DB.getSpecialists();
       let sp = specialists.find(s => s.userId === user.id);
-      if (!sp && user.verificationStatus === 'approved') { navigate('/create-profile', { replace: true }); return; }
+      if (!sp) { navigate('/create-profile', { replace: true }); return; }
       if (sp) setProfile(sp);
       setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user.id));
       setMessages((await DB.getMessages()).filter(m => m.receiverId === user.id));

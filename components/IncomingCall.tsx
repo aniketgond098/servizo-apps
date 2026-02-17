@@ -71,6 +71,23 @@ export default function IncomingCall() {
     };
   }, []);
 
+  // Re-attach streams to video/audio elements when callState changes to connected
+  useEffect(() => {
+    if (callState === 'connected') {
+      if (remoteStreamRef.current) {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStreamRef.current;
+        }
+        if (remoteAudioRef.current) {
+          remoteAudioRef.current.srcObject = remoteStreamRef.current;
+        }
+      }
+      if (localStreamRef.current && localVideoRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current;
+      }
+    }
+  }, [callState]);
+
   const cleanup = () => {
     stopIncomingRing();
     if (localStreamRef.current) {
@@ -463,10 +480,11 @@ export default function IncomingCall() {
       );
     }
 
-    return (
-      <div className="fixed inset-0 z-[60] bg-[#0a0f1a]">
-        {/* Remote video */}
-        <div className="absolute inset-0">
+      return (
+        <div className="fixed inset-0 z-[60] bg-[#0a0f1a]">
+          <audio ref={remoteAudioRef} autoPlay />
+          {/* Remote video */}
+          <div className="absolute inset-0">
           {callState === 'connected' ? (
             <div className="w-full h-full bg-gradient-to-br from-[#1a2b49] via-[#0f1a2e] to-[#1a2b49] flex items-center justify-center">
               <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />

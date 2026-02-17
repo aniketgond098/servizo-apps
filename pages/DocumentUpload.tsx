@@ -1,32 +1,64 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, Clock, ArrowRight } from 'lucide-react';
 import { DB } from '../services/db';
+import { AuthService } from '../services/auth';
+import { ServizoIcon } from '../components/Logo';
 
-export default function DocumentUpload({ currentUser }: { currentUser: any }) {
+export default function DocumentUpload({ currentUser: initialUser }: { currentUser: any }) {
   const navigate = useNavigate();
+  const [currentUser, setCurrentUser] = useState(initialUser);
   const [aadhaar, setAadhaar] = useState<File | null>(null);
   const [pan, setPan] = useState<File | null>(null);
   const [cv, setCv] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    if (!currentUser || currentUser.role !== 'worker') {
-      navigate('/', { replace: true });
-      return;
-    }
+    const loadFreshUser = async () => {
+      const sessionUser = AuthService.getCurrentUser();
+      if (!sessionUser || sessionUser.role !== 'worker') {
+        navigate('/', { replace: true });
+        return;
+      }
+      const freshUser = await DB.getUserById(sessionUser.id);
+      if (freshUser) {
+        AuthService.updateSession(freshUser);
+        setCurrentUser(freshUser);
+      } else {
+        setCurrentUser(sessionUser);
+      }
+    };
+    loadFreshUser();
   }, []);
 
   if (!currentUser || currentUser.role !== 'worker') return null;
 
   if (currentUser.verificationStatus === 'pending') {
     return (
-      <div className="min-h-screen bg-primary flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-card border border-border rounded-3xl p-8 text-center">
-          <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4 animate-pulse" />
-          <h2 className="text-2xl font-black mb-2">Application Under Review</h2>
-          <p className="text-gray-400 mb-6">Your documents are being reviewed by our admin team. You'll be notified once approved.</p>
-          <button onClick={() => navigate('/')} className="px-6 py-3 bg-zinc-800 rounded-full font-bold hover:bg-zinc-700 transition-all">
+      <div className="min-h-[calc(100vh-64px)] bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-lg w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 sm:p-10 text-center">
+          <div className="w-20 h-20 mx-auto mb-6 bg-amber-50 rounded-full flex items-center justify-center">
+            <Clock className="w-10 h-10 text-amber-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-[#1a2b49] mb-3">Your Profile is Being Reviewed</h2>
+          <p className="text-gray-500 text-sm leading-relaxed mb-2">
+            Thank you for submitting your documents! Our admin team is currently reviewing your application.
+          </p>
+          <p className="text-gray-400 text-xs mb-8">
+            You will be notified once your profile has been approved. This usually doesn't take long.
+          </p>
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-8">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0">
+                <div className="w-2.5 h-2.5 bg-amber-400 rounded-full animate-pulse"></div>
+              </div>
+              <p className="text-sm text-amber-700 font-medium text-left">Review in progress</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate('/')} 
+            className="px-6 py-3 bg-[#1a2b49] text-white rounded-lg font-semibold text-sm hover:bg-[#0f1d35] transition-colors"
+          >
             Go to Home
           </button>
         </div>
@@ -36,13 +68,20 @@ export default function DocumentUpload({ currentUser }: { currentUser: any }) {
 
   if (currentUser.verificationStatus === 'approved') {
     return (
-      <div className="min-h-screen bg-primary flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-card border border-border rounded-3xl p-8 text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-black mb-2">Verified!</h2>
-          <p className="text-gray-400 mb-6">Your documents are approved. Create your profile to start receiving bookings.</p>
-          <button onClick={() => navigate('/create-profile')} className="px-6 py-3 bg-blue-600 rounded-full font-bold">
-            Create Profile
+      <div className="min-h-[calc(100vh-64px)] bg-gray-50 flex items-center justify-center p-4">
+        <div className="max-w-lg w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 sm:p-10 text-center">
+          <div className="w-20 h-20 mx-auto mb-6 bg-green-50 rounded-full flex items-center justify-center">
+            <CheckCircle className="w-10 h-10 text-green-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-[#1a2b49] mb-3">You're Verified!</h2>
+          <p className="text-gray-500 text-sm leading-relaxed mb-8">
+            Your documents have been approved. Create your professional profile to start receiving bookings from customers.
+          </p>
+          <button 
+            onClick={() => navigate('/create-profile')} 
+            className="px-6 py-3 bg-[#1a73e8] text-white rounded-lg font-semibold text-sm hover:bg-blue-600 transition-colors flex items-center gap-2 mx-auto"
+          >
+            Create Profile <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -80,10 +119,11 @@ export default function DocumentUpload({ currentUser }: { currentUser: any }) {
       
       await DB.createVerificationRequest(currentUser.id, aadhaarData, panData, cvData);
       
-      setTimeout(() => {
-        setUploading(false);
-        window.location.reload();
-      }, 1500);
+      // Update local session with pending status
+      const updatedUser = { ...currentUser, verificationStatus: 'pending' as const };
+      AuthService.updateSession(updatedUser);
+      setCurrentUser(updatedUser);
+      setUploading(false);
     } catch (error) {
       console.error('Upload error:', error);
       setUploading(false);
@@ -91,16 +131,16 @@ export default function DocumentUpload({ currentUser }: { currentUser: any }) {
   };
 
   return (
-    <div className="min-h-screen bg-primary p-4 pt-24">
+    <div className="min-h-[calc(100vh-64px)] bg-gray-50 p-4 pt-24">
       <div className="max-w-2xl mx-auto">
-        <div className="bg-card border border-border rounded-3xl p-8">
-          <h1 className="text-3xl font-black mb-2">Document Verification</h1>
-          <p className="text-gray-400 mb-8">Upload your Aadhaar and PAN card for verification</p>
+        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-8">
+          <h1 className="text-2xl font-bold text-[#1a2b49] mb-2">Document Verification</h1>
+          <p className="text-gray-500 text-sm mb-8">Upload your Aadhaar and PAN card for verification</p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-bold mb-2">Aadhaar Card</label>
-              <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center hover:border-blue-500 transition-colors">
+              <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-500 transition-colors">
                 <input
                   type="file"
                   accept="image/*,.pdf"
@@ -126,7 +166,7 @@ export default function DocumentUpload({ currentUser }: { currentUser: any }) {
 
             <div>
               <label className="block text-sm font-bold mb-2">PAN Card</label>
-              <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center hover:border-blue-500 transition-colors">
+              <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-500 transition-colors">
                 <input
                   type="file"
                   accept="image/*,.pdf"
@@ -152,7 +192,7 @@ export default function DocumentUpload({ currentUser }: { currentUser: any }) {
 
             <div>
               <label className="block text-sm font-bold mb-2">CV / Resume</label>
-              <div className="border-2 border-dashed border-border rounded-2xl p-6 text-center hover:border-blue-500 transition-colors">
+              <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-blue-500 transition-colors">
                 <input
                   type="file"
                   accept=".pdf,.doc,.docx"

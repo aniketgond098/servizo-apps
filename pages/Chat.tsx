@@ -125,10 +125,28 @@ export default function Chat() {
     return () => { if (callTimerRef.current) clearInterval(callTimerRef.current); };
   }, [callState]);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => { cleanupCall(); };
-  }, []);
+    // Cleanup on unmount
+    useEffect(() => {
+      return () => { cleanupCall(); };
+    }, []);
+
+    // Re-attach streams to video/audio elements when callState changes to connected
+    // (elements may not exist in DOM until the connected UI renders)
+    useEffect(() => {
+      if (callState === 'connected') {
+        if (remoteStreamRef.current) {
+          if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = remoteStreamRef.current;
+          }
+          if (remoteAudioRef.current) {
+            remoteAudioRef.current.srcObject = remoteStreamRef.current;
+          }
+        }
+        if (localStreamRef.current && localVideoRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+        }
+      }
+    }, [callState]);
 
     const cleanupCall = () => {
       stopOutgoingRing();
@@ -693,10 +711,11 @@ export default function Chat() {
       );
     }
 
-    return (
-      <div className="fixed inset-0 z-50 bg-[#0a0f1a]">
-        <div className="absolute inset-0">
-          {callState === 'connected' ? (
+      return (
+        <div className="fixed inset-0 z-50 bg-[#0a0f1a]">
+          <audio ref={remoteAudioRef} autoPlay />
+          <div className="absolute inset-0">
+            {callState === 'connected' ? (
             <div className="w-full h-full bg-gradient-to-br from-[#1a2b49] via-[#0f1a2e] to-[#1a2b49] flex items-center justify-center relative">
               <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
               {(!remoteStreamRef.current || remoteStreamRef.current.getVideoTracks().length === 0) && (

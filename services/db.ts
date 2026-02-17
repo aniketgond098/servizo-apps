@@ -496,6 +496,15 @@ export class DB {
         const user = await this.getUserById(request.userId);
         if (user) {
           await this.updateUser({ ...user, verificationStatus: 'approved' });
+          
+          // Notify the worker
+          await this.createNotification({
+            userId: request.userId,
+            type: 'booking_status',
+            title: 'Application Approved',
+            message: 'Your documents have been verified. You can now create your professional profile and start receiving bookings!',
+            link: '/document-upload'
+          });
         }
       }
     } catch (error) {
@@ -517,6 +526,15 @@ export class DB {
         const user = await this.getUserById(request.userId);
         if (user) {
           await this.updateUser({ ...user, verificationStatus: 'rejected' });
+          
+          // Notify the worker
+          await this.createNotification({
+            userId: request.userId,
+            type: 'booking_status',
+            title: 'Application Rejected',
+            message: 'Your document verification was not approved. Please re-upload valid documents to try again.',
+            link: '/document-upload'
+          });
         }
       }
     } catch (error) {
