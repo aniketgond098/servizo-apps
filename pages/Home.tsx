@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, ChevronRight, Shield, CheckCircle, Wrench, Paintbrush, Plug, Bot, Droplets, Ruler, FileCheck, UserCheck, ShieldCheck, MessageSquareWarning, Lock, Eye } from 'lucide-react';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
+import HeroToolsAnimation from '../components/HeroToolsAnimation';
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -75,9 +76,9 @@ export default function Home() {
 
   return (
     <div className="overflow-x-hidden">
-      {/* Hero Section */}
-      <section className="bg-white pt-8 sm:pt-12 pb-16 sm:pb-20 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
+        {/* Hero Section */}
+        <section className="relative bg-white pt-8 sm:pt-12 pb-16 sm:pb-20 px-4 sm:px-6">
+            <div className="max-w-7xl mx-auto relative z-10">
           {/* Trust badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-full mb-6">
             <span className="text-xs font-semibold text-[#1a73e8] uppercase tracking-wide">Trusted by 50,000+ users</span>
@@ -90,9 +91,9 @@ export default function Home() {
                 Find the perfect professional for{' '}
                 <span className="text-[#1a73e8]">any task.</span>
               </h1>
-              <p className="text-gray-500 text-base sm:text-lg max-w-lg leading-relaxed">
-                Discover top-rated experts for plumbing, makeup, cleaning, and more in your neighborhood. Quality guaranteed.
-              </p>
+                <p className="text-gray-700 text-base sm:text-lg max-w-lg leading-relaxed">
+                  Discover top-rated experts for plumbing, makeup, cleaning, and more in your neighborhood. Quality guaranteed.
+                </p>
 
               {/* Search Bar */}
               <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-stretch bg-white border border-gray-200 rounded-xl sm:rounded-full shadow-lg overflow-hidden">
@@ -132,26 +133,10 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right: Hero Image */}
-            <div className="relative hidden lg:block">
-              <div className="rounded-2xl overflow-hidden shadow-2xl">
-                <img
-                  src="https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=500&fit=crop"
-                  alt="Professional service"
-                  className="w-full h-[420px] object-cover"
-                />
+            {/* Right: Tool Animation */}
+              <div className="relative hidden lg:flex items-center justify-center h-[420px]">
+                <HeroToolsAnimation />
               </div>
-              {/* Floating badge */}
-              <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg p-4 flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#1a2b49] rounded-full flex items-center justify-center flex-shrink-0">
-                  <Shield className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[#1a2b49]">Certified Professionals</p>
-                  <p className="text-xs text-gray-500">Every expert is background checked</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
