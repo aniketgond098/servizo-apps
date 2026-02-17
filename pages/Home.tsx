@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, Star, Shield, Zap, Award, Users, TrendingUp, CheckCircle, Wrench, Paintbrush, Plug, Bot, Droplets, Ruler } from 'lucide-react';
+import { Search, ChevronRight, Shield, CheckCircle, Wrench, Paintbrush, Plug, Bot, Droplets, Ruler, FileCheck, UserCheck, ShieldCheck, MessageSquareWarning, Lock, Eye } from 'lucide-react';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
 
@@ -34,11 +34,43 @@ export default function Home() {
     { name: 'Automation', icon: Bot, count: '200+', color: 'bg-purple-50 text-purple-600' },
   ];
 
-  const topPros = [
-    { name: 'Sarah Jenkins', title: 'Professional Makeup Artist', rate: 85, rating: 4.9, reviews: 124, img: 'https://picsum.photos/seed/sarah/400/400' },
-    { name: 'David Miller', title: 'Master Electrician', rate: 120, rating: 5.0, reviews: 89, img: 'https://picsum.photos/seed/david/400/400' },
-    { name: 'Michael Wong', title: 'Mathematics Tutor', rate: 60, rating: 4.8, reviews: 215, img: 'https://picsum.photos/seed/michael/400/400' },
-    { name: 'James Rodriguez', title: 'Emergency Plumbing', rate: 95, rating: 4.7, reviews: 98, img: 'https://picsum.photos/seed/james/400/400' },
+  const safetyFeatures = [
+    {
+      icon: FileCheck,
+      title: 'Document Verified',
+      description: 'Every service worker submits Aadhaar, PAN, and a CV. Our team manually reviews each application before approval.',
+      color: 'bg-blue-50 text-blue-600',
+    },
+    {
+      icon: UserCheck,
+      title: 'Admin-Approved Profiles',
+      description: 'No one goes live without admin verification. We reject unqualified or suspicious applicants to protect you.',
+      color: 'bg-green-50 text-green-600',
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Verified Reviews Only',
+      description: 'Reviews can only be left after a completed booking. No fake reviews, no manipulation — just honest feedback.',
+      color: 'bg-purple-50 text-purple-600',
+    },
+    {
+      icon: MessageSquareWarning,
+      title: 'In-App Communication',
+      description: 'Chat, voice, and video calls happen inside Servizo. No need to share personal numbers with strangers.',
+      color: 'bg-orange-50 text-orange-600',
+    },
+    {
+      icon: Lock,
+      title: 'Secure Payments',
+      description: 'All transactions are handled through the platform. Your financial details stay protected at every step.',
+      color: 'bg-indigo-50 text-indigo-600',
+    },
+    {
+      icon: Eye,
+      title: 'Transparent Pricing',
+      description: 'See rates upfront on every profile. No hidden charges, no surprise fees after the job is done.',
+      color: 'bg-rose-50 text-rose-600',
+    },
   ];
 
   return (
@@ -190,40 +222,31 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Top-Rated Professionals */}
+      {/* Trust & Safety */}
       <section className="bg-white py-16 sm:py-20 px-4 sm:px-6 border-t border-gray-100">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-2">Top-Rated Professionals</h2>
-              <p className="text-gray-500 text-sm sm:text-base">Highly recommended experts ready to help you</p>
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-100 rounded-full mb-4">
+              <Shield className="w-4 h-4 text-green-600" />
+              <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">Your Safety Comes First</span>
             </div>
-            <Link to="/listing" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#1a73e8] hover:underline">
-              View All <ChevronRight className="w-4 h-4" />
-            </Link>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-3">How Servizo Keeps You Safe</h2>
+            <p className="text-gray-500 text-sm sm:text-base max-w-2xl mx-auto">
+              We go beyond just connecting you with professionals. Every layer of Servizo is built to ensure trust, transparency, and accountability.
+            </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {topPros.map(pro => (
-              <Link key={pro.name} to="/listing" className="group">
-                <div className="relative rounded-xl overflow-hidden mb-3 aspect-[4/5]">
-                  <img src={pro.img} alt={pro.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                  <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" />
-                    <span className="text-xs font-bold text-[#1a2b49]">{pro.rating} ({pro.reviews})</span>
-                  </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {safetyFeatures.map((feature) => (
+              <div
+                key={feature.title}
+                className="bg-white rounded-xl border border-gray-100 p-6 hover:shadow-lg hover:border-gray-200 transition-all group"
+              >
+                <div className={`w-12 h-12 ${feature.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <feature.icon className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-bold text-[#1a2b49]">{pro.name}</h3>
-                <p className="text-xs text-[#1a73e8] font-medium mb-2">{pro.title}</p>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] text-gray-400 uppercase tracking-wide">Starting at</span>
-                    <p className="text-base font-bold text-[#1a2b49]">${pro.rate}/hr</p>
-                  </div>
-                  <div className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center group-hover:bg-[#1a2b49] group-hover:text-white group-hover:border-[#1a2b49] transition-all">
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </Link>
+                <h3 className="text-base font-bold text-[#1a2b49] mb-2">{feature.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed">{feature.description}</p>
+              </div>
             ))}
           </div>
         </div>

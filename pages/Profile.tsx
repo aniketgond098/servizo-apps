@@ -1,12 +1,42 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Shield, Star, MapPin, ArrowLeft, CheckCircle2, Loader2, Award, Briefcase, Clock, MessageCircle, Heart, AlertTriangle, Zap } from 'lucide-react';
+import { Shield, Star, MapPin, ArrowLeft, CheckCircle2, Loader2, Award, Briefcase, Clock, MessageCircle, Heart, AlertTriangle, Zap, Users, ThumbsUp, Calendar, Globe, Share2, BadgeCheck, Sparkles, TrendingUp } from 'lucide-react';
 import { DB } from '../services/db';
 import { AuthService } from '../services/auth';
-import { Review } from '../types';
+import { Review, User } from '../types';
 import { calculateDistance, formatDistance } from '../utils/distance';
 import VerificationBadges from '../components/VerificationBadges';
+
+function ReviewItem({ review, reviewer }: { review: Review; reviewer: User | undefined }) {
+  return (
+    <div className="pb-5 border-b border-gray-100 last:border-0 last:pb-0">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1a2b49] to-[#1e3a5f] flex items-center justify-center text-sm font-bold text-white">
+            {reviewer?.name?.charAt(0) || 'U'}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-[#1a2b49]">{reviewer?.name || 'User'}</p>
+            <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
+                ))}
+              </div>
+              <span className="text-[10px] text-gray-400">Verified Booking</span>
+            </div>
+          </div>
+        </div>
+        <span className="text-xs text-gray-400 flex items-center gap-1">
+          <Calendar className="w-3 h-3" />
+          {new Date(review.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+        </span>
+      </div>
+      <p className="text-sm text-gray-600 leading-relaxed pl-[52px]">{review.comment}</p>
+    </div>
+  );
+}
 
 export default function Profile() {
   const { id } = useParams();
@@ -14,10 +44,11 @@ export default function Profile() {
   const [bookingInProgress, setBookingInProgress] = useState(false);
   const [emergencyBookingInProgress, setEmergencyBookingInProgress] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [newReview, setNewReview] = useState({ rating: 5, comment: '' });
   const [isFavorite, setIsFavorite] = useState(false);
   const [specialist, setSpecialist] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<'about' | 'reviews'>('about');
+  const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
+  const [reviewers, setReviewers] = useState<Record<string, User | undefined>>({});
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
@@ -25,13 +56,23 @@ export default function Profile() {
       const specialists = await DB.getSpecialists();
       const found = specialists.find(s => s.id === id) || specialists[0];
       setSpecialist(found);
-      setReviews(DB.getReviewsBySpecialist(found.id));
+      const r = await DB.getReviewsBySpecialist(found.id);
+      setReviews(r);
+      // Pre-load reviewer data
+      const reviewerMap: Record<string, User | undefined> = {};
+      await Promise.all(r.map(async (rev) => {
+        reviewerMap[rev.userId] = await DB.getUserById(rev.userId);
+      }));
+      setReviewers(reviewerMap);
       if (currentUser) {
         setIsFavorite(currentUser.favorites?.includes(found.id) || false);
       }
     };
     loadData();
-  }, [id, currentUser]);
+    navigator.geolocation.getCurrentPosition((pos) => {
+      setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+    });
+  }, [id]);
 
   const handleBooking = () => {
     if (!currentUser) { navigate('/login'); return; }
@@ -53,18 +94,10 @@ export default function Profile() {
     }, 1500);
   };
 
-  const handleSubmitReview = () => {
-    if (!currentUser) { navigate('/login'); return; }
-    DB.createReview({ bookingId: 'DEMO', specialistId: specialist.id, userId: currentUser.id, rating: newReview.rating, comment: newReview.comment });
-    setReviews(DB.getReviewsBySpecialist(specialist.id));
-    setShowReviewForm(false);
-    setNewReview({ rating: 5, comment: '' });
-  };
-
   const toggleFavorite = async () => {
     if (!currentUser) { navigate('/login'); return; }
     const newFavorites = isFavorite
-      ? (currentUser.favorites || []).filter(id => id !== specialist.id)
+      ? (currentUser.favorites || []).filter(fid => fid !== specialist.id)
       : [...(currentUser.favorites || []), specialist.id];
     const updatedUser = { ...currentUser, favorites: newFavorites };
     await DB.updateUser(updatedUser);
@@ -77,209 +110,383 @@ export default function Profile() {
     navigate(`/chat/${specialist.id}`);
   };
 
-  if (!specialist) return <div className="flex items-center justify-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin text-[#1a73e8]" /></div>;
+  const getDistance = () => {
+    if (!userLoc || !specialist) return null;
+    return calculateDistance(userLoc.lat, userLoc.lng, specialist.lat, specialist.lng);
+  };
+
+  if (!specialist) return (
+    <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2 className="w-8 h-8 animate-spin text-[#1a73e8]" />
+        <p className="text-sm text-gray-400">Loading profile...</p>
+      </div>
+    </div>
+  );
+
+  const distance = getDistance();
+  const avgRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : specialist.rating;
 
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        {/* Back */}
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#1a2b49] mb-6 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to results
-        </button>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
-          {/* Left Column */}
-          <div className="lg:col-span-8 space-y-6">
-            {/* Profile Header */}
-            <div className="bg-white border border-gray-100 rounded-xl p-6">
-              <div className="flex flex-col sm:flex-row gap-5">
-                <div className="relative flex-shrink-0">
-                  <div className={`w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-3 ${
-                    specialist.availability === 'available' ? 'border-green-500' : specialist.availability === 'busy' ? 'border-red-400' : 'border-yellow-400'
-                  }`}>
-                    <img src={specialist.avatar} alt={specialist.name} className="w-full h-full object-cover" />
-                  </div>
-                  <div className={`absolute -bottom-1.5 -right-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white ${
-                    specialist.availability === 'available' ? 'bg-green-500' : specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
-                  }`}>
-                    {specialist.availability === 'available' ? 'Available' : specialist.availability === 'busy' ? 'Busy' : 'Unavailable'}
-                  </div>
-                </div>
-                <div className="flex-1 space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h1 className="text-2xl sm:text-3xl font-bold text-[#1a2b49]">{specialist.name}</h1>
-                      <p className="text-sm font-medium text-[#1a73e8] mt-0.5">{specialist.title}</p>
-                    </div>
-                    <button onClick={toggleFavorite} className={`p-2.5 rounded-full border transition-all ${isFavorite ? 'bg-red-50 border-red-200 text-red-500' : 'border-gray-200 text-gray-300 hover:text-red-400'}`}>
-                      <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-500' : ''}`} />
-                    </button>
-                  </div>
-                  <VerificationBadges specialist={specialist} />
-                  <p className="text-sm text-gray-500 leading-relaxed">{specialist.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 rounded-lg text-xs text-gray-600">
-                      <MapPin className="w-3.5 h-3.5 text-[#1a73e8]" /> {specialist.location}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 rounded-lg text-xs text-gray-600">
-                      <Briefcase className="w-3.5 h-3.5 text-[#1a73e8]" /> {specialist.category}
-                    </span>
-                  </div>
-                </div>
+      {/* Hero Banner */}
+      <div className="relative bg-gradient-to-br from-[#1a2b49] via-[#1e3a5f] to-[#0f1d35] overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-[#1a73e8] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-400 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-20 sm:pb-24 relative">
+          <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white mb-8 transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back to results
+          </button>
+          <div className="flex flex-col sm:flex-row gap-6 items-start">
+            <div className="relative flex-shrink-0">
+              <div className={`w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden ring-4 ${
+                specialist.availability === 'available' ? 'ring-green-400' : specialist.availability === 'busy' ? 'ring-red-400' : 'ring-yellow-400'
+              } shadow-xl`}>
+                <img src={specialist.avatar} alt={specialist.name} className="w-full h-full object-cover" />
+              </div>
+              <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-[10px] font-bold text-white shadow-lg ${
+                specialist.availability === 'available' ? 'bg-green-500' : specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
+              }`}>
+                {specialist.availability === 'available' ? 'Online' : specialist.availability === 'busy' ? 'Busy' : 'Offline'}
               </div>
             </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {[
-                { icon: Star, label: 'Rating', value: specialist.rating, color: 'text-yellow-500', bg: 'bg-yellow-50' },
-                { icon: CheckCircle2, label: 'Projects', value: specialist.projects, color: 'text-green-600', bg: 'bg-green-50' },
-                { icon: Clock, label: 'Experience', value: `${specialist.experience}y`, color: 'text-purple-600', bg: 'bg-purple-50' },
-                { icon: Award, label: 'Success', value: '100%', color: 'text-blue-600', bg: 'bg-blue-50' },
-              ].map(stat => (
-                <div key={stat.label} className="bg-white border border-gray-100 rounded-xl p-4 text-center">
-                  <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mx-auto mb-2`}>
-                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-white">{specialist.name}</h1>
+                    {specialist.verified && <BadgeCheck className="w-6 h-6 text-blue-400 flex-shrink-0" />}
                   </div>
-                  <p className="text-xl font-bold text-[#1a2b49]">{stat.value}</p>
-                  <p className="text-xs text-gray-400">{stat.label}</p>
+                  <p className="text-blue-300 font-medium text-sm">{specialist.title}</p>
                 </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={toggleFavorite} className={`p-2.5 rounded-xl border transition-all ${isFavorite ? 'bg-red-500/20 border-red-400/30 text-red-400' : 'border-white/20 text-white/40 hover:text-red-400 hover:border-red-400/30'}`}>
+                    <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-400' : ''}`} />
+                  </button>
+                  <button className="p-2.5 rounded-xl border border-white/20 text-white/40 hover:text-white hover:border-white/40 transition-all">
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-lg text-xs text-white/80">
+                  <MapPin className="w-3.5 h-3.5 text-blue-300" /> {specialist.location}
+                </span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-lg text-xs text-white/80">
+                  <Briefcase className="w-3.5 h-3.5 text-blue-300" /> {specialist.category}
+                </span>
+                {distance && (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-lg text-xs text-white/80">
+                    <Globe className="w-3.5 h-3.5 text-blue-300" /> {formatDistance(distance)} away
+                  </span>
+                )}
+              </div>
+              <div className="mt-4">
+                <VerificationBadges specialist={specialist} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Floating Stats Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-10 relative z-10">
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-1">
+          <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-gray-100">
+            {[
+              { icon: Star, label: 'Rating', value: avgRating, sub: `${reviews.length} reviews`, color: 'text-yellow-500', bg: 'bg-yellow-50' },
+              { icon: Briefcase, label: 'Projects', value: specialist.projects, sub: 'completed', color: 'text-blue-600', bg: 'bg-blue-50' },
+              { icon: Clock, label: 'Experience', value: `${specialist.experience}y`, sub: 'in field', color: 'text-purple-600', bg: 'bg-purple-50' },
+              { icon: ThumbsUp, label: 'Success', value: '100%', sub: 'rate', color: 'text-green-600', bg: 'bg-green-50' },
+              { icon: TrendingUp, label: 'Response', value: '~2h', sub: 'avg time', color: 'text-orange-500', bg: 'bg-orange-50' },
+            ].map(stat => (
+              <div key={stat.label} className="flex items-center gap-3 px-4 py-4 sm:py-5">
+                <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-[#1a2b49] leading-tight">{stat.value}</p>
+                  <p className="text-[10px] text-gray-400 uppercase tracking-wide">{stat.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left Column */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* Tab Navigation */}
+            <div className="bg-white rounded-xl border border-gray-100 p-1.5 flex gap-1">
+              {(['about', 'reviews'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
+                    activeTab === tab
+                      ? 'bg-[#1a2b49] text-white shadow-sm'
+                      : 'text-gray-500 hover:text-[#1a2b49] hover:bg-gray-50'
+                  }`}
+                >
+                  {tab === 'about' ? 'About' : `Reviews (${reviews.length})`}
+                </button>
               ))}
             </div>
 
-            {/* Skills */}
-            <div className="bg-white border border-gray-100 rounded-xl p-6">
-              <h3 className="text-base font-bold text-[#1a2b49] mb-4">Skills & Expertise</h3>
-              <div className="flex flex-wrap gap-2">
-                {specialist.skills.map((skill: string) => (
-                  <span key={skill} className="px-3.5 py-1.5 bg-gray-50 border border-gray-100 rounded-lg text-sm text-gray-600 font-medium">{skill}</span>
-                ))}
-              </div>
-            </div>
-
-            {/* Credentials */}
-            <div className="bg-white border border-gray-100 rounded-xl p-6">
-              <h3 className="text-base font-bold text-[#1a2b49] mb-4">Credentials</h3>
-              <div className="space-y-2.5">
-                {specialist.credentials.map((cred: string) => (
-                  <div key={cred} className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                    <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
-                    <span className="text-sm font-medium text-gray-700">{cred}</span>
+            {activeTab === 'about' && (
+              <>
+                {/* About Section */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                      <Users className="w-4 h-4 text-[#1a73e8]" />
+                    </div>
+                    <h3 className="text-base font-bold text-[#1a2b49]">About</h3>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Reviews */}
-            <div className="bg-white border border-gray-100 rounded-xl p-6">
-              <div className="flex items-center justify-between mb-5">
-                <h3 className="text-base font-bold text-[#1a2b49]">Reviews ({reviews.length})</h3>
-                {currentUser && (
-                  <button onClick={() => setShowReviewForm(!showReviewForm)} className="px-4 py-2 bg-[#1a2b49] text-white rounded-lg text-xs font-semibold hover:bg-[#0f1d35] transition-colors">
-                    Write Review
-                  </button>
-                )}
-              </div>
-
-              {showReviewForm && (
-                <div className="mb-5 p-4 bg-gray-50 rounded-xl space-y-4">
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 block mb-2">Rating</label>
-                    <div className="flex gap-1">
-                      {[1, 2, 3, 4, 5].map(r => (
-                        <button key={r} onClick={() => setNewReview(prev => ({ ...prev, rating: r }))} className="p-1 hover:scale-110 transition-transform">
-                          <Star className={`w-6 h-6 ${r <= newReview.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                        </button>
+                  <p className="text-sm text-gray-600 leading-relaxed">{specialist.description}</p>
+                  {specialist.tags && specialist.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-4">
+                      {specialist.tags.map((tag: string) => (
+                        <span key={tag} className="px-3 py-1 bg-blue-50 text-[#1a73e8] rounded-full text-xs font-medium">
+                          {tag}
+                        </span>
                       ))}
                     </div>
+                  )}
+                </div>
+
+                {/* Skills & Expertise */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                      <Sparkles className="w-4 h-4 text-purple-600" />
+                    </div>
+                    <h3 className="text-base font-bold text-[#1a2b49]">Skills & Expertise</h3>
                   </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-500 block mb-2">Comment</label>
-                    <textarea value={newReview.comment} onChange={(e) => setNewReview(prev => ({ ...prev, comment: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#1a73e8] min-h-[100px]"
-                      placeholder="Share your experience..." />
-                  </div>
-                  <div className="flex gap-2">
-                    <button onClick={handleSubmitReview} className="px-4 py-2 bg-[#1a2b49] text-white rounded-lg text-xs font-semibold">Submit</button>
-                    <button onClick={() => setShowReviewForm(false)} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold">Cancel</button>
+                  <div className="flex flex-wrap gap-2">
+                    {specialist.skills.map((skill: string) => (
+                      <span key={skill} className="px-4 py-2 bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-150 rounded-xl text-sm text-gray-700 font-medium hover:shadow-sm transition-shadow">
+                        {skill}
+                      </span>
+                    ))}
                   </div>
                 </div>
-              )}
 
-              <div className="space-y-4">
-                {reviews.length > 0 ? reviews.map(review => {
-                  const reviewer = DB.getUserById(review.userId);
-                  return (
-                    <div key={review.id} className="p-4 bg-gray-50 rounded-xl">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-[#1a2b49] flex items-center justify-center text-sm font-medium text-white">{reviewer?.name.charAt(0) || 'U'}</div>
+                {/* Credentials & Certifications */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
+                      <Award className="w-4 h-4 text-green-600" />
+                    </div>
+                    <h3 className="text-base font-bold text-[#1a2b49]">Credentials & Certifications</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {specialist.credentials.map((cred: string) => (
+                      <div key={cred} className="flex items-center gap-3 p-3.5 bg-green-50/50 border border-green-100 rounded-xl">
+                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">{cred}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Service Highlights */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
+                      <Zap className="w-4 h-4 text-orange-500" />
+                    </div>
+                    <h3 className="text-base font-bold text-[#1a2b49]">Service Highlights</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[
+                      { icon: Shield, title: 'Background Verified', desc: 'Identity and criminal background checked', active: specialist.backgroundChecked },
+                      { icon: BadgeCheck, title: 'Document Verified', desc: 'Aadhaar, PAN & credentials verified', active: specialist.verified },
+                      { icon: Clock, title: 'Fast Responder', desc: 'Typically responds within 2 hours', active: specialist.fastResponder },
+                      { icon: Award, title: 'Top Rated', desc: 'Consistently high customer ratings', active: specialist.topRated },
+                    ].map(item => (
+                      <div key={item.title} className={`p-4 rounded-xl border ${item.active ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50 border-gray-100 opacity-50'}`}>
+                        <div className="flex items-start gap-3">
+                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${item.active ? 'bg-blue-100' : 'bg-gray-200'}`}>
+                            <item.icon className={`w-4 h-4 ${item.active ? 'text-[#1a73e8]' : 'text-gray-400'}`} />
+                          </div>
                           <div>
-                            <p className="text-sm font-semibold text-[#1a2b49]">{reviewer?.name || 'User'}</p>
-                            <div className="flex items-center gap-0.5">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star key={i} className={`w-3 h-3 ${i < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                              ))}
-                            </div>
+                            <p className="text-sm font-semibold text-[#1a2b49]">{item.title}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
                           </div>
                         </div>
-                        <span className="text-xs text-gray-400">{new Date(review.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <p className="text-sm text-gray-500 leading-relaxed">{review.comment}</p>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Availability Info */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-indigo-600" />
                     </div>
-                  );
-                }) : (
-                  <p className="text-center text-gray-400 text-sm py-8">No reviews yet. Be the first to review!</p>
-                )}
+                    <h3 className="text-base font-bold text-[#1a2b49]">Availability & Details</h3>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-4 bg-gray-50 rounded-xl text-center">
+                      <p className="text-xs text-gray-400 mb-1">Languages</p>
+                      <p className="text-sm font-semibold text-[#1a2b49]">English, Hindi</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-xl text-center">
+                      <p className="text-xs text-gray-400 mb-1">Working Hours</p>
+                      <p className="text-sm font-semibold text-[#1a2b49]">9 AM - 7 PM</p>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-xl text-center">
+                      <p className="text-xs text-gray-400 mb-1">Service Area</p>
+                      <p className="text-sm font-semibold text-[#1a2b49]">{specialist.location}</p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'reviews' && (
+              <div className="space-y-4">
+                {/* Rating Summary */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    <div className="text-center">
+                      <p className="text-5xl font-bold text-[#1a2b49]">{avgRating}</p>
+                      <div className="flex items-center gap-0.5 mt-2 justify-center">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star key={i} className={`w-4 h-4 ${i < Math.round(Number(avgRating)) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
+                        ))}
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">{reviews.length} reviews</p>
+                    </div>
+                    <div className="flex-1 w-full space-y-2">
+                      {[5, 4, 3, 2, 1].map(star => {
+                        const count = reviews.filter(r => Math.round(r.rating) === star).length;
+                        const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                        return (
+                          <div key={star} className="flex items-center gap-3">
+                            <span className="text-xs text-gray-500 w-3">{star}</span>
+                            <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                            <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-yellow-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-xs text-gray-400 w-6 text-right">{count}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Info notice */}
+                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
+                  <Shield className="w-4 h-4 text-[#1a73e8] mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-gray-600">Reviews can only be submitted after completing a booking with this professional. This ensures all reviews are from verified customers.</p>
+                </div>
+
+                {/* Review List */}
+                <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
+                  <div className="space-y-5">
+                    {reviews.length > 0 ? reviews.map(review => (
+                        <ReviewItem key={review.id} review={review} reviewer={reviewers[review.userId]} />
+                      )) : (
+                      <div className="text-center py-12">
+                        <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                          <Star className="w-7 h-7 text-gray-300" />
+                        </div>
+                        <p className="text-gray-500 text-sm font-medium">No reviews yet</p>
+                        <p className="text-gray-400 text-xs mt-1">Book this professional to leave the first review.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Right Column - Booking Card */}
           <div className="lg:col-span-4">
-            <div className="sticky top-24 bg-white border border-gray-100 rounded-xl p-6 space-y-5">
-              <div className="text-center pb-5 border-b border-gray-100">
-                <p className="text-sm text-gray-400 mb-1">Hourly Rate</p>
-                <p className="text-4xl font-bold text-[#1a2b49]">₹{specialist.hourlyRate}</p>
-                <p className="text-xs text-gray-400 mt-0.5">per hour</p>
+            <div className="sticky top-24 space-y-4">
+              {/* Pricing Card */}
+              <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                <div className="bg-gradient-to-r from-[#1a2b49] to-[#1e3a5f] p-6 text-center">
+                  <p className="text-xs text-blue-300 uppercase tracking-widest mb-1">Starting from</p>
+                  <p className="text-4xl font-bold text-white">₹{specialist.hourlyRate}</p>
+                  <p className="text-xs text-blue-200 mt-0.5">per hour</p>
+                </div>
+
+                <div className="p-5 space-y-3">
+                  <button onClick={handleBooking} disabled={bookingInProgress || specialist.availability !== 'available'}
+                    className="w-full bg-[#1a2b49] text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#0f1d35] transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg">
+                    {bookingInProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                    {bookingInProgress ? 'Booking...' : specialist.availability === 'available' ? 'Book Now' : 'Currently Unavailable'}
+                  </button>
+
+                  <button onClick={handleEmergencyBooking} disabled={emergencyBookingInProgress}
+                    className="w-full bg-red-500 text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg">
+                    {emergencyBookingInProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
+                    {emergencyBookingInProgress ? 'Booking...' : 'Emergency Hire (+20%)'}
+                  </button>
+
+                  <button onClick={handleMessage}
+                    className="w-full border border-gray-200 text-gray-700 py-3.5 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                    <MessageCircle className="w-4 h-4" /> Send Message
+                  </button>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <button onClick={handleEmergencyBooking} disabled={emergencyBookingInProgress}
-                  className="w-full bg-red-500 text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                  {emergencyBookingInProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
-                  {emergencyBookingInProgress ? 'Booking...' : 'Emergency Hire (+20%)'}
-                </button>
-                <button onClick={handleBooking} disabled={bookingInProgress || specialist.availability !== 'available'}
-                  className="w-full bg-[#1a2b49] text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#0f1d35] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                  {bookingInProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                  {bookingInProgress ? 'Booking...' : specialist.availability === 'available' ? 'Book Now' : 'Currently Unavailable'}
-                </button>
-                <button onClick={handleMessage}
-                  className="w-full border border-gray-200 text-gray-700 py-3.5 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
-                  <MessageCircle className="w-4 h-4" /> Send Message
-                </button>
+              {/* Emergency Info */}
+              <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-red-500" />
+                  <span className="text-xs font-bold text-red-600 uppercase tracking-wide">Emergency Hire</span>
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed">Priority response with 20% surcharge. Worker will be dispatched immediately for urgent requirements.</p>
               </div>
 
-              <div className="pt-5 border-t border-gray-100 space-y-3 text-sm">
-                <div className="p-3 bg-red-50 border border-red-100 rounded-lg">
-                  <div className="flex items-center gap-2 mb-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-red-500" />
-                    <span className="text-xs font-semibold text-red-600">Emergency Hire</span>
+              {/* Quick Info */}
+              <div className="bg-white border border-gray-100 rounded-2xl p-5">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Quick Info</h4>
+                <div className="space-y-3.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-500">Response Time</span>
+                    </div>
+                    <span className="text-sm font-semibold text-[#1a2b49]">~2 hours</span>
                   </div>
-                  <p className="text-xs text-gray-500">Priority response with 20% surcharge. Worker will be dispatched immediately.</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Response Time</span>
-                  <span className="font-semibold text-[#1a2b49]">~2 hours</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Completion Rate</span>
-                  <span className="font-semibold text-green-600">100%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-500">Languages</span>
-                  <span className="font-semibold text-[#1a2b49]">English, Hindi</span>
+                  <div className="h-px bg-gray-100" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-500">Completion Rate</span>
+                    </div>
+                    <span className="text-sm font-semibold text-green-600">100%</span>
+                  </div>
+                  <div className="h-px bg-gray-100" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-500">Languages</span>
+                    </div>
+                    <span className="text-sm font-semibold text-[#1a2b49]">EN, HI</span>
+                  </div>
+                  <div className="h-px bg-gray-100" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-500">Hired</span>
+                    </div>
+                    <span className="text-sm font-semibold text-[#1a2b49]">{specialist.projects}+ times</span>
+                  </div>
                 </div>
               </div>
             </div>

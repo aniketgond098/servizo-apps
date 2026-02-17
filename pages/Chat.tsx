@@ -963,59 +963,60 @@ export default function Chat() {
             <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
             <input ref={docInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.rar" className="hidden" onChange={handleDocUpload} />
 
-            <form onSubmit={handleSend} className="flex items-center gap-2">
-              <div className="relative" ref={attachRef}>
-                <button type="button" onClick={() => { setShowAttachMenu(!showAttachMenu); setShowEmojiPicker(false); }} className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${showAttachMenu ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'hover:bg-gray-100 text-gray-400'}`}>
-                  <Paperclip className="w-5 h-5" />
-                </button>
-                {showAttachMenu && (
-                  <div className="absolute bottom-12 left-0 bg-white border border-gray-200 rounded-xl shadow-lg py-2 w-48 z-50">
-                    <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
-                      <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><Image className="w-4 h-4 text-green-600" /></div>
-                      <div><p className="text-sm font-medium text-[#1a2b49]">Photo</p><p className="text-[10px] text-gray-400">Up to 10 MB</p></div>
-                    </button>
-                    <button type="button" onClick={() => docInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
-                      <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center"><FileText className="w-4 h-4 text-purple-600" /></div>
-                      <div><p className="text-sm font-medium text-[#1a2b49]">Document</p><p className="text-[10px] text-gray-400">PDF, DOC, XLS, etc.</p></div>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="w-9 h-9 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors flex-shrink-0">
-                <Image className="w-5 h-5 text-gray-400" />
-              </button>
-
-              <input ref={inputRef} value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-[#1a2b49] placeholder-gray-400 focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]/20 transition-all" />
-
-              <div className="relative" ref={emojiRef}>
-                <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowAttachMenu(false); }} className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${showEmojiPicker ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'hover:bg-gray-100 text-gray-400'}`}>
-                  <Smile className="w-5 h-5" />
-                </button>
-                {showEmojiPicker && (
-                  <div className="absolute bottom-12 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-[320px]">
-                    <div className="flex border-b border-gray-100 px-2 pt-2">
-                      {EMOJI_CATEGORIES.map((cat, i) => (
-                        <button key={cat.name} type="button" onClick={() => setEmojiCategory(i)} className={`px-3 py-1.5 text-xs font-medium rounded-t-lg transition-colors ${emojiCategory === i ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'text-gray-400 hover:text-gray-600'}`}>
-                          {cat.name}
-                        </button>
-                      ))}
+              <form onSubmit={handleSend} className="flex items-center gap-1.5 sm:gap-2">
+                <div className="relative" ref={attachRef}>
+                  <button type="button" onClick={() => { setShowAttachMenu(!showAttachMenu); setShowEmojiPicker(false); }} className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${showAttachMenu ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'hover:bg-gray-100 text-gray-400'}`}>
+                    <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                  {showAttachMenu && (
+                    <div className="absolute bottom-12 left-0 bg-white border border-gray-200 rounded-xl shadow-lg py-2 w-48 z-50">
+                      <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
+                        <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><Image className="w-4 h-4 text-green-600" /></div>
+                        <div><p className="text-sm font-medium text-[#1a2b49]">Photo</p><p className="text-[10px] text-gray-400">Up to 10 MB</p></div>
+                      </button>
+                      <button type="button" onClick={() => docInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
+                        <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center"><FileText className="w-4 h-4 text-purple-600" /></div>
+                        <div><p className="text-sm font-medium text-[#1a2b49]">Document</p><p className="text-[10px] text-gray-400">PDF, DOC, XLS, etc.</p></div>
+                      </button>
                     </div>
-                    <div className="p-3 grid grid-cols-8 gap-0.5 max-h-[200px] overflow-y-auto">
-                      {EMOJI_CATEGORIES[emojiCategory].emojis.map((emoji, i) => (
-                        <button key={i} type="button" onClick={() => handleEmojiSelect(emoji)} className="w-9 h-9 flex items-center justify-center text-xl hover:bg-gray-100 rounded-lg transition-colors">
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
 
-              <button type="submit" disabled={loading || !newMessage.trim()} className="w-10 h-10 bg-[#1a73e8] rounded-xl flex items-center justify-center hover:bg-[#1557b0] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0">
-                {loading ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Send className="w-4 h-4 text-white" />}
-              </button>
-            </form>
+                {/* Image button - hidden on small screens since it's also in the attach menu */}
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="hidden sm:flex w-9 h-9 rounded-lg hover:bg-gray-100 items-center justify-center transition-colors flex-shrink-0">
+                  <Image className="w-5 h-5 text-gray-400" />
+                </button>
+
+                <input ref={inputRef} value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm text-[#1a2b49] placeholder-gray-400 focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]/20 transition-all" />
+
+                <div className="relative" ref={emojiRef}>
+                  <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowAttachMenu(false); }} className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${showEmojiPicker ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'hover:bg-gray-100 text-gray-400'}`}>
+                    <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </button>
+                  {showEmojiPicker && (
+                    <div className="absolute bottom-12 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-[280px] sm:w-[320px]">
+                      <div className="flex border-b border-gray-100 px-2 pt-2 overflow-x-auto">
+                        {EMOJI_CATEGORIES.map((cat, i) => (
+                          <button key={cat.name} type="button" onClick={() => setEmojiCategory(i)} className={`px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium rounded-t-lg transition-colors whitespace-nowrap ${emojiCategory === i ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'text-gray-400 hover:text-gray-600'}`}>
+                            {cat.name}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="p-2 sm:p-3 grid grid-cols-7 sm:grid-cols-8 gap-0.5 max-h-[200px] overflow-y-auto">
+                        {EMOJI_CATEGORIES[emojiCategory].emojis.map((emoji, i) => (
+                          <button key={i} type="button" onClick={() => handleEmojiSelect(emoji)} className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center text-lg sm:text-xl hover:bg-gray-100 rounded-lg transition-colors">
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button type="submit" disabled={loading || !newMessage.trim()} className="w-8 h-8 sm:w-10 sm:h-10 bg-[#1a73e8] rounded-xl flex items-center justify-center hover:bg-[#1557b0] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0">
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Send className="w-4 h-4 text-white" />}
+                </button>
+              </form>
             <div className="flex items-center justify-center gap-1.5 mt-2">
               <Lock className="w-3 h-3 text-gray-300" />
               <span className="text-[10px] text-gray-300 tracking-wider font-medium">END-TO-END ENCRYPTED</span>
