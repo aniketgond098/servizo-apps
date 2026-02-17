@@ -99,12 +99,20 @@ const Navbar = () => {
             </Link>
             <button
               onClick={() => {
-                if (location.pathname === '/') {
-                  document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
-                } else {
-                  navigate('/');
-                  setTimeout(() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' }), 100);
-                }
+              const highlight = () => {
+                    const el = document.getElementById('how-it-works');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth' });
+                      el.classList.add('section-highlight');
+                      setTimeout(() => el.classList.remove('section-highlight'), 2000);
+                    }
+                  };
+                  if (location.pathname === '/') {
+                    highlight();
+                  } else {
+                    navigate('/');
+                    setTimeout(highlight, 100);
+                  }
               }}
               className="px-4 py-2 rounded-full text-sm font-medium transition-colors text-gray-500 hover:text-[#1a2b49]"
             >
@@ -350,10 +358,10 @@ function AppContent() {
         </Routes>
       </main>
 
-      {/* Footer - desktop only */}
-      <footer className="hidden md:block border-t border-gray-200 bg-[#1a2b49] text-white">
+        {/* Footer */}
+        <footer className="border-t border-gray-200 bg-[#1a2b49] text-white pb-16 md:pb-0">
         <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="grid grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
                 <div className="flex items-center gap-2.5 mb-4">
                   <ServizoIcon size={32} />
@@ -382,8 +390,8 @@ function AppContent() {
             <div>
               <h4 className="font-semibold mb-4">Stay Updated</h4>
               <p className="text-sm text-gray-300 mb-3">Get the latest tips and service discounts.</p>
-              <div className="flex">
-                <input type="email" placeholder="Email address" className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-l-lg text-sm text-white placeholder-gray-400 focus:outline-none focus:border-white/40" />
+                <div className="flex min-w-0">
+                  <input type="email" placeholder="Email address" className="flex-1 min-w-0 px-3 py-2 bg-white/10 border border-white/20 rounded-l-lg text-sm text-white placeholder-gray-400 focus:outline-none focus:border-white/40" />
                 <button className="px-4 py-2 bg-[#1a73e8] text-white text-sm font-semibold rounded-r-lg hover:bg-blue-600 transition-colors">Join</button>
               </div>
             </div>

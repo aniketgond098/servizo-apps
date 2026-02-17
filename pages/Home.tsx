@@ -84,16 +84,22 @@ export default function Home() {
             <span className="text-xs font-semibold text-[#1a73e8] uppercase tracking-wide">Trusted by 50,000+ users</span>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
-            {/* Left: Copy */}
-            <div className="space-y-6">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#1a2b49] leading-[1.1] tracking-tight">
-                Find the perfect professional for{' '}
-                <span className="text-[#1a73e8]">any task.</span>
-              </h1>
-                <p className="text-gray-700 text-base sm:text-lg max-w-lg leading-relaxed">
-                  Discover top-rated experts for plumbing, makeup, cleaning, and more in your neighborhood. Quality guaranteed.
-                </p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+              {/* Left: Copy */}
+              <div className="space-y-6">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#1a2b49] leading-[1.1] tracking-tight">
+                    Find the perfect professional for{' '}
+                    <span className="inline-flex items-center">
+                      <span className="text-[#1a73e8]">any task.</span>
+                      {/* Mobile-only inline animation right after "any task." */}
+                        <span className="lg:hidden inline-block relative ml-2" style={{ width: 72, height: 72, verticalAlign: 'middle', overflow: 'visible', position: 'relative', top: 6 }}>
+                        <HeroToolsAnimation variant="mobile" />
+                      </span>
+                    </span>
+                  </h1>
+                  <p className="text-gray-700 text-base sm:text-lg max-w-lg leading-relaxed">
+                    Discover top-rated experts for plumbing, makeup, cleaning, and more in your neighborhood. Quality guaranteed.
+                  </p>
 
               {/* Search Bar */}
               <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-stretch bg-white border border-gray-200 rounded-xl sm:rounded-full shadow-lg overflow-hidden">
@@ -133,10 +139,10 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right: Tool Animation */}
-              <div className="relative hidden lg:flex items-center justify-center h-[420px]">
-                <HeroToolsAnimation />
-              </div>
+              {/* Right: Tool Animation — desktop/tablet only */}
+                <div className="relative hidden lg:flex items-center justify-center h-[500px]">
+                  <HeroToolsAnimation variant="desktop" />
+                </div>
           </div>
         </div>
       </section>
