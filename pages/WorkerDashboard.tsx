@@ -4,8 +4,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
 import { Specialist, ServiceCategory, Booking, Message } from '../types';
-import { Save, Star, Activity, Zap, TrendingUp, DollarSign, MessageCircle } from 'lucide-react';
+import { Save, Star, Activity, Zap, TrendingUp, DollarSign, MessageCircle, Camera, Plus, Trash2, Send, IndianRupee, ChevronDown } from 'lucide-react';
 import { PhotoGallery } from '../components/PhotoGallery';
+import ImageCropper from '../components/ImageCropper';
 
 export default function WorkerDashboard() {
   const user = AuthService.getCurrentUser();
@@ -15,6 +16,24 @@ export default function WorkerDashboard() {
   const [myBookings, setMyBookings] = useState<Booking[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [sharingLocation, setSharingLocation] = useState(false);
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
+  const [rawAvatarImage, setRawAvatarImage] = useState<string | null>(null);
+  const [chargeDesc, setChargeDesc] = useState<Record<string, string>>({});
+  const [chargeAmt, setChargeAmt] = useState<Record<string, string>>({});
+  const [chargeLoading, setChargeLoading] = useState<Record<string, boolean>>({});
+      const [submitLoading, setSubmitLoading] = useState<Record<string, boolean>>({});
+      const [senderNames, setSenderNames] = useState<Record<string, string>>({});
+      const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) { alert('Image must be under 2MB'); return; }
+    const reader = new FileReader();
+    reader.onloadend = () => setRawAvatarImage(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   useEffect(() => {
     if (!user || user.role !== 'worker') { navigate('/login', { replace: true }); return; }
@@ -39,7 +58,17 @@ export default function WorkerDashboard() {
       if (!sp) { navigate('/create-profile', { replace: true }); return; }
       if (sp) setProfile(sp);
       setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user.id));
-      setMessages((await DB.getMessages()).filter(m => m.receiverId === user.id));
+      // Resolve sender names for messages
+      const msgs = (await DB.getMessages()).filter(m => m.receiverId === user.id);
+      setMessages(msgs);
+      const names: Record<string, string> = {};
+      for (const msg of msgs) {
+        if (!names[msg.senderId]) {
+          const u = await DB.getUserById(msg.senderId);
+          names[msg.senderId] = u?.name || 'User';
+        }
+      }
+      setSenderNames(names);
     };
     loadData();
   }, [navigate]);
@@ -59,7 +88,54 @@ export default function WorkerDashboard() {
     );
   };
 
-  if (!user) return null;
+  const handleAddCharge = async (bookingId: string) => {
+    const desc = chargeDesc[bookingId]?.trim();
+    const amt = parseFloat(chargeAmt[bookingId]);
+    if (!desc || !amt || amt <= 0) return;
+    setChargeLoading(p => ({ ...p, [bookingId]: true }));
+    try {
+      await DB.addExtraCharge(bookingId, desc, amt);
+      setChargeDesc(p => ({ ...p, [bookingId]: '' }));
+      setChargeAmt(p => ({ ...p, [bookingId]: '' }));
+      // Refresh bookings
+      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
+    } finally {
+      setChargeLoading(p => ({ ...p, [bookingId]: false }));
+    }
+  };
+
+  const handleRemoveCharge = async (bookingId: string, chargeId: string) => {
+    await DB.removeExtraCharge(bookingId, chargeId);
+    setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
+  };
+
+  const handleSubmitForPayment = async (bookingId: string) => {
+    setSubmitLoading(p => ({ ...p, [bookingId]: true }));
+    try {
+      await DB.submitForPayment(bookingId);
+      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
+    } finally {
+      setSubmitLoading(p => ({ ...p, [bookingId]: false }));
+    }
+  };
+
+    const handleStatusChange = async (status: 'available' | 'busy' | 'unavailable') => {
+      if (profile.id) {
+        const updated = { ...profile, availability: status } as Specialist;
+        await DB.updateSpecialist(updated);
+        setProfile(updated);
+      }
+      setStatusDropdownOpen(false);
+    };
+
+    const statusConfig = {
+      available: { label: 'Available', color: 'bg-green-500', bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
+      busy: { label: 'Busy', color: 'bg-red-500', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
+      unavailable: { label: 'Unavailable', color: 'bg-gray-400', bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' },
+    };
+    const currentStatus = statusConfig[profile.availability || 'available'];
+
+    if (!user) return null;
   if (!profile || !profile.id) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">Loading profile...</p></div>;
 
   return (
@@ -125,25 +201,110 @@ export default function WorkerDashboard() {
               {myBookings.length > 0 ? (
                 <div className="space-y-3">
                   {myBookings.map(booking => {
-                    const client = DB.getUserById(booking.userId);
+                    const extraTotal = (booking.extraCharges || []).reduce((s, c) => s + c.amount, 0);
+                    const grandTotal = booking.totalValue + extraTotal;
                     return (
                       <div key={booking.id} className="space-y-3">
-                        <div className="border border-gray-100 rounded-lg p-4 flex justify-between items-center">
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className={`w-2 h-2 rounded-full ${booking.status === 'active' ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
-                              <span className="text-sm font-semibold text-[#1a2b49]">{client?.name || 'Client'}</span>
+                        <div className="border border-gray-100 rounded-lg p-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="flex items-center gap-2 mb-1">
+                                <div className={`w-2 h-2 rounded-full ${booking.status === 'active' ? 'bg-green-500 animate-pulse' : booking.status === 'pending_payment' ? 'bg-amber-500 animate-pulse' : booking.status === 'completed' ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                                <span className="text-sm font-semibold text-[#1a2b49]">Booking {booking.id}</span>
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${booking.status === 'active' ? 'bg-green-50 text-green-600' : booking.status === 'pending_payment' ? 'bg-amber-50 text-amber-600' : booking.status === 'completed' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-500'}`}>
+                                  {booking.status === 'pending_payment' ? 'Awaiting Payment' : booking.status}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-400">
+                                {new Date(booking.createdAt).toLocaleDateString()}
+                                {booking.completedAt && ` · Completed ${new Date(booking.completedAt).toLocaleDateString()}`}
+                              </p>
                             </div>
-                            <p className="text-xs text-gray-400">{new Date(booking.createdAt).toLocaleDateString()} · {booking.status}</p>
+                            <div className="text-right">
+                              <span className="text-lg font-bold text-[#1a2b49]">₹{grandTotal}</span>
+                              {extraTotal > 0 && <p className="text-[10px] text-gray-400">Base ₹{booking.totalValue} + Extra ₹{extraTotal}</p>}
+                            </div>
                           </div>
-                          <span className="text-lg font-bold text-[#1a2b49]">₹{booking.totalValue}</span>
+
+                          {/* Extra Charges Section - only for active bookings */}
+                          {booking.status === 'active' && (
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                              <h4 className="text-xs font-semibold text-[#1a2b49] mb-3 flex items-center gap-1.5">
+                                <IndianRupee className="w-3.5 h-3.5" /> Extra Charges
+                              </h4>
+
+                              {/* Existing charges */}
+                              {(booking.extraCharges || []).length > 0 && (
+                                <div className="space-y-2 mb-3">
+                                  {booking.extraCharges!.map(charge => (
+                                    <div key={charge.id} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                                      <div>
+                                        <p className="text-sm text-[#1a2b49] font-medium">{charge.description}</p>
+                                        <p className="text-[10px] text-gray-400">{new Date(charge.addedAt).toLocaleTimeString()}</p>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-sm font-bold text-[#1a2b49]">+₹{charge.amount}</span>
+                                        <button onClick={() => handleRemoveCharge(booking.id, charge.id)} className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                                          <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Add new charge */}
+                              <div className="flex gap-2">
+                                <input
+                                  placeholder="Description (e.g. replaced part)"
+                                  value={chargeDesc[booking.id] || ''}
+                                  onChange={e => setChargeDesc(p => ({ ...p, [booking.id]: e.target.value }))}
+                                  className="flex-1 border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-[#1a73e8]"
+                                />
+                                <input
+                                  type="number"
+                                  placeholder="₹ Amount"
+                                  value={chargeAmt[booking.id] || ''}
+                                  onChange={e => setChargeAmt(p => ({ ...p, [booking.id]: e.target.value }))}
+                                  className="w-28 border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-[#1a73e8]"
+                                />
+                                <button
+                                  onClick={() => handleAddCharge(booking.id)}
+                                  disabled={chargeLoading[booking.id]}
+                                  className="px-3 py-2 bg-[#1a73e8] text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </button>
+                              </div>
+
+                              {/* Submit for payment */}
+                              <button
+                                onClick={() => handleSubmitForPayment(booking.id)}
+                                disabled={submitLoading[booking.id]}
+                                className="w-full mt-4 py-3 bg-green-600 text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-colors disabled:opacity-50"
+                              >
+                                {submitLoading[booking.id] ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
+                                Complete & Send for Payment
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Pending payment status */}
+                          {booking.status === 'pending_payment' && (
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                              <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                                <p className="text-xs text-amber-700">Waiting for customer to review charges and make payment.</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        {booking.status === 'active' && (
-                          <PhotoGallery bookingId={booking.id} beforePhotos={booking.beforePhotos} afterPhotos={booking.afterPhotos} problemPhotos={booking.problemPhotos} canUpload={true} uploadType="before" />
-                        )}
-                      </div>
-                    );
-                  })}
+                      {booking.status === 'active' && (
+                        <PhotoGallery bookingId={booking.id} beforePhotos={booking.beforePhotos} afterPhotos={booking.afterPhotos} problemPhotos={booking.problemPhotos} canUpload={true} uploadType="before" />
+                      )}
+                    </div>
+                  );
+                })}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -194,14 +355,13 @@ export default function WorkerDashboard() {
               </div>
               {messages.length > 0 ? (
                 <div className="space-y-3">
-                  {messages.map(msg => {
-                    const sender = DB.getUserById(msg.senderId);
-                    return (
-                      <Link key={msg.id} to={`/chat/${msg.senderId}`} className="border border-gray-100 rounded-lg p-4 flex items-start gap-3 hover:border-[#1a73e8] transition-all block">
-                        <div className="w-9 h-9 rounded-full bg-[#1a2b49] flex items-center justify-center text-sm font-medium text-white flex-shrink-0">{sender?.name?.charAt(0) || 'U'}</div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-0.5">
-                            <span className="text-sm font-semibold text-[#1a2b49]">{sender?.name || 'User'}</span>
+                    {messages.map(msg => {
+                      return (
+                        <Link key={msg.id} to={`/chat/${msg.senderId}`} className="border border-gray-100 rounded-lg p-4 flex items-start gap-3 hover:border-[#1a73e8] transition-all block">
+                          <div className="w-9 h-9 rounded-full bg-[#1a2b49] flex items-center justify-center text-sm font-medium text-white flex-shrink-0">{(senderNames[msg.senderId] || 'U').charAt(0)}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-sm font-semibold text-[#1a2b49]">{senderNames[msg.senderId] || 'User'}</span>
                             <span className="text-xs text-gray-400">{new Date(msg.createdAt).toLocaleDateString()}</span>
                           </div>
                           <p className="text-sm text-gray-500 truncate">{msg.content}</p>
@@ -221,13 +381,64 @@ export default function WorkerDashboard() {
           </div>
 
           <aside className="lg:col-span-4 space-y-6">
-            <div className="bg-white border border-gray-100 rounded-xl p-6 text-center">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden mx-auto mb-4 border-2 border-[#1a73e8]">
-                <img src={profile.avatar} className="w-full h-full object-cover" alt={profile.name} />
-              </div>
-              <h4 className="text-xl font-bold text-[#1a2b49]">{profile.name}</h4>
-              <p className="text-xs text-[#1a73e8] font-medium">{profile.title}</p>
-              <div className="grid grid-cols-2 gap-3 mt-5">
+              <div className="bg-white border border-gray-100 rounded-xl p-6 text-center">
+                <div 
+                    className={`relative w-20 h-20 rounded-full overflow-hidden mx-auto mb-4 ${isEditing ? 'cursor-pointer group' : ''}`}
+                    onClick={() => isEditing && avatarInputRef.current?.click()}
+                  >
+                    <div className={`w-20 h-20 rounded-full flex items-center justify-center ${
+                      profile.availability === 'available' ? 'bg-green-500' :
+                      profile.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
+                    }`}>
+                      <div className="w-[72px] h-[72px] rounded-full bg-white flex items-center justify-center">
+                        <img src={profile.avatar} className="w-16 h-16 rounded-full object-cover" alt={profile.name} />
+                      </div>
+                    </div>
+                  {isEditing && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Camera className="w-5 h-5 text-white" />
+                    </div>
+                  )}
+                </div>
+                <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+                {isEditing && <p className="text-[10px] text-[#1a73e8] mb-2 cursor-pointer hover:underline" onClick={() => avatarInputRef.current?.click()}>Change Photo</p>}
+                <h4 className="text-xl font-bold text-[#1a2b49]">{profile.name}</h4>
+                <p className="text-xs text-[#1a73e8] font-medium">{profile.title}</p>
+
+                {/* Status Toggle */}
+                <div className="relative mt-4">
+                  <button
+                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                    className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-lg border ${currentStatus.border} ${currentStatus.bg} transition-all hover:shadow-sm`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2.5 h-2.5 rounded-full ${currentStatus.color} ${profile.availability === 'available' ? 'animate-pulse' : ''}`} />
+                      <span className={`text-sm font-semibold ${currentStatus.text}`}>{currentStatus.label}</span>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 ${currentStatus.text} transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {statusDropdownOpen && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setStatusDropdownOpen(false)} />
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
+                        {(Object.entries(statusConfig) as [string, typeof currentStatus][]).map(([key, cfg]) => (
+                          <button
+                            key={key}
+                            onClick={() => handleStatusChange(key as 'available' | 'busy' | 'unavailable')}
+                            className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${profile.availability === key ? 'bg-gray-50' : ''}`}
+                          >
+                            <div className={`w-2.5 h-2.5 rounded-full ${cfg.color}`} />
+                            <span className={`text-sm font-medium ${cfg.text}`}>{cfg.label}</span>
+                            {profile.availability === key && <span className="ml-auto text-xs text-gray-400">Current</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-5">
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <p className="text-xs text-gray-400">Rating</p>
                   <p className="text-xl font-bold text-[#1a2b49]">{profile.rating}</p>
@@ -257,8 +468,16 @@ export default function WorkerDashboard() {
               </div>
             </div>
           </aside>
+          </div>
         </div>
+
+        {rawAvatarImage && (
+          <ImageCropper
+            imageSrc={rawAvatarImage}
+            onCropDone={(cropped) => { setProfile({ ...profile, avatar: cropped }); setRawAvatarImage(null); }}
+            onCancel={() => setRawAvatarImage(null)}
+          />
+        )}
       </div>
-    </div>
   );
 }

@@ -93,7 +93,7 @@ export default function BookingHistory() {
               <div key={booking.id} className="bg-white border border-gray-100 rounded-xl p-5 hover:border-gray-200 transition-all">
                 <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-3">
                   <div className="flex items-center gap-3">
-                    <img src={spec.avatar} alt={spec.name} className="w-10 h-10 rounded-lg flex-shrink-0 object-cover" />
+                      <img src={spec.avatar} alt={spec.name} className="w-10 h-10 rounded-full flex-shrink-0 object-cover" />
                     <div>
                       <h3 className="font-semibold text-[#1a2b49] text-sm">{spec.name}</h3>
                       <p className="text-xs text-[#1a73e8] font-medium">{spec.category}</p>

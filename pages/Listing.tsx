@@ -293,16 +293,21 @@ export default function Listing() {
                     {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Heart className={`w-4 h-4 ${isFavorite ? 'fill-red-500' : ''}`} />}
                   </button>
                   
-                  <div className="flex gap-3 items-center mb-4">
-                    <div className="relative flex-shrink-0">
-                      <div className={`w-14 h-14 rounded-xl overflow-hidden border-2 ${getAvailabilityColor(specialist.availability)}`}>
-                        <img src={specialist.avatar} alt={specialist.name} className="w-full h-full object-cover" />
+                    <div className="flex gap-3 items-center mb-4">
+                      <div className="relative flex-shrink-0">
+                        <div className={`w-[60px] h-[60px] rounded-full flex items-center justify-center ${
+                          specialist.availability === 'available' ? 'bg-green-500' :
+                          specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
+                        }`}>
+                          <div className="w-[54px] h-[54px] rounded-full bg-white flex items-center justify-center">
+                            <img src={specialist.avatar} alt={specialist.name} className="w-[48px] h-[48px] rounded-full object-cover" />
+                          </div>
+                        </div>
+                        <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${
+                          specialist.availability === 'available' ? 'bg-green-500' :
+                          specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
+                        }`}></div>
                       </div>
-                      <div className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${
-                        specialist.availability === 'available' ? 'bg-green-500' :
-                        specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
-                      }`}></div>
-                    </div>
                     <div className="min-w-0">
                       <h4 className="font-bold text-[#1a2b49] truncate">{specialist.name}</h4>
                       <span className="text-xs font-medium text-[#1a73e8]">{specialist.category}</span>

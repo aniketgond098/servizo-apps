@@ -80,11 +80,16 @@ export default function Favorites() {
                   <X className="w-3.5 h-3.5 text-gray-400" />
                 </button>
 
-                <div className="flex items-center gap-3.5 mb-4">
-                  {/* Avatar */}
-                  <div className="w-14 h-14 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-                    <img src={specialist.avatar} alt={specialist.name} className="w-full h-full object-cover" />
-                  </div>
+                  <div className="flex items-center gap-3.5 mb-4">
+                    {/* Avatar */}
+                    <div className={`w-[60px] h-[60px] rounded-full flex items-center justify-center flex-shrink-0 ${
+                      specialist.availability === 'available' ? 'bg-green-500' :
+                      specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
+                    }`}>
+                      <div className="w-[54px] h-[54px] rounded-full bg-white flex items-center justify-center">
+                        <img src={specialist.avatar} alt={specialist.name} className="w-[48px] h-[48px] rounded-full object-cover" />
+                      </div>
+                    </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="font-semibold text-[#1a2b49] text-sm truncate">{specialist.name}</h3>
                     <p className="text-xs text-[#1a73e8] font-medium">{specialist.category}</p>

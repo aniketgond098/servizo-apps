@@ -52,9 +52,31 @@ export class SMSService {
       expiresAt: Timestamp.fromDate(new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000)),
     });
 
-    // Simulated SMS — show OTP via alert (replace with real SMS provider later)
-    console.log(`[Servizo] OTP for +91 ${phone}: ${otp}`);
-    alert(`Your Servizo OTP is: ${otp}\n\n(This is a simulated SMS. In production, this will be sent via real SMS.)`);
+    // Send OTP via Fast2SMS WhatsApp API
+    const apiKey = import.meta.env.VITE_FAST2SMS_API_KEY;
+    const messageId = import.meta.env.VITE_FAST2SMS_WA_MESSAGE_ID;
+    const phoneNumberId = import.meta.env.VITE_FAST2SMS_WA_PHONE_NUMBER_ID;
+
+    if (apiKey && messageId && phoneNumberId) {
+      try {
+        const res = await fetch(
+          `https://www.fast2sms.com/dev/whatsapp?authorization=${encodeURIComponent(apiKey)}&message_id=${messageId}&phone_number_id=${phoneNumberId}&numbers=91${phone}&variables_values=${otp}`
+        );
+        const data = await res.json();
+        if (!data.return) {
+          console.error('Fast2SMS WhatsApp error:', data);
+          throw new Error('Failed to send WhatsApp OTP. Please try again.');
+        }
+        console.log(`[Servizo] WhatsApp OTP sent to +91 ${phone}`);
+      } catch (err: any) {
+        console.error('WhatsApp OTP send failed:', err);
+        throw new Error('Failed to send OTP via WhatsApp. Please try again.');
+      }
+    } else {
+      // Fallback: show OTP in alert (dev mode)
+      console.log(`[Servizo] OTP for +91 ${phone}: ${otp}`);
+      alert(`Your Servizo OTP is: ${otp}\n\n(WhatsApp not configured. This is a dev fallback.)`);
+    }
   }
 
   static async verifyOTP(phoneNumber: string, code: string): Promise<boolean> {

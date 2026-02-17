@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, FileText, User, Users, Briefcase, Calendar, Trash2, Edit, Shield, Eye, X, Download, Image, File } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, User, Users, Briefcase, Calendar, Trash2, Edit, Shield, Eye, X, Download, Image, File, CheckCircle2 } from 'lucide-react';
 import { DB } from '../services/db';
 import type { VerificationRequest, User as UserType, Specialist, Booking } from '../types';
 
@@ -24,8 +24,15 @@ export default function AdminPanel({ currentUser }: { currentUser: any }) {
   }, [activeTab]);
 
   const loadAllData = async () => {
-    const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerificationRequests(), DB.getUsers(), DB.getSpecialists(), DB.getBookings()]);
-    setRequests(reqData); setUsers(userData); setSpecialists(specData); setBookings(bookData);
+const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerificationRequests(), DB.getUsers(), DB.getSpecialists(), DB.getBookings()]);
+      setRequests(reqData); setUsers(userData); setSpecialists(specData);
+      setBookings(bookData.sort((a, b) => {
+      const statusOrder: Record<string, number> = { active: 0, pending_payment: 1, pending: 2, completed: 3, cancelled: 4 };
+      const sa = statusOrder[a.status] ?? 5;
+      const sb = statusOrder[b.status] ?? 5;
+      if (sa !== sb) return sa - sb;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    }));
   };
 
   const handleApprove = async (requestId: string) => { await DB.approveVerification(requestId, currentUser.id); loadAllData(); };
@@ -35,6 +42,7 @@ export default function AdminPanel({ currentUser }: { currentUser: any }) {
   const handleUpdateUser = async () => { if (editingUser) { await DB.updateUser(editingUser); setEditingUser(null); loadAllData(); } };
   const handleUpdateSpecialist = async () => { if (editingSpecialist) { await DB.updateSpecialist(editingSpecialist); setEditingSpecialist(null); loadAllData(); } };
   const handleCancelBooking = async (id: string) => { if (confirm('Cancel this booking?')) { await DB.updateBookingStatus(id, 'cancelled'); loadAllData(); } };
+  const handleCompleteBooking = async (id: string) => { if (confirm('Mark this booking as completed? The user will be notified to leave a review.')) { await DB.completeBooking(id); loadAllData(); } };
 
   const filteredRequests = requests.filter(r => filter === 'all' || r.status === filter);
 
@@ -191,7 +199,7 @@ export default function AdminPanel({ currentUser }: { currentUser: any }) {
             {specialists.map(spec => (
               <div key={spec.id} className="bg-white border border-gray-100 rounded-xl p-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <img src={spec.avatar} className="w-12 h-12 rounded-xl object-cover" alt={spec.name} />
+                    <img src={spec.avatar} className="w-12 h-12 rounded-full object-cover" alt={spec.name} />
                   <div>
                     <h3 className="font-semibold text-[#1a2b49]">{spec.name}</h3>
                     <p className="text-xs text-[#1a73e8] font-medium">{spec.category}</p>
@@ -227,8 +235,13 @@ export default function AdminPanel({ currentUser }: { currentUser: any }) {
                     <p className="text-xs text-gray-400">{new Date(booking.createdAt).toLocaleString()}</p>
                   </div>
                   {booking.status === 'active' && (
-                    <button onClick={() => handleCancelBooking(booking.id)} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 transition-colors">Cancel</button>
-                  )}
+                      <div className="flex gap-2">
+                        <button onClick={() => handleCompleteBooking(booking.id)} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition-colors flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Complete
+                        </button>
+                        <button onClick={() => handleCancelBooking(booking.id)} className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-xs font-semibold hover:bg-red-600 transition-colors">Cancel</button>
+                      </div>
+                    )}
                 </div>
               );
             })}

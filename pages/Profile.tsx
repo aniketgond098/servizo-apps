@@ -8,16 +8,16 @@ import { Review, User } from '../types';
 import { calculateDistance, formatDistance } from '../utils/distance';
 import VerificationBadges from '../components/VerificationBadges';
 
-function ReviewItem({ review, reviewer }: { review: Review; reviewer: User | undefined }) {
+const ReviewItem: React.FC<{ review: Review; reviewer: User | undefined }> = ({ review, reviewer }) => {
   return (
     <div className="pb-5 border-b border-gray-100 last:border-0 last:pb-0">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1a2b49] to-[#1e3a5f] flex items-center justify-center text-sm font-bold text-white">
+          <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-sm font-bold text-white">
             {reviewer?.name?.charAt(0) || 'U'}
           </div>
           <div>
-            <p className="text-sm font-semibold text-[#1a2b49]">{reviewer?.name || 'User'}</p>
+            <p className="text-sm font-semibold text-gray-900">{reviewer?.name || 'User'}</p>
             <div className="flex items-center gap-1.5">
               <div className="flex items-center gap-0.5">
                 {Array.from({ length: 5 }).map((_, i) => (
@@ -118,7 +118,7 @@ export default function Profile() {
   if (!specialist) return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="flex flex-col items-center gap-3">
-        <Loader2 className="w-8 h-8 animate-spin text-[#1a73e8]" />
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
         <p className="text-sm text-gray-400">Loading profile...</p>
       </div>
     </div>
@@ -129,67 +129,65 @@ export default function Profile() {
 
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
-      {/* Hero Banner */}
-      <div className="relative bg-gradient-to-br from-[#1a2b49] via-[#1e3a5f] to-[#0f1d35] overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-[#1a73e8] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-400 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-        </div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-20 sm:pb-24 relative">
-          <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white mb-8 transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back to results
-          </button>
-          <div className="flex flex-col sm:flex-row gap-6 items-start">
-            <div className="relative flex-shrink-0">
-              <div className={`w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden ring-4 ${
-                specialist.availability === 'available' ? 'ring-green-400' : specialist.availability === 'busy' ? 'ring-red-400' : 'ring-yellow-400'
-              } shadow-xl`}>
-                <img src={specialist.avatar} alt={specialist.name} className="w-full h-full object-cover" />
-              </div>
-              <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-[10px] font-bold text-white shadow-lg ${
-                specialist.availability === 'available' ? 'bg-green-500' : specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
-              }`}>
-                {specialist.availability === 'available' ? 'Online' : specialist.availability === 'busy' ? 'Busy' : 'Offline'}
-              </div>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-white">{specialist.name}</h1>
-                    {specialist.verified && <BadgeCheck className="w-6 h-6 text-blue-400 flex-shrink-0" />}
+        {/* Hero Section */}
+        <div className="bg-white border-b border-gray-100">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-20 sm:pb-24">
+            <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-8 transition-colors">
+              <ArrowLeft className="w-4 h-4" /> Back to results
+            </button>
+            <div className="flex flex-col sm:flex-row gap-6 items-start">
+                <div className="relative flex-shrink-0">
+                  <div className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full flex items-center justify-center ${
+                    specialist.availability === 'available' ? 'bg-green-500' : specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
+                  } shadow-md`}>
+                    <div className="w-[104px] h-[104px] sm:w-[120px] sm:h-[120px] rounded-full bg-white flex items-center justify-center">
+                      <img src={specialist.avatar} alt={specialist.name} className="w-24 h-24 sm:w-28 sm:h-28 rounded-full object-cover" />
+                    </div>
                   </div>
-                  <p className="text-blue-300 font-medium text-sm">{specialist.title}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={toggleFavorite} className={`p-2.5 rounded-xl border transition-all ${isFavorite ? 'bg-red-500/20 border-red-400/30 text-red-400' : 'border-white/20 text-white/40 hover:text-red-400 hover:border-red-400/30'}`}>
-                    <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-400' : ''}`} />
-                  </button>
-                  <button className="p-2.5 rounded-xl border border-white/20 text-white/40 hover:text-white hover:border-white/40 transition-all">
-                    <Share2 className="w-5 h-5" />
-                  </button>
+                <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-[10px] font-bold text-white shadow-md ${
+                  specialist.availability === 'available' ? 'bg-green-500' : specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
+                }`}>
+                  {specialist.availability === 'available' ? 'Online' : specialist.availability === 'busy' ? 'Busy' : 'Offline'}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-lg text-xs text-white/80">
-                  <MapPin className="w-3.5 h-3.5 text-blue-300" /> {specialist.location}
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-lg text-xs text-white/80">
-                  <Briefcase className="w-3.5 h-3.5 text-blue-300" /> {specialist.category}
-                </span>
-                {distance && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-sm rounded-lg text-xs text-white/80">
-                    <Globe className="w-3.5 h-3.5 text-blue-300" /> {formatDistance(distance)} away
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{specialist.name}</h1>
+                      {specialist.verified && <BadgeCheck className="w-6 h-6 text-green-500 flex-shrink-0" />}
+                    </div>
+                    <p className="text-sm font-medium text-gray-500">{specialist.title}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={toggleFavorite} className={`p-2.5 rounded-xl border transition-all ${isFavorite ? 'bg-red-50 border-red-200 text-red-500' : 'border-gray-200 text-gray-300 hover:text-red-400 hover:border-red-200'}`}>
+                      <Heart className={`w-5 h-5 ${isFavorite ? 'fill-red-400' : ''}`} />
+                    </button>
+                    <button className="p-2.5 rounded-xl border border-gray-200 text-gray-300 hover:text-gray-500 hover:border-gray-300 transition-all">
+                      <Share2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 rounded-lg text-xs text-gray-600">
+                    <MapPin className="w-3.5 h-3.5 text-gray-400" /> {specialist.location}
                   </span>
-                )}
-              </div>
-              <div className="mt-4">
-                <VerificationBadges specialist={specialist} />
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 rounded-lg text-xs text-gray-600">
+                    <Briefcase className="w-3.5 h-3.5 text-gray-400" /> {specialist.category}
+                  </span>
+                  {distance && (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gray-50 rounded-lg text-xs text-gray-600">
+                      <Globe className="w-3.5 h-3.5 text-gray-400" /> {formatDistance(distance)} away
+                    </span>
+                  )}
+                </div>
+                <div className="mt-4">
+                  <VerificationBadges specialist={specialist} />
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Floating Stats Bar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-10 relative z-10">
@@ -197,7 +195,7 @@ export default function Profile() {
           <div className="grid grid-cols-2 sm:grid-cols-5 divide-x divide-gray-100">
             {[
               { icon: Star, label: 'Rating', value: avgRating, sub: `${reviews.length} reviews`, color: 'text-yellow-500', bg: 'bg-yellow-50' },
-              { icon: Briefcase, label: 'Projects', value: specialist.projects, sub: 'completed', color: 'text-blue-600', bg: 'bg-blue-50' },
+                { icon: Briefcase, label: 'Projects', value: specialist.projects, sub: 'completed', color: 'text-teal-600', bg: 'bg-teal-50' },
               { icon: Clock, label: 'Experience', value: `${specialist.experience}y`, sub: 'in field', color: 'text-purple-600', bg: 'bg-purple-50' },
               { icon: ThumbsUp, label: 'Success', value: '100%', sub: 'rate', color: 'text-green-600', bg: 'bg-green-50' },
               { icon: TrendingUp, label: 'Response', value: '~2h', sub: 'avg time', color: 'text-orange-500', bg: 'bg-orange-50' },
@@ -207,7 +205,7 @@ export default function Profile() {
                   <stat.icon className={`w-5 h-5 ${stat.color}`} />
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-[#1a2b49] leading-tight">{stat.value}</p>
+                  <p className="text-lg font-bold text-gray-900 leading-tight">{stat.value}</p>
                   <p className="text-[10px] text-gray-400 uppercase tracking-wide">{stat.label}</p>
                 </div>
               </div>
@@ -229,8 +227,8 @@ export default function Profile() {
                   onClick={() => setActiveTab(tab)}
                   className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all ${
                     activeTab === tab
-                      ? 'bg-[#1a2b49] text-white shadow-sm'
-                      : 'text-gray-500 hover:text-[#1a2b49] hover:bg-gray-50'
+                        ? 'bg-gray-900 text-white shadow-sm'
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                   }`}
                 >
                   {tab === 'about' ? 'About' : `Reviews (${reviews.length})`}
@@ -242,17 +240,17 @@ export default function Profile() {
               <>
                 {/* About Section */}
                 <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
-                      <Users className="w-4 h-4 text-[#1a73e8]" />
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                        <Users className="w-4 h-4 text-gray-600" />
                     </div>
-                    <h3 className="text-base font-bold text-[#1a2b49]">About</h3>
+                    <h3 className="text-base font-bold text-gray-900">About</h3>
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed">{specialist.description}</p>
                   {specialist.tags && specialist.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-4">
                       {specialist.tags.map((tag: string) => (
-                        <span key={tag} className="px-3 py-1 bg-blue-50 text-[#1a73e8] rounded-full text-xs font-medium">
+                          <span key={tag} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
                           {tag}
                         </span>
                       ))}
@@ -266,7 +264,7 @@ export default function Profile() {
                     <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
                       <Sparkles className="w-4 h-4 text-purple-600" />
                     </div>
-                    <h3 className="text-base font-bold text-[#1a2b49]">Skills & Expertise</h3>
+                    <h3 className="text-base font-bold text-gray-900">Skills & Expertise</h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {specialist.skills.map((skill: string) => (
@@ -283,7 +281,7 @@ export default function Profile() {
                     <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
                       <Award className="w-4 h-4 text-green-600" />
                     </div>
-                    <h3 className="text-base font-bold text-[#1a2b49]">Credentials & Certifications</h3>
+                    <h3 className="text-base font-bold text-gray-900">Credentials & Certifications</h3>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {specialist.credentials.map((cred: string) => (
@@ -303,7 +301,7 @@ export default function Profile() {
                     <div className="w-8 h-8 bg-orange-50 rounded-lg flex items-center justify-center">
                       <Zap className="w-4 h-4 text-orange-500" />
                     </div>
-                    <h3 className="text-base font-bold text-[#1a2b49]">Service Highlights</h3>
+                    <h3 className="text-base font-bold text-gray-900">Service Highlights</h3>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
@@ -312,13 +310,13 @@ export default function Profile() {
                       { icon: Clock, title: 'Fast Responder', desc: 'Typically responds within 2 hours', active: specialist.fastResponder },
                       { icon: Award, title: 'Top Rated', desc: 'Consistently high customer ratings', active: specialist.topRated },
                     ].map(item => (
-                      <div key={item.title} className={`p-4 rounded-xl border ${item.active ? 'bg-blue-50/50 border-blue-100' : 'bg-gray-50 border-gray-100 opacity-50'}`}>
-                        <div className="flex items-start gap-3">
-                          <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${item.active ? 'bg-blue-100' : 'bg-gray-200'}`}>
-                            <item.icon className={`w-4 h-4 ${item.active ? 'text-[#1a73e8]' : 'text-gray-400'}`} />
+                        <div key={item.title} className={`p-4 rounded-xl border ${item.active ? 'bg-green-50/50 border-green-100' : 'bg-gray-50 border-gray-100 opacity-50'}`}>
+                          <div className="flex items-start gap-3">
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${item.active ? 'bg-green-100' : 'bg-gray-200'}`}>
+                              <item.icon className={`w-4 h-4 ${item.active ? 'text-green-600' : 'text-gray-400'}`} />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-[#1a2b49]">{item.title}</p>
+                            <p className="text-sm font-semibold text-gray-900">{item.title}</p>
                             <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
                           </div>
                         </div>
@@ -333,20 +331,20 @@ export default function Profile() {
                     <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
                       <Calendar className="w-4 h-4 text-indigo-600" />
                     </div>
-                    <h3 className="text-base font-bold text-[#1a2b49]">Availability & Details</h3>
+                    <h3 className="text-base font-bold text-gray-900">Availability & Details</h3>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="p-4 bg-gray-50 rounded-xl text-center">
                       <p className="text-xs text-gray-400 mb-1">Languages</p>
-                      <p className="text-sm font-semibold text-[#1a2b49]">English, Hindi</p>
+                      <p className="text-sm font-semibold text-gray-900">English, Hindi</p>
                     </div>
                     <div className="p-4 bg-gray-50 rounded-xl text-center">
                       <p className="text-xs text-gray-400 mb-1">Working Hours</p>
-                      <p className="text-sm font-semibold text-[#1a2b49]">9 AM - 7 PM</p>
+                      <p className="text-sm font-semibold text-gray-900">9 AM - 7 PM</p>
                     </div>
                     <div className="p-4 bg-gray-50 rounded-xl text-center">
                       <p className="text-xs text-gray-400 mb-1">Service Area</p>
-                      <p className="text-sm font-semibold text-[#1a2b49]">{specialist.location}</p>
+                      <p className="text-sm font-semibold text-gray-900">{specialist.location}</p>
                     </div>
                   </div>
                 </div>
@@ -359,7 +357,7 @@ export default function Profile() {
                 <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
                   <div className="flex flex-col sm:flex-row items-center gap-6">
                     <div className="text-center">
-                      <p className="text-5xl font-bold text-[#1a2b49]">{avgRating}</p>
+                      <p className="text-5xl font-bold text-gray-900">{avgRating}</p>
                       <div className="flex items-center gap-0.5 mt-2 justify-center">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <Star key={i} className={`w-4 h-4 ${i < Math.round(Number(avgRating)) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
@@ -387,8 +385,8 @@ export default function Profile() {
                 </div>
 
                 {/* Info notice */}
-                <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start gap-3">
-                  <Shield className="w-4 h-4 text-[#1a73e8] mt-0.5 flex-shrink-0" />
+                  <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-start gap-3">
+                    <Shield className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
                   <p className="text-xs text-gray-600">Reviews can only be submitted after completing a booking with this professional. This ensures all reviews are from verified customers.</p>
                 </div>
 
@@ -416,25 +414,25 @@ export default function Profile() {
           <div className="lg:col-span-4">
             <div className="sticky top-24 space-y-4">
               {/* Pricing Card */}
-              <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-                <div className="bg-gradient-to-r from-[#1a2b49] to-[#1e3a5f] p-6 text-center">
-                  <p className="text-xs text-blue-300 uppercase tracking-widest mb-1">Starting from</p>
-                  <p className="text-4xl font-bold text-white">₹{specialist.hourlyRate}</p>
-                  <p className="text-xs text-blue-200 mt-0.5">per hour</p>
-                </div>
+                <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                  <div className="bg-gray-900 p-6 text-center">
+                    <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Starting from</p>
+                    <p className="text-4xl font-bold text-white">₹{specialist.hourlyRate}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">per hour</p>
+                  </div>
 
-                <div className="p-5 space-y-3">
-                  <button onClick={handleBooking} disabled={bookingInProgress || specialist.availability !== 'available'}
-                    className="w-full bg-[#1a2b49] text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#0f1d35] transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg">
+                  <div className="p-5 space-y-3">
+                    <button onClick={handleBooking} disabled={bookingInProgress || specialist.availability !== 'available'}
+                      className="w-full bg-gray-900 text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg">
                     {bookingInProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
                     {bookingInProgress ? 'Booking...' : specialist.availability === 'available' ? 'Book Now' : 'Currently Unavailable'}
                   </button>
 
-                  <button onClick={handleEmergencyBooking} disabled={emergencyBookingInProgress}
-                    className="w-full bg-red-500 text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg">
-                    {emergencyBookingInProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
-                    {emergencyBookingInProgress ? 'Booking...' : 'Emergency Hire (+20%)'}
-                  </button>
+                    <button onClick={handleEmergencyBooking} disabled={emergencyBookingInProgress || specialist.availability !== 'available'}
+                      className="w-full bg-red-500 text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg">
+                      {emergencyBookingInProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
+                      {emergencyBookingInProgress ? 'Booking...' : specialist.availability === 'available' ? 'Emergency Hire (+20%)' : 'Currently Unavailable'}
+                    </button>
 
                   <button onClick={handleMessage}
                     className="w-full border border-gray-200 text-gray-700 py-3.5 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
@@ -461,7 +459,7 @@ export default function Profile() {
                       <Clock className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-gray-500">Response Time</span>
                     </div>
-                    <span className="text-sm font-semibold text-[#1a2b49]">~2 hours</span>
+                    <span className="text-sm font-semibold text-gray-900">~2 hours</span>
                   </div>
                   <div className="h-px bg-gray-100" />
                   <div className="flex items-center justify-between">
@@ -477,7 +475,7 @@ export default function Profile() {
                       <Globe className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-gray-500">Languages</span>
                     </div>
-                    <span className="text-sm font-semibold text-[#1a2b49]">EN, HI</span>
+                    <span className="text-sm font-semibold text-gray-900">EN, HI</span>
                   </div>
                   <div className="h-px bg-gray-100" />
                   <div className="flex items-center justify-between">
@@ -485,7 +483,7 @@ export default function Profile() {
                       <Users className="w-4 h-4 text-gray-400" />
                       <span className="text-sm text-gray-500">Hired</span>
                     </div>
-                    <span className="text-sm font-semibold text-[#1a2b49]">{specialist.projects}+ times</span>
+                    <span className="text-sm font-semibold text-gray-900">{specialist.projects}+ times</span>
                   </div>
                 </div>
               </div>

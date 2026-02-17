@@ -50,19 +50,27 @@ export interface Specialist {
   fastResponder?: boolean;
 }
 
+export interface ExtraCharge {
+  id: string;
+  description: string;
+  amount: number;
+  addedAt: string;
+}
+
 export interface Booking {
   id: string;
   specialistId: string;
   userId: string; // The user who hired
   userLat: number;
   userLng: number;
-  status: 'active' | 'completed' | 'cancelled';
+  status: 'active' | 'pending_payment' | 'completed' | 'cancelled';
   startTime: string;
   createdAt: string;
   totalValue: number;
   serviceAddress?: string;
   scheduledDate?: string;
   reviewed?: boolean;
+  completedAt?: string;
   isEmergency?: boolean;
   emergencyMultiplier?: number;
   workerLat?: number;
@@ -71,6 +79,10 @@ export interface Booking {
   beforePhotos?: string[];
   afterPhotos?: string[];
   problemPhotos?: string[];
+  extraCharges?: ExtraCharge[];
+  finalTotal?: number;
+  paymentStatus?: 'pending' | 'paid';
+  paidAt?: string;
 }
 
 export interface SearchIntent {
@@ -109,7 +121,7 @@ export interface Message {
   attachment?: MessageAttachment;
 }
 
-export type NotificationType = 'booking' | 'message' | 'booking_status' | 'emergency_booking' | 'push';
+export type NotificationType = 'booking' | 'message' | 'booking_status' | 'emergency_booking' | 'push' | 'review_request';
 
 export interface Notification {
   id: string;

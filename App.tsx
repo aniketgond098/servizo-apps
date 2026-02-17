@@ -21,6 +21,7 @@ import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
 import CreateProfile from './pages/CreateProfile';
 import BookingHistory from './pages/BookingHistory';
+import ReviewPage from './pages/ReviewPage';
 import IncomingCall from './components/IncomingCall';
 import { AuthService } from './services/auth';
 import { User } from './types';
@@ -78,9 +79,9 @@ const Navbar = () => {
   return (
     <>
       {/* Desktop Navbar */}
-      <nav className={`fixed top-0 w-full z-50 transition-all duration-200 bg-white ${
-        scrolled ? 'shadow-md' : 'border-b border-gray-100'
-      }`}>
+<nav className={`fixed top-0 w-full z-[1000] transition-all duration-200 bg-white ${
+          scrolled ? 'shadow-md' : 'border-b border-gray-100'
+        }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Left: Logo */}
             <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
@@ -168,8 +169,19 @@ const Navbar = () => {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden bg-white border-t border-gray-100 animate-fadeIn shadow-lg">
+          <>
+<div className="fixed inset-0 z-[1100] bg-black/30" onClick={() => setMobileMenuOpen(false)} />
+            <div className="md:hidden fixed top-0 left-0 w-72 h-full z-[1200] bg-white shadow-2xl animate-fadeIn overflow-y-auto">
             <div className="px-4 py-4 space-y-1">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+                <div className="flex items-center gap-2.5">
+                  <ServizoIcon size={28} />
+                  <span className="text-lg font-bold text-[#1a2b49]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Servizo</span>
+                </div>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-full hover:bg-gray-100">
+                  <X className="w-5 h-5 text-gray-500" />
+                </button>
+              </div>
               <Link to="/" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors">
                 <HomeIcon className="w-5 h-5 text-gray-400" />
                 <span className="text-sm font-medium text-gray-700">Home</span>
@@ -243,10 +255,11 @@ const Navbar = () => {
                   </Link>
                 </div>
               )}
+              </div>
             </div>
-          </div>
-        )}
-      </nav>
+          </>
+          )}
+          </nav>
 
       {/* Mobile Bottom Tab Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-bottom">
@@ -323,7 +336,8 @@ function AppContent() {
           <Route path="/messages" element={<Messages />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/create-profile" element={<CreateProfile />} />
-          <Route path="/booking-history" element={<BookingHistory />} />
+            <Route path="/booking-history" element={<BookingHistory />} />
+            <Route path="/review/:bookingId" element={<ReviewPage />} />
         </Routes>
       </main>
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, ArrowLeft, MessageCircle, Calendar, AlertTriangle, CheckCircle, X, BellOff, Sparkles } from 'lucide-react';
+import { Bell, ArrowLeft, MessageCircle, Calendar, AlertTriangle, CheckCircle, X, BellOff, Sparkles, Star } from 'lucide-react';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
 import { Notification } from '../types';
@@ -33,6 +33,7 @@ export default function Notifications() {
       case 'booking': return <Calendar className="w-5 h-5" />;
       case 'emergency_booking': return <AlertTriangle className="w-5 h-5" />;
       case 'booking_status': return <CheckCircle className="w-5 h-5" />;
+      case 'review_request': return <Star className="w-5 h-5" />;
       default: return <Bell className="w-5 h-5" />;
     }
   };
@@ -44,6 +45,7 @@ export default function Notifications() {
       case 'booking': return 'bg-blue-50 text-[#1a73e8]';
       case 'emergency_booking': return 'bg-red-50 text-red-500';
       case 'booking_status': return 'bg-purple-50 text-purple-600';
+      case 'review_request': return 'bg-amber-50 text-amber-600';
       default: return 'bg-gray-100 text-gray-500';
     }
   };
@@ -173,10 +175,10 @@ export default function Notifications() {
                   </div>
                   <div className="flex items-center gap-3 mt-2">
                     <span className="text-[11px] text-gray-400 font-medium">{formatTime(notif.createdAt)}</span>
-                    {notif.link && (
-                      <Link to={notif.link} className="text-[11px] font-semibold text-[#1a73e8] hover:underline">
-                        View Details
-                      </Link>
+                      {notif.link && (
+                        <Link to={notif.link} className="text-[11px] font-semibold text-[#1a73e8] hover:underline">
+                          {notif.type === 'review_request' ? 'Leave Review' : 'View Details'}
+                        </Link>
                     )}
                   </div>
                 </div>

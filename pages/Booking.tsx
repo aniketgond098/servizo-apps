@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Clock, MapPin, CreditCard, MessageCircle, Phone, RefreshCw, Activity, CheckCircle2, Star, Loader2, Share2, X, ArrowLeft, AlertTriangle, Navigation } from 'lucide-react';
+import { Shield, Clock, MapPin, CreditCard, MessageCircle, Phone, RefreshCw, Activity, CheckCircle2, Star, Loader2, Share2, X, ArrowLeft, AlertTriangle, Navigation, Info, IndianRupee, Check } from 'lucide-react';
 import { DB } from '../services/db';
 import { Specialist, Booking as BookingType } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -13,19 +13,20 @@ export default function Booking() {
   const [activeBooking, setActiveBooking] = useState<BookingType | null>(null);
   const [specialist, setSpecialist] = useState<Specialist | null>(null);
   const [eta, setEta] = useState(12);
-  const [showReviewModal, setShowReviewModal] = useState(false);
-  const [review, setReview] = useState({ rating: 5, comment: '' });
   const [showMap, setShowMap] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<'review' | 'paying' | 'done'>('review');
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
     if (!currentUser) { navigate('/login'); return; }
     const loadData = async () => {
-      const active = await DB.getActiveBooking(currentUser.id);
-      if (active) {
-        setActiveBooking(active);
+      const bookings = await DB.getBookings();
+      // Find active or pending_payment booking for this user
+      const booking = bookings.find(b => b.userId === currentUser.id && (b.status === 'active' || b.status === 'pending_payment'));
+      if (booking) {
+        setActiveBooking(booking);
         const specialists = await DB.getSpecialists();
-        const s = specialists.find(sp => sp.id === active.specialistId);
+        const s = specialists.find(sp => sp.id === booking.specialistId);
         if (s) setSpecialist(s);
       }
     };
@@ -34,22 +35,18 @@ export default function Booking() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleCompleteBooking = () => {
-    if (activeBooking && !activeBooking.reviewed) setShowReviewModal(true);
-  };
-
-  const handleSubmitReview = async () => {
-    if (!currentUser || !activeBooking) return;
-    await DB.createReview({ bookingId: activeBooking.id, specialistId: activeBooking.specialistId, userId: currentUser.id, rating: review.rating, comment: review.comment });
-    const updatedBooking = { ...activeBooking, reviewed: true };
-    await DB.updateBooking(updatedBooking);
-    await DB.updateBookingStatus(activeBooking.id, 'completed');
-    setShowReviewModal(false);
-    navigate('/dashboard');
-  };
-
   const handleMessage = () => {
     if (specialist) navigate(`/chat/${specialist.userId || specialist.id}`);
+  };
+
+  const handleDemoPayment = async () => {
+    if (!activeBooking) return;
+    setPaymentStep('paying');
+    // Simulate payment processing
+    await new Promise(r => setTimeout(r, 2000));
+    await DB.markBookingPaid(activeBooking.id);
+    setPaymentStep('done');
+    setTimeout(() => navigate('/dashboard'), 3000);
   };
 
   if (!activeBooking || !specialist) {
@@ -76,25 +73,29 @@ export default function Booking() {
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
 
-        {/* Status Banner */}
-        <div className={`rounded-xl p-6 sm:p-8 mb-6 ${activeBooking.isEmergency ? 'bg-red-50 border border-red-100' : 'bg-blue-50 border border-blue-100'}`}>
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                {activeBooking.isEmergency ? <AlertTriangle className="w-5 h-5 text-red-500" /> : <Activity className="w-5 h-5 text-[#1a73e8]" />}
-                <span className={`text-xs font-bold uppercase tracking-wide ${activeBooking.isEmergency ? 'text-red-600' : 'text-[#1a73e8]'}`}>
-                  {activeBooking.isEmergency ? 'Emergency Booking' : 'Active Booking'}
-                </span>
+          {/* Status Banner */}
+          <div className={`rounded-xl p-6 sm:p-8 mb-6 ${activeBooking.status === 'pending_payment' ? 'bg-amber-50 border border-amber-100' : activeBooking.isEmergency ? 'bg-red-50 border border-red-100' : 'bg-blue-50 border border-blue-100'}`}>
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  {activeBooking.status === 'pending_payment' ? <IndianRupee className="w-5 h-5 text-amber-600" /> : activeBooking.isEmergency ? <AlertTriangle className="w-5 h-5 text-red-500" /> : <Activity className="w-5 h-5 text-[#1a73e8]" />}
+                  <span className={`text-xs font-bold uppercase tracking-wide ${activeBooking.status === 'pending_payment' ? 'text-amber-600' : activeBooking.isEmergency ? 'text-red-600' : 'text-[#1a73e8]'}`}>
+                    {activeBooking.status === 'pending_payment' ? 'Payment Required' : activeBooking.isEmergency ? 'Emergency Booking' : 'Active Booking'}
+                  </span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-1">
+                  {activeBooking.status === 'pending_payment' ? 'Review & Pay' : 'Service In Progress'}
+                </h1>
+                <p className="text-sm text-gray-500">Booking ID: {activeBooking.id}</p>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-1">Service In Progress</h1>
-              <p className="text-sm text-gray-500">Booking ID: {activeBooking.id}</p>
-            </div>
-            <div className={`px-5 py-3 rounded-xl text-center ${activeBooking.isEmergency ? 'bg-red-100' : 'bg-blue-100'}`}>
-              <p className="text-xs text-gray-500 mb-0.5">ETA</p>
-              <p className="text-3xl font-bold text-[#1a2b49]">{eta}<span className="text-sm font-normal text-gray-500 ml-1">min</span></p>
+              {activeBooking.status !== 'pending_payment' && (
+                <div className={`px-5 py-3 rounded-xl text-center ${activeBooking.isEmergency ? 'bg-red-100' : 'bg-blue-100'}`}>
+                  <p className="text-xs text-gray-500 mb-0.5">ETA</p>
+                  <p className="text-3xl font-bold text-[#1a2b49]">{eta}<span className="text-sm font-normal text-gray-500 ml-1">min</span></p>
+                </div>
+              )}
             </div>
           </div>
-        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main */}
@@ -175,9 +176,14 @@ export default function Booking() {
           <div className="lg:col-span-4 space-y-6">
             {/* Professional Card */}
             <div className="bg-white border border-gray-100 rounded-xl p-6 text-center">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden mx-auto mb-4 border-2 border-[#1a73e8]">
-                <img src={specialist.avatar} alt={specialist.name} className="w-full h-full object-cover" />
-              </div>
+                <div className={`w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center ${
+                  specialist.availability === 'available' ? 'bg-green-500' :
+                  specialist.availability === 'busy' ? 'bg-red-500' : 'bg-yellow-500'
+                }`}>
+                  <div className="w-[72px] h-[72px] rounded-full bg-white flex items-center justify-center">
+                    <img src={specialist.avatar} alt={specialist.name} className="w-16 h-16 rounded-full object-cover" />
+                  </div>
+                </div>
               <h4 className="text-lg font-bold text-[#1a2b49]">{specialist.name}</h4>
               <p className="text-xs text-[#1a73e8] font-medium mb-4">{specialist.category} Specialist</p>
               <div className="grid grid-cols-2 gap-3 mb-5">
@@ -201,48 +207,83 @@ export default function Booking() {
             </div>
 
             {/* Actions */}
-            <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => setShowMap(!showMap)} className="bg-white border border-gray-100 rounded-xl p-4 text-center hover:border-[#1a73e8] transition-all group">
-                <Navigation className="w-5 h-5 text-gray-400 group-hover:text-[#1a73e8] mx-auto mb-2 transition-colors" />
-                <span className="text-xs font-semibold text-gray-500 group-hover:text-[#1a2b49]">Track Live</span>
-              </button>
-              <button onClick={handleCompleteBooking} className="bg-white border border-gray-100 rounded-xl p-4 text-center hover:border-green-500 transition-all group">
-                <CheckCircle2 className="w-5 h-5 text-gray-400 group-hover:text-green-500 mx-auto mb-2 transition-colors" />
-                <span className="text-xs font-semibold text-gray-500 group-hover:text-[#1a2b49]">Complete</span>
-              </button>
-            </div>
+              <div className="grid grid-cols-1 gap-3">
+                {activeBooking.status === 'active' && (
+                  <>
+                    <button onClick={() => setShowMap(!showMap)} className="bg-white border border-gray-100 rounded-xl p-4 text-center hover:border-[#1a73e8] transition-all group">
+                      <Navigation className="w-5 h-5 text-gray-400 group-hover:text-[#1a73e8] mx-auto mb-2 transition-colors" />
+                      <span className="text-xs font-semibold text-gray-500 group-hover:text-[#1a2b49]">Track Live</span>
+                    </button>
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3">
+                      <Info className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-700 leading-relaxed">The worker will submit final charges when work is done. You'll review and pay to complete the booking.</p>
+                    </div>
+                  </>
+                )}
+
+                {/* Payment Review Section */}
+                {activeBooking.status === 'pending_payment' && (
+                  <div className="bg-white border border-gray-100 rounded-xl p-6">
+                    <h4 className="text-sm font-bold text-[#1a2b49] mb-4 flex items-center gap-2">
+                      <IndianRupee className="w-4 h-4 text-[#1a73e8]" /> Payment Summary
+                    </h4>
+
+                    {/* Base charge */}
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm text-gray-600">Base Service Charge</span>
+                      <span className="text-sm font-semibold text-[#1a2b49]">₹{activeBooking.totalValue}</span>
+                    </div>
+
+                    {/* Extra charges */}
+                    {(activeBooking.extraCharges || []).length > 0 && (
+                      <div className="border-t border-gray-100 mt-2 pt-2 space-y-2">
+                        {activeBooking.extraCharges!.map(charge => (
+                          <div key={charge.id} className="flex justify-between items-start py-1.5">
+                            <div className="flex-1 mr-3">
+                              <p className="text-sm text-gray-600">{charge.description}</p>
+                              <p className="text-[10px] text-gray-400">{new Date(charge.addedAt).toLocaleString()}</p>
+                            </div>
+                            <span className="text-sm font-semibold text-amber-600">+₹{charge.amount}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Total */}
+                    <div className="border-t-2 border-[#1a2b49] mt-3 pt-3 flex justify-between items-center">
+                      <span className="text-base font-bold text-[#1a2b49]">Total</span>
+                      <span className="text-xl font-bold text-[#1a73e8]">₹{activeBooking.finalTotal || activeBooking.totalValue}</span>
+                    </div>
+
+                    {/* Payment Button */}
+                    {paymentStep === 'review' && (
+                      <button
+                        onClick={handleDemoPayment}
+                        className="w-full mt-5 py-3.5 bg-green-600 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-colors shadow-lg shadow-green-600/20"
+                      >
+                        <CreditCard className="w-4 h-4" /> Approve & Pay ₹{activeBooking.finalTotal || activeBooking.totalValue}
+                      </button>
+                    )}
+                    {paymentStep === 'paying' && (
+                      <div className="w-full mt-5 py-3.5 bg-gray-100 rounded-xl flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-gray-300 border-t-[#1a73e8] rounded-full animate-spin" />
+                        <span className="text-sm font-semibold text-gray-500">Processing Payment...</span>
+                      </div>
+                    )}
+                    {paymentStep === 'done' && (
+                      <div className="w-full mt-5 py-3.5 bg-green-50 border border-green-200 rounded-xl flex items-center justify-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <span className="text-sm font-bold text-green-700">Payment Successful!</span>
+                      </div>
+                    )}
+
+                    <p className="text-[10px] text-center text-gray-400 mt-3">This is a demo payment. No real charges will be made.</p>
+                  </div>
+                )}
+              </div>
           </div>
         </div>
       </div>
-
-      {/* Review Modal */}
-      {showReviewModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-5">
-            <h3 className="text-xl font-bold text-[#1a2b49]">Rate Your Experience</h3>
-            <div>
-              <label className="text-sm font-medium text-gray-500 block mb-2">Rating</label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map(r => (
-                  <button key={r} onClick={() => setReview(prev => ({ ...prev, rating: r }))} className="p-1 hover:scale-110 transition-transform">
-                    <Star className={`w-8 h-8 ${r <= review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-500 block mb-2">Comment</label>
-              <textarea value={review.comment} onChange={(e) => setReview(prev => ({ ...prev, comment: e.target.value }))}
-                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:outline-none focus:border-[#1a73e8] min-h-[100px]"
-                placeholder="Share your experience..." />
-            </div>
-            <div className="flex gap-3">
-              <button onClick={handleSubmitReview} className="flex-1 px-4 py-2.5 bg-[#1a2b49] text-white rounded-lg font-semibold text-sm">Submit</button>
-              <button onClick={() => setShowReviewModal(false)} className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-semibold text-sm">Skip</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Track Live Modal */}
       {showMap && activeBooking && specialist && (
@@ -285,8 +326,8 @@ export default function Booking() {
               <div className="flex items-center gap-4">
                 {/* Worker info */}
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-11 h-11 rounded-xl overflow-hidden border-2 border-green-400 flex-shrink-0">
-                    <img src={specialist.avatar} alt={specialist.name} className="w-full h-full object-cover" />
+                    <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-green-400 flex-shrink-0">
+                      <img src={specialist.avatar} alt={specialist.name} className="w-full h-full object-cover rounded-full" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-[#1a2b49] truncate">{specialist.name}</p>

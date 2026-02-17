@@ -20,8 +20,9 @@ export const SPECIALISTS: Specialist[] = [
     avatar: 'https://picsum.photos/seed/rajesh/400/400',
     // Fixed: Removed 'featured' property as it is not in the Specialist type
     skills: ['Smart Home Automation', 'Industrial IoT', 'Solar Infrastructure', 'HVAC Optimization'],
-    credentials: ['IIT Bombay Alumnus', 'A-1 Licensed Electrical Engineer']
-  },
+      credentials: ['IIT Bombay Alumnus', 'A-1 Licensed Electrical Engineer'],
+      availability: 'available'
+    },
   {
     id: 'amit-sharma',
     name: 'Amit Sharma',
@@ -39,8 +40,9 @@ export const SPECIALISTS: Specialist[] = [
     location: 'Mumbai, IN',
     avatar: 'https://picsum.photos/seed/amit/400/400',
     skills: ['Acoustic Engineering', 'Custom Lighting'],
-    credentials: ['Design Council Certified']
-  },
+      credentials: ['Design Council Certified'],
+      availability: 'available'
+    },
   {
     id: 'suresh-raina',
     name: 'Suresh Raina',
@@ -58,8 +60,9 @@ export const SPECIALISTS: Specialist[] = [
     location: 'Bangalore, IN',
     avatar: 'https://picsum.photos/seed/suresh/400/400',
     skills: ['IoT Ecosystems', 'Privacy Automation'],
-    credentials: ['SmartHub Gold Member']
-  },
+      credentials: ['SmartHub Gold Member'],
+      availability: 'busy'
+    },
   {
     id: 'ananya-iyer',
     name: 'Ananya Iyer',
@@ -77,6 +80,7 @@ export const SPECIALISTS: Specialist[] = [
     location: 'Chennai, IN',
     avatar: 'https://picsum.photos/seed/ananya/400/400',
     skills: ['Vertical Gardens', 'Sustainable Materials'],
-    credentials: ['LEED Platinum Certified']
-  }
+      credentials: ['LEED Platinum Certified'],
+      availability: 'available'
+    }
 ];

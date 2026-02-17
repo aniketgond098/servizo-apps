@@ -1,6 +1,6 @@
 import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, addDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
-import { Specialist, Booking, User, Review, Message, MessageAttachment, VerificationRequest, Notification, Call, IceCandidate } from '../types';
+import { Specialist, Booking, User, Review, Message, MessageAttachment, VerificationRequest, Notification, Call, IceCandidate, ExtraCharge } from '../types';
 
 const INITIAL_SPECIALISTS: Specialist[] = [
   {
@@ -313,6 +313,71 @@ export class DB {
     }
   }
 
+  static async completeBooking(id: string) {
+    try {
+      const completedAt = new Date().toISOString();
+      await updateDoc(doc(db, 'bookings', id), { status: 'completed', completedAt });
+      
+      const bookingDoc = await getDoc(doc(db, 'bookings', id));
+      if (bookingDoc.exists()) {
+        const booking = bookingDoc.data() as Booking;
+        const specialists = await this.getSpecialists();
+        const specialist = specialists.find(s => s.id === booking.specialistId);
+        
+        // Increment specialist's project count
+        if (specialist) {
+          await updateDoc(doc(db, 'specialists', specialist.id), {
+            projects: (specialist.projects || 0) + 1
+          });
+        }
+
+        // Notify user: booking completed
+        await this.createNotification({
+          userId: booking.userId,
+          type: 'booking_status',
+          title: 'Booking Completed',
+          message: `Your booking with ${specialist?.name || 'specialist'} has been marked as completed.`,
+          link: '/dashboard',
+          bookingId: id
+        });
+
+        // Notify user: leave a review
+        await this.createNotification({
+          userId: booking.userId,
+          type: 'review_request',
+          title: 'Leave a Review',
+          message: `How was your experience with ${specialist?.name || 'the specialist'}? Your feedback helps others.`,
+          link: `/review/${id}`,
+          bookingId: id
+        });
+
+        // Notify worker: job completed
+        if (specialist?.userId) {
+          await this.createNotification({
+            userId: specialist.userId,
+            type: 'booking_status',
+            title: 'Job Completed',
+            message: `Your job for booking ${id} has been marked as completed. Great work!`,
+            link: '/worker-dashboard',
+            bookingId: id
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Complete booking error:', error);
+    }
+  }
+
+  static async getReviewByBookingAndUser(bookingId: string, userId: string): Promise<Review | null> {
+    try {
+      const reviews = await this.getReviews();
+      return reviews.find(r => r.bookingId === bookingId && r.userId === userId) || null;
+    } catch (error) {
+      console.error('Get review by booking and user error:', error);
+      return null;
+    }
+  }
+
   static async updateBooking(booking: Booking) {
     try {
       await setDoc(doc(db, 'bookings', booking.id), booking);
@@ -343,6 +408,12 @@ export class DB {
 
   static async createReview(review: Omit<Review, 'id' | 'createdAt'>): Promise<Review> {
     try {
+      // Enforce one review per user per booking
+      const existing = await this.getReviewByBookingAndUser(review.bookingId, review.userId);
+      if (existing) {
+        throw new Error('You have already reviewed this booking.');
+      }
+
       const newReview: Review = {
         ...review,
         id: `REV-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
@@ -771,6 +842,119 @@ export class DB {
         }
       });
     });
+  }
+
+  // ─── Extra Charges & Payment ───
+
+  static async addExtraCharge(bookingId: string, description: string, amount: number): Promise<ExtraCharge> {
+    try {
+      const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
+      if (!bookingDoc.exists()) throw new Error('Booking not found');
+      const booking = bookingDoc.data() as Booking;
+      const charge: ExtraCharge = {
+        id: `EC-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        description,
+        amount,
+        addedAt: new Date().toISOString()
+      };
+      const extraCharges = [...(booking.extraCharges || []), charge];
+      const finalTotal = booking.totalValue + extraCharges.reduce((sum, c) => sum + c.amount, 0);
+      await updateDoc(doc(db, 'bookings', bookingId), { extraCharges, finalTotal });
+      return charge;
+    } catch (error) {
+      console.error('Add extra charge error:', error);
+      throw error;
+    }
+  }
+
+  static async removeExtraCharge(bookingId: string, chargeId: string) {
+    try {
+      const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
+      if (!bookingDoc.exists()) return;
+      const booking = bookingDoc.data() as Booking;
+      const extraCharges = (booking.extraCharges || []).filter(c => c.id !== chargeId);
+      const finalTotal = booking.totalValue + extraCharges.reduce((sum, c) => sum + c.amount, 0);
+      await updateDoc(doc(db, 'bookings', bookingId), { extraCharges, finalTotal });
+    } catch (error) {
+      console.error('Remove extra charge error:', error);
+    }
+  }
+
+  static async submitForPayment(bookingId: string) {
+    try {
+      const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
+      if (!bookingDoc.exists()) return;
+      const booking = bookingDoc.data() as Booking;
+      const finalTotal = (booking.finalTotal || booking.totalValue);
+      await updateDoc(doc(db, 'bookings', bookingId), {
+        status: 'pending_payment',
+        finalTotal,
+        paymentStatus: 'pending'
+      });
+
+      // Notify user to approve and pay
+      const specialists = await this.getSpecialists();
+      const specialist = specialists.find(s => s.id === booking.specialistId);
+      await this.createNotification({
+        userId: booking.userId,
+        type: 'booking_status',
+        title: 'Payment Required',
+        message: `${specialist?.name || 'Worker'} has completed the work. Please review the charges and make payment.`,
+        link: '/booking',
+        bookingId
+      });
+    } catch (error) {
+      console.error('Submit for payment error:', error);
+    }
+  }
+
+  static async markBookingPaid(bookingId: string) {
+    try {
+      const paidAt = new Date().toISOString();
+      await updateDoc(doc(db, 'bookings', bookingId), {
+        status: 'completed',
+        paymentStatus: 'paid',
+        paidAt,
+        completedAt: paidAt
+      });
+
+      const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
+      if (bookingDoc.exists()) {
+        const booking = bookingDoc.data() as Booking;
+        const specialists = await this.getSpecialists();
+        const specialist = specialists.find(s => s.id === booking.specialistId);
+
+        if (specialist) {
+          await updateDoc(doc(db, 'specialists', specialist.id), {
+            projects: (specialist.projects || 0) + 1
+          });
+        }
+
+        // Notify worker
+        if (specialist?.userId) {
+          await this.createNotification({
+            userId: specialist.userId,
+            type: 'booking_status',
+            title: 'Payment Received',
+            message: `Payment of ₹${booking.finalTotal || booking.totalValue} has been received for booking ${bookingId}.`,
+            link: '/worker-dashboard',
+            bookingId
+          });
+        }
+
+        // Notify user: leave a review
+        await this.createNotification({
+          userId: booking.userId,
+          type: 'review_request',
+          title: 'Leave a Review',
+          message: `How was your experience with ${specialist?.name || 'the specialist'}? Your feedback helps others.`,
+          link: `/review/${bookingId}`,
+          bookingId
+        });
+      }
+    } catch (error) {
+      console.error('Mark booking paid error:', error);
+    }
   }
 
   static async cleanupCall(callId: string) {

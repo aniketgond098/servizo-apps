@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Specialist, AvailabilityStatus } from '../types';
 
 declare global {
@@ -16,12 +16,12 @@ interface MapViewProps {
 
 export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvailabilityColor, showRoute = false }) => {
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
-  const routeLayerRef = useRef<any>(null);
-  const hoverRouteLayerRef = useRef<any>(null);
-  const [selectedSpecialist, setSelectedSpecialist] = useState<Specialist | null>(null);
-  const isMobile = window.innerWidth < 768;
+    const mapInstanceRef = useRef<any>(null);
+    const markersRef = useRef<any[]>([]);
+    const routeLayerRef = useRef<any>(null);
+    const hoverRouteLayerRef = useRef<any>(null);
+    const nearestRouteLayerRef = useRef<any>(null);
+    const isMobile = window.innerWidth < 768;
 
   const statusColors: Record<string, { border: string; bg: string; dot: string; label: string }> = {
     available: { border: '#22c55e', bg: '#dcfce7', dot: '#16a34a', label: 'Available' },
@@ -49,16 +49,19 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
 
       window.L.control.zoom({ position: 'bottomright' }).addTo(mapInstanceRef.current);
 
-      if (isMobile) {
-        mapInstanceRef.current.on('click', () => {
-          markersRef.current.forEach(m => m.closePopup());
-          setSelectedSpecialist(null);
-          if (hoverRouteLayerRef.current) {
-            mapInstanceRef.current.removeLayer(hoverRouteLayerRef.current);
-            hoverRouteLayerRef.current = null;
+        if (isMobile) {
+            mapInstanceRef.current.on('click', () => {
+              markersRef.current.forEach(m => m.closePopup());
+              if (hoverRouteLayerRef.current) {
+                mapInstanceRef.current.removeLayer(hoverRouteLayerRef.current);
+                hoverRouteLayerRef.current = null;
+              }
+              // Restore nearest route when dismissing
+              if (nearestRouteLayerRef.current && mapInstanceRef.current) {
+                nearestRouteLayerRef.current.addTo(mapInstanceRef.current);
+              }
+            });
           }
-        });
-      }
     }
 
     // Clear existing markers
@@ -74,11 +77,15 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
       routeLayerRef.current = null;
     }
     if (hoverRouteLayerRef.current && mapInstanceRef.current) {
-      mapInstanceRef.current.removeLayer(hoverRouteLayerRef.current);
-      hoverRouteLayerRef.current = null;
-    }
+        mapInstanceRef.current.removeLayer(hoverRouteLayerRef.current);
+        hoverRouteLayerRef.current = null;
+      }
+      if (nearestRouteLayerRef.current && mapInstanceRef.current) {
+        mapInstanceRef.current.removeLayer(nearestRouteLayerRef.current);
+        nearestRouteLayerRef.current = null;
+      }
 
-    // User location marker with pulse
+      // User location marker with pulse
     if (userLoc) {
       const userIcon = window.L.divIcon({
         className: 'custom-user-marker',
@@ -106,8 +113,8 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
         className: 'custom-specialist-marker',
         html: `
           <div style="position:relative;cursor:pointer;">
-            <div style="width:46px;height:46px;border-radius:14px;overflow:hidden;border:2.5px solid ${style.border};box-shadow:0 4px 12px rgba(0,0,0,0.1);background:white;">
-              <img src="${specialist.avatar}" alt="${specialist.name}" style="width:100%;height:100%;object-fit:cover;" />
+              <div style="width:46px;height:46px;border-radius:50%;overflow:hidden;border:2.5px solid ${style.border};box-shadow:0 4px 12px rgba(0,0,0,0.1);background:white;">
+                <img src="${specialist.avatar}" alt="${specialist.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
             </div>
             <div style="position:absolute;top:-5px;right:-6px;background:white;border:1.5px solid ${style.border};border-radius:8px;padding:1px 5px;font-size:9px;font-weight:700;color:#1a2b49;box-shadow:0 2px 6px rgba(0,0,0,0.08);white-space:nowrap;">
               ₹${specialist.hourlyRate}
@@ -115,8 +122,9 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
             <div style="position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:${style.dot};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.1);"></div>
           </div>
         `,
-        iconSize: [48, 52],
-        iconAnchor: [24, 52]
+          iconSize: [48, 48],
+          iconAnchor: [24, 24],
+          popupAnchor: [0, -30]
       });
 
       const marker = window.L.marker([specialist.lat, specialist.lng], { icon: markerIcon })
@@ -124,47 +132,44 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
       markersRef.current.push(marker);
 
       const popupContent = `
-        <div style="font-family:Inter,sans-serif;">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-            <div style="width:40px;height:40px;border-radius:12px;overflow:hidden;border:2px solid ${style.border};flex-shrink:0;">
-              <img src="${specialist.avatar}" alt="${specialist.name}" style="width:100%;height:100%;object-fit:cover;" />
+          <div style="font-family:Inter,system-ui,sans-serif;width:210px;">
+            <div style="display:flex;align-items:center;gap:10px;padding-bottom:10px;">
+              <div style="width:38px;height:38px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid ${style.border};padding:1.5px;background:white;">
+                <img src="${specialist.avatar}" alt="${specialist.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;display:block;" />
+              </div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:700;font-size:13px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${specialist.name}</div>
+                <div style="font-size:11px;color:#6b7280;font-weight:500;">${specialist.category}</div>
+              </div>
             </div>
-            <div style="flex:1;min-width:0;">
-              <div style="font-weight:700;font-size:13px;color:#1a2b49;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${specialist.name}</div>
-              <div style="font-size:11px;color:#1a73e8;font-weight:600;">${specialist.category}</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #f3f4f6;">
+              <span style="font-size:14px;font-weight:700;color:#111827;">₹${specialist.hourlyRate}<span style="font-size:10px;font-weight:400;color:#9ca3af;">/hr</span></span>
+              <div style="display:flex;align-items:center;gap:3px;">
+                <span style="color:#facc15;font-size:12px;">★</span>
+                <span style="font-size:12px;font-weight:600;color:#111827;">${specialist.rating}</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;">
+                <div style="width:6px;height:6px;border-radius:50%;background:${style.dot};"></div>
+                <span style="font-size:10px;font-weight:600;color:${style.dot};">${style.label}</span>
+              </div>
             </div>
+            <a href="#/profile/${specialist.id}" 
+               style="display:block;width:100%;padding:7px 0;margin-top:8px;background:#111827;color:white;text-align:center;border-radius:8px;font-size:11px;font-weight:600;text-decoration:none;">
+              View Profile
+            </a>
           </div>
-          <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-top:1px solid #f1f5f9;margin-bottom:10px;">
-            <div>
-              <span style="font-size:15px;font-weight:700;color:#1a2b49;">₹${specialist.hourlyRate}</span>
-              <span style="font-size:10px;color:#94a3b8;">/hr</span>
-            </div>
-            <div style="width:1px;height:14px;background:#e2e8f0;"></div>
-            <div style="display:flex;align-items:center;gap:3px;">
-              <span style="color:#facc15;font-size:12px;">★</span>
-              <span style="font-size:12px;font-weight:700;color:#1a2b49;">${specialist.rating}</span>
-            </div>
-            <div style="width:1px;height:14px;background:#e2e8f0;"></div>
-            <div style="display:flex;align-items:center;gap:4px;">
-              <div style="width:6px;height:6px;border-radius:50%;background:${style.dot};"></div>
-              <span style="font-size:10px;font-weight:600;color:${style.dot};">${style.label}</span>
-            </div>
-          </div>
-          <a href="#/profile/${specialist.id}" 
-             style="display:block;width:100%;padding:8px 0;background:#1a2b49;color:white;text-align:center;border-radius:10px;font-size:11px;font-weight:700;text-decoration:none;letter-spacing:0.3px;">
-            View Profile
-          </a>
-        </div>
-      `;
+        `;
 
       marker.bindPopup(popupContent, {
-        maxWidth: 220,
-        className: 'servizo-popup',
-        closeButton: false,
-        autoPan: true,
-        autoClose: false,
-        closeOnClick: false
-      });
+            maxWidth: 230,
+            minWidth: 210,
+            className: 'servizo-popup',
+            closeButton: false,
+            autoPan: false,
+            autoClose: true,
+            closeOnClick: true,
+            offset: [0, 0]
+          });
 
       const fetchRoute = (from: {lat: number, lng: number}, to: {lat: number, lng: number}, color: string, dashed: boolean, targetRef: 'hover' | 'route') => {
         if (!mapInstanceRef.current) return;
@@ -196,40 +201,78 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
       };
 
       const clearHoverRoute = () => {
-        if (hoverRouteLayerRef.current && mapInstanceRef.current) {
-          mapInstanceRef.current.removeLayer(hoverRouteLayerRef.current);
-          hoverRouteLayerRef.current = null;
-        }
-      };
-
-      marker.on('mouseover', () => {
-        if (isMobile) return;
-        marker.openPopup();
-        if (!showRoute && userLoc) fetchRoute(userLoc, { lat: specialist.lat, lng: specialist.lng }, style.border, true, 'hover');
-      });
-
-      marker.on('mouseout', () => {
-        if (isMobile) return;
-        marker.closePopup();
-        clearHoverRoute();
-      });
-
-      marker.on('click', (e: any) => {
-        if (isMobile && !showRoute) {
-          if (e.originalEvent) e.originalEvent.stopPropagation();
-          if (selectedSpecialist?.id === specialist.id) {
-            setSelectedSpecialist(null);
-            marker.closePopup();
-            clearHoverRoute();
-          } else {
-            markersRef.current.forEach(m => m.closePopup());
-            setSelectedSpecialist(specialist);
-            setTimeout(() => marker.openPopup(), 0);
-            clearHoverRoute();
-            if (userLoc) fetchRoute(userLoc, { lat: specialist.lat, lng: specialist.lng }, style.border, true, 'hover');
+          if (hoverRouteLayerRef.current && mapInstanceRef.current) {
+            mapInstanceRef.current.removeLayer(hoverRouteLayerRef.current);
+            hoverRouteLayerRef.current = null;
           }
-        }
-      });
+        };
+
+        const showNearestRoute = () => {
+          if (nearestRouteLayerRef.current && mapInstanceRef.current) {
+            nearestRouteLayerRef.current.addTo(mapInstanceRef.current);
+          }
+        };
+
+        const hideNearestRoute = () => {
+          if (nearestRouteLayerRef.current && mapInstanceRef.current) {
+            mapInstanceRef.current.removeLayer(nearestRouteLayerRef.current);
+          }
+        };
+
+          let closeTimer: any = null;
+          let popupListenersBound = false;
+
+          const keepOpen = () => { if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; } };
+          const scheduleClose = () => {
+            keepOpen();
+            closeTimer = setTimeout(() => { marker.closePopup(); }, 400);
+          };
+
+          const bindPopupListeners = () => {
+            if (popupListenersBound) return;
+            const popupEl = marker.getPopup()?.getElement();
+            if (popupEl) {
+              popupEl.addEventListener('mouseenter', keepOpen);
+              popupEl.addEventListener('mouseleave', () => { scheduleClose(); });
+              popupListenersBound = true;
+            }
+          };
+
+          // Desktop: hover shows popup + draws route, hides nearest route
+          marker.on('mouseover', () => {
+            if (isMobile) return;
+            keepOpen();
+            marker.openPopup();
+            bindPopupListeners();
+            setTimeout(bindPopupListeners, 50);
+            if (!showRoute && userLoc) {
+              hideNearestRoute();
+              clearHoverRoute();
+              fetchRoute(userLoc, { lat: specialist.lat, lng: specialist.lng }, style.border, true, 'hover');
+            }
+          });
+
+          marker.on('mouseout', () => {
+            if (isMobile) return;
+            scheduleClose();
+          });
+
+          // When popup closes, clear hover route and restore nearest route
+          marker.on('popupclose', () => {
+            clearHoverRoute();
+            showNearestRoute();
+          });
+
+          // Mobile: click shows popup + draws route
+          marker.on('click', (e: any) => {
+            if (!isMobile || showRoute) return;
+            if (e.originalEvent) e.originalEvent.stopPropagation();
+            hideNearestRoute();
+            clearHoverRoute();
+            if (userLoc) {
+              fetchRoute(userLoc, { lat: specialist.lat, lng: specialist.lng }, style.border, true, 'hover');
+            }
+          });
     });
 
     // Route for live tracking mode
@@ -261,7 +304,7 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
       }
     }
 
-    // Auto-zoom to nearest specialist on listing map
+    // Auto-zoom to nearest specialist on listing map and draw route
     if (!showRoute && userLoc && specialists.length > 0 && mapInstanceRef.current) {
       const validSpecs = specialists.filter(s => s.id !== 'user-location');
       if (validSpecs.length > 0) {
@@ -277,20 +320,14 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
         );
         mapInstanceRef.current.fitBounds(bounds, { padding: [80, 80] });
 
-        const nearestMarker = markersRef.current.find(m => {
-          const ll = m.getLatLng();
-          return Math.abs(ll.lat - nearest.lat) < 0.0001 && Math.abs(ll.lng - nearest.lng) < 0.0001;
-        });
-        if (nearestMarker) {
+      // Draw route to nearest worker automatically (no popup)
           const style = getStatusStyle(nearest.availability);
-          setTimeout(() => nearestMarker.openPopup(), 300);
-
           fetch(`https://router.project-osrm.org/route/v1/driving/${userLoc.lng},${userLoc.lat};${nearest.lng},${nearest.lat}?overview=full&geometries=geojson`)
             .then(res => res.json())
             .then(data => {
               if (data.routes?.[0] && mapInstanceRef.current) {
                 const coords = data.routes[0].geometry.coordinates.map((c: number[]) => [c[1], c[0]]);
-                hoverRouteLayerRef.current = window.L.polyline(coords, {
+                nearestRouteLayerRef.current = window.L.polyline(coords, {
                   color: style.border,
                   weight: 3,
                   opacity: 0.7,
@@ -299,13 +336,22 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
               }
             })
             .catch(() => {});
-        }
       }
     }
-  }, [specialists, userLoc, showRoute]);
+    }, [specialists, userLoc, showRoute]);
+
+  // Cleanup map on unmount to prevent AbortError from cancelled tile requests
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
 
   return (
-    <div className="relative">
+      <div className="relative z-0">
       <div ref={mapRef} className="w-full rounded-2xl overflow-hidden border border-gray-200 shadow-sm" style={{ height: '600px' }} />
       
       {!showRoute && (
@@ -328,23 +374,26 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
           background: #f8fafc !important;
           font-family: 'Inter', sans-serif !important;
         }
-        .servizo-popup .leaflet-popup-content-wrapper {
-          background: white !important;
-          border: 1px solid #e2e8f0 !important;
-          border-radius: 16px !important;
-          padding: 14px !important;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
-          min-width: 200px !important;
-        }
-        .servizo-popup .leaflet-popup-content {
-          margin: 0 !important;
-          font-family: 'Inter', sans-serif !important;
-        }
-        .servizo-popup .leaflet-popup-tip {
-          background: white !important;
-          border: 1px solid #e2e8f0 !important;
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.04) !important;
-        }
+          .servizo-popup .leaflet-popup-content-wrapper {
+            background: white !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 14px !important;
+            padding: 12px 14px !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.10) !important;
+          }
+          .servizo-popup .leaflet-popup-content {
+            margin: 0 !important;
+            font-family: 'Inter', system-ui, sans-serif !important;
+            line-height: 1.4 !important;
+          }
+          .servizo-popup .leaflet-popup-tip-container {
+            margin-top: -1px !important;
+          }
+          .servizo-popup .leaflet-popup-tip {
+            background: white !important;
+            border: 1px solid #e5e7eb !important;
+            box-shadow: none !important;
+          }
         .leaflet-control-zoom a {
           background: white !important;
           color: #1a2b49 !important;

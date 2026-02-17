@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, Clock, Star, ChevronRight, Heart, Calendar, TrendingUp } from 'lucide-react';
+import { Activity, Clock, Star, ChevronRight, Heart, Calendar, TrendingUp, CheckCircle2, MessageSquare } from 'lucide-react';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
-import { Booking, Specialist } from '../types';
+import { Booking, Specialist, Review } from '../types';
 
 export default function UserDashboard() {
   const user = AuthService.getCurrentUser();
@@ -13,6 +13,7 @@ export default function UserDashboard() {
   const [recommendations, setRecommendations] = useState<Specialist[]>([]);
   const [favorites, setFavorites] = useState<Specialist[]>([]);
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
 
   useEffect(() => {
     if (!user || user.role !== 'user') { navigate('/login'); return; }
@@ -28,8 +29,10 @@ export default function UserDashboard() {
         const specialist = allSpecialists.find(s => s.id === lastBooking.specialistId);
         if (specialist) setRecommendations(allSpecialists.filter(s => s.category === specialist.category && s.id !== specialist.id));
       } else {
-        setRecommendations(allSpecialists.slice(0, 3));
-      }
+      setRecommendations(allSpecialists.slice(0, 3));
+        }
+        const allReviews = await DB.getReviews();
+        setReviews(allReviews.filter(r => r.userId === user.id));
     };
     loadData();
   }, [navigate]);
@@ -94,15 +97,28 @@ export default function UserDashboard() {
               </div>
               <div className="space-y-3">
                 {pastBookings.slice(0, 5).map(b => {
-                  const sp = specialists.find(s => s.id === b.specialistId);
-                  return (
-                    <div key={b.id} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center">
-                      <div>
-                        <h4 className="font-semibold text-[#1a2b49] text-sm">{sp?.name}</h4>
-                        <p className="text-xs text-gray-400">{new Date(b.createdAt).toLocaleDateString()} · <span className={b.status === 'completed' ? 'text-green-600' : 'text-red-500'}>{b.status}</span></p>
+                    const sp = specialists.find(s => s.id === b.specialistId);
+                    const hasReviewed = reviews.some(r => r.bookingId === b.id);
+                    return (
+                      <div key={b.id} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center">
+                        <div>
+                          <h4 className="font-semibold text-[#1a2b49] text-sm">{sp?.name}</h4>
+                          <p className="text-xs text-gray-400">{new Date(b.createdAt).toLocaleDateString()} · <span className={b.status === 'completed' ? 'text-green-600' : 'text-red-500'}>{b.status}</span></p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {b.status === 'completed' && !hasReviewed && (
+                            <Link to={`/review/${b.id}`} className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold hover:bg-amber-100 transition-colors flex items-center gap-1.5">
+                              <Star className="w-3.5 h-3.5" /> Review
+                            </Link>
+                          )}
+                          {b.status === 'completed' && hasReviewed && (
+                            <span className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Reviewed
+                            </span>
+                          )}
+                          <span className="font-bold text-[#1a2b49]">₹{b.totalValue}</span>
+                        </div>
                       </div>
-                      <span className="font-bold text-[#1a2b49]">₹{b.totalValue}</span>
-                    </div>
                   );
                 })}
               </div>
@@ -118,28 +134,28 @@ export default function UserDashboard() {
                 </div>
                 <div className="space-y-3">
                   {favorites.map(sp => (
-                    <Link key={sp.id} to={`/profile/${sp.id}`} className="flex items-center gap-3 group">
-                      <img src={sp.avatar} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-semibold text-[#1a2b49] truncate">{sp.name}</h4>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                          <span className="text-xs text-gray-400">{sp.rating}</span>
+                      <Link key={sp.id} to={`/profile/${sp.id}`} className="flex items-center gap-3 group">
+                        <img src={sp.avatar} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-semibold text-[#1a2b49] truncate">{sp.name}</h4>
+                          <div className="flex items-center gap-1">
+                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                            <span className="text-xs text-gray-400">{sp.rating}</span>
+                          </div>
                         </div>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#1a73e8] flex-shrink-0" />
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
-            
-            <section className="bg-white border border-gray-100 rounded-xl p-5">
-              <h3 className="text-sm font-semibold text-[#1a2b49] mb-4">Recommended For You</h3>
-              <div className="space-y-3">
-                {recommendations.map(sp => (
-                  <Link key={sp.id} to={`/profile/${sp.id}`} className="flex items-center gap-3 group">
-                    <img src={sp.avatar} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                        <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-[#1a73e8] flex-shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                </section>
+              )}
+              
+              <section className="bg-white border border-gray-100 rounded-xl p-5">
+                <h3 className="text-sm font-semibold text-[#1a2b49] mb-4">Recommended For You</h3>
+                <div className="space-y-3">
+                  {recommendations.map(sp => (
+                    <Link key={sp.id} to={`/profile/${sp.id}`} className="flex items-center gap-3 group">
+                      <img src={sp.avatar} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-semibold text-[#1a2b49] truncate">{sp.name}</h4>
                       <span className="text-xs text-gray-400">{sp.category}</span>
