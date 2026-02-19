@@ -13,6 +13,7 @@ export default function Home() {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState<{ category: string | null; tip: string } | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
   const specialistCount = 500;
   const navigate = useNavigate();
   const user = AuthService.getCurrentUser();
@@ -31,8 +32,21 @@ export default function Home() {
     if (!aiPrompt.trim()) return;
     setAiLoading(true);
     setAiResult(null);
-    const result = await getWorkerRecommendation(aiPrompt);
-    setAiResult(result);
+    setAiError(null);
+    try {
+      const result = await getWorkerRecommendation(aiPrompt);
+      if (result.error === 'quota') {
+        setAiError("Daily AI quota reached. Please try again tomorrow or create a new API key at aistudio.google.com.");
+      } else if (result.error === 'no_key') {
+        setAiError("Gemini API key not configured.");
+      } else if (result.error === 'unknown') {
+        setAiError("Something went wrong. Please try again.");
+      } else {
+        setAiResult(result);
+      }
+    } catch {
+      setAiError("Something went wrong. Please try again.");
+    }
     setAiLoading(false);
   };
 
@@ -198,8 +212,13 @@ export default function Home() {
             </button>
           </form>
 
-          {/* AI Result */}
-          {aiResult && (
+            {/* AI Result */}
+            {aiError && (
+              <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-sm text-red-600">
+                {aiError}
+              </div>
+            )}
+            {aiResult && (
             <div className="bg-white border border-[#4169E1]/20 rounded-2xl p-6 text-left shadow-sm animate-fadeIn">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 bg-[#4169E1]/10 rounded-lg flex items-center justify-center">
