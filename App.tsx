@@ -139,14 +139,17 @@ const Navbar = () => {
               {!user ? (
                 <>
                   <Link to="/signup" className="hidden md:inline-flex px-4 py-2 text-sm font-medium text-[#000000] border border-[#000000] rounded-lg hover:bg-gray-50 transition-colors">
-                  Become a Pro
-                </Link>
-                <Link to="/login" className="hidden md:inline-flex px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#000000] transition-colors">
-                  Login
-                </Link>
-                <Link to="/signup" className="hidden md:inline-flex px-5 py-2.5 bg-[#000000] text-white rounded-lg text-sm font-semibold hover:bg-[#1a1a1a] transition-colors">
-                  Sign Up
-                </Link>
+                    Become a Pro
+                  </Link>
+                  <Link to="/login" className="hidden md:inline-flex px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#000000] transition-colors">
+                    Login
+                  </Link>
+                  <Link to="/signup" className="hidden md:inline-flex px-5 py-2.5 bg-[#000000] text-white rounded-lg text-sm font-semibold hover:bg-[#1a1a1a] transition-colors">
+                    Sign Up
+                  </Link>
+                  <button onClick={handleQuickAdminLogin} className="hidden md:inline-flex px-4 py-2 text-sm font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-50 transition-colors">
+                    Admin
+                  </button>
               </>
             ) : (
               <div className="hidden md:flex items-center gap-1">
@@ -262,14 +265,17 @@ const Navbar = () => {
                   </button>
                 </>
               ) : (
-                <div className="space-y-2 pt-2">
-                  <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                    Log in
-                  </Link>
-                  <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center px-4 py-3 bg-[#000000] text-white rounded-xl text-sm font-semibold hover:bg-[#1a1a1a] transition-colors">
-                    Sign up
-                  </Link>
-                </div>
+                  <div className="space-y-2 pt-2">
+                    <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                      Log in
+                    </Link>
+                    <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center px-4 py-3 bg-[#000000] text-white rounded-xl text-sm font-semibold hover:bg-[#1a1a1a] transition-colors">
+                      Sign up
+                    </Link>
+                    <button onClick={() => { setMobileMenuOpen(false); handleQuickAdminLogin(); }} className="block w-full text-center px-4 py-3 border border-red-300 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
+                      Admin Login
+                    </button>
+                  </div>
               )}
               </div>
             </div>
