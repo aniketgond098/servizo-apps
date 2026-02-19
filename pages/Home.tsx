@@ -9,17 +9,9 @@ import SnakeAnimation from '../components/SnakeAnimation';
 export default function Home() {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
-  const [specialistCount, setSpecialistCount] = useState(12);
+  const specialistCount = 500;
   const navigate = useNavigate();
   const user = AuthService.getCurrentUser();
-
-  useEffect(() => {
-    import('firebase/firestore').then(({ getCountFromServer, collection }) => {
-      import('../services/firebase').then(({ db }) => {
-        getCountFromServer(collection(db, 'specialists')).then(snap => setSpecialistCount(snap.data().count)).catch(() => {});
-      });
-    });
-  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
