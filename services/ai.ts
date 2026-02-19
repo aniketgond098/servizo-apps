@@ -11,53 +11,14 @@ if (API_KEY) {
 
 const CATEGORIES: ServiceCategory[] = ['Plumbing', 'Mechanical', 'Electrical', 'Automation', 'Aesthetics', 'Architecture'];
 
+// Disabled to prevent quota burn — only getWorkerRecommendation (explicit button click) uses AI
 export async function parseSearchIntent(query: string): Promise<SearchIntent> {
-  if (!ai || !query.trim()) return { query, urgency: 'low' };
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: `You are a home services assistant. A user searched: "${query}"
-      
-Return a JSON object with:
-- category: one of [${CATEGORIES.join(', ')}] or null if unclear
-- urgency: "low" | "medium" | "high" (high = emergency/urgent keywords)
-- cleanQuery: a cleaned up version of their search for display
-
-Only return raw JSON, no markdown. Example: {"category":"Plumbing","urgency":"high","cleanQuery":"Emergency pipe leak fix"}`
-    });
-
-    const text = response.text?.trim() || '{}';
-    const parsed = JSON.parse(text);
-    return {
-      query: parsed.cleanQuery || query,
-      category: CATEGORIES.includes(parsed.category) ? parsed.category : undefined,
-      urgency: parsed.urgency || 'low',
-    };
-  } catch {
-    return { query, urgency: 'low' };
-  }
+  return { query, urgency: 'low' };
 }
 
-export async function getAISuggestions(partialQuery: string): Promise<string[]> {
-  if (!ai || partialQuery.trim().length < 2) return [];
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: `A user is typing a home service search query: "${partialQuery}"
-      
-Suggest 4 natural, helpful completions. Return a JSON array of strings only.
-Example: ["fix leaking tap urgently","fix bathroom pipe leak","fix kitchen sink drainage","fix water heater"]
-Only return the raw JSON array, no markdown.`
-    });
-
-    const text = response.text?.trim() || '[]';
-    const suggestions = JSON.parse(text);
-    return Array.isArray(suggestions) ? suggestions.slice(0, 4) : [];
-  } catch {
-    return [];
-  }
+// Disabled to prevent quota burn — suggestions are not worth the API calls
+export async function getAISuggestions(_partialQuery: string): Promise<string[]> {
+  return [];
 }
 
 export async function getWorkerRecommendation(problemDescription: string): Promise<{ category: ServiceCategory | null; tip: string }> {
@@ -75,13 +36,15 @@ Return a JSON object:
 Return raw JSON only. Example: {"category":"Plumbing","tip":"Turn off your main water supply to prevent further damage."}`
     });
 
-    const text = response.text?.trim() || '{}';
-    const parsed = JSON.parse(text);
-    return {
-      category: CATEGORIES.includes(parsed.category) ? parsed.category : null,
-      tip: parsed.tip || '',
-    };
-  } catch {
-    return { category: null, tip: '' };
-  }
+      const text = (typeof response.text === 'function' ? response.text() : response.text)?.trim() || '{}';
+      const cleaned = text.replace(/^```json\s*/i, '').replace(/```$/,'').trim();
+      const parsed = JSON.parse(cleaned);
+      return {
+        category: CATEGORIES.includes(parsed.category) ? parsed.category : null,
+        tip: parsed.tip || '',
+      };
+    } catch (err) {
+      console.error('[AI getWorkerRecommendation]', err);
+      return { category: null, tip: '' };
+    }
 }
