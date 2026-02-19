@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
-import { Search, Filter, Star, MapPin, Loader2, X, List, Map as MapIcon, Heart, DollarSign, TrendingUp, Award, ChevronDown } from 'lucide-react';
+import { Search, Filter, Star, MapPin, Loader2, X, List, Map as MapIcon, Heart, DollarSign, TrendingUp, Award, ChevronDown, Sparkles, Zap } from 'lucide-react';
 import { DB } from '../services/db';
 import { Specialist, ServiceCategory, AvailabilityStatus, SortOption, PriceRange } from '../types';
-import { parseSearchIntent } from '../services/ai';
+import { parseSearchIntent, getAISuggestions } from '../services/ai';
 const MapView = React.lazy(() => import('../components/MapView').then(m => ({ default: m.MapView })));
 import { calculateDistance, formatDistance } from '../utils/distance';
 import { AuthService } from '../services/auth';
@@ -25,6 +25,10 @@ export default function Listing() {
   const [priceRange, setPriceRange] = useState<PriceRange>({ min: 0, max: 10000 });
   const [favorites, setFavorites] = useState<string[]>([]);
   const [cardLoading, setCardLoading] = useState<string[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [aiTip, setAiTip] = useState('');
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
@@ -94,9 +98,37 @@ export default function Listing() {
     setTimeout(() => setCardLoading(prev => prev.filter(id => id !== specialistId)), 300);
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSearchParams({ q: searchQuery, filter: activeCategory });
+    setShowSuggestions(false);
+    setAiTip('');
+    if (searchQuery.trim()) {
+      setAiLoading(true);
+      const intent = await parseSearchIntent(searchQuery);
+      setAiLoading(false);
+      if (intent.urgency === 'high') {
+        setAiTip('Sounds urgent! We\'ve prioritized available specialists for you.');
+      }
+      const newParams: any = { q: intent.query };
+      if (intent.category) newParams.filter = intent.category;
+      else newParams.filter = activeCategory;
+      setSearchParams(newParams);
+      if (intent.category) setActiveCategory(intent.category);
+    } else {
+      setSearchParams({ q: searchQuery, filter: activeCategory });
+    }
+  };
+
+  const handleQueryChange = async (val: string) => {
+    setSearchQuery(val);
+    setAiTip('');
+    if (val.trim().length >= 3) {
+      const suggestions = await getAISuggestions(val);
+      setAiSuggestions(suggestions);
+      setShowSuggestions(suggestions.length > 0);
+    } else {
+      setShowSuggestions(false);
+    }
   };
 
   const clearFilters = () => {
@@ -157,11 +189,33 @@ export default function Listing() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input 
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name, service, or category..."
+                onChange={(e) => handleQueryChange(e.target.value)}
+                onFocus={() => aiSuggestions.length > 0 && setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
+                placeholder="Describe what you need in plain English..."
                 className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4169E1]/20 focus:border-[#4169E1] transition-all"
               />
+              {/* AI Suggestions Dropdown */}
+              {showSuggestions && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
+                  <div className="px-3 py-2 border-b border-gray-100 flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-[#4169E1]" />
+                    <span className="text-[10px] font-semibold text-[#4169E1] uppercase tracking-wide">AI Suggestions</span>
+                  </div>
+                  {aiSuggestions.map((s, i) => (
+                    <button key={i} type="button" onMouseDown={() => { setSearchQuery(s); setShowSuggestions(false); }}
+                      className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#4169E1] transition-colors flex items-center gap-2">
+                      <Search className="w-3.5 h-3.5 text-gray-300" /> {s}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+            <button type="submit" disabled={aiLoading}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[#4169E1] text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all disabled:opacity-70">
+              {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              <span className="hidden sm:inline">AI Search</span>
+            </button>
             <button 
               type="button"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
@@ -171,6 +225,15 @@ export default function Listing() {
               <span className="hidden sm:inline">Filters</span>
             </button>
           </form>
+
+          {/* AI Tip Banner */}
+          {aiTip && (
+            <div className="mb-4 flex items-center gap-2 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl animate-fadeIn">
+              <Zap className="w-4 h-4 text-[#4169E1] flex-shrink-0" />
+              <p className="text-sm text-[#4169E1] font-medium">{aiTip}</p>
+              <button onClick={() => setAiTip('')} className="ml-auto text-blue-300 hover:text-blue-500"><X className="w-4 h-4" /></button>
+            </div>
+          )}
 
           {/* Category Pills */}
           <div className="flex flex-wrap gap-2 mb-4">

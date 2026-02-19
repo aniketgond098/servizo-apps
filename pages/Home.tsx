@@ -10,6 +10,9 @@ import { getWorkerRecommendation } from '../services/ai';
 export default function Home() {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<{ category: string | null; tip: string } | null>(null);
   const specialistCount = 500;
   const navigate = useNavigate();
   const user = AuthService.getCurrentUser();
