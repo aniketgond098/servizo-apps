@@ -173,9 +173,13 @@ export default function Chat() {
     e.preventDefault();
     if (!newMessage.trim() || !currentUser || !userId) return;
     setLoading(true);
-    await DB.sendMessage({ senderId: currentUser.id, receiverId: userId, content: newMessage, messageType: 'text' });
+    const text = newMessage;
     setNewMessage('');
-    await loadMessages();
+    const sent = await DB.sendMessage(
+      { senderId: currentUser.id, receiverId: userId, content: text, messageType: 'text' },
+      currentUser.name
+    );
+    setMessages(prev => [...prev, sent]);
     setLoading(false);
   };
 
@@ -191,8 +195,11 @@ export default function Chat() {
     setUploadingFile(true); setShowAttachMenu(false);
     try {
       const url = await DB.uploadPhoto(file);
-      await DB.sendMessage({ senderId: currentUser.id, receiverId: userId, content: '📷 Photo', messageType: 'image', attachment: { type: 'image', url, name: file.name, size: file.size } });
-      await loadMessages();
+      const sent = await DB.sendMessage(
+        { senderId: currentUser.id, receiverId: userId, content: '📷 Photo', messageType: 'image', attachment: { type: 'image', url, name: file.name, size: file.size } },
+        currentUser.name
+      );
+      setMessages(prev => [...prev, sent]);
     } catch (err) { console.error('Photo upload failed:', err); }
     setUploadingFile(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -205,8 +212,11 @@ export default function Chat() {
     setUploadingFile(true); setShowAttachMenu(false);
     try {
       const url = await DB.uploadPhoto(file);
-      await DB.sendMessage({ senderId: currentUser.id, receiverId: userId, content: `📎 ${file.name}`, messageType: 'document', attachment: { type: 'document', url, name: file.name, size: file.size } });
-      await loadMessages();
+      const sent = await DB.sendMessage(
+        { senderId: currentUser.id, receiverId: userId, content: `📎 ${file.name}`, messageType: 'document', attachment: { type: 'document', url, name: file.name, size: file.size } },
+        currentUser.name
+      );
+      setMessages(prev => [...prev, sent]);
     } catch (err) { console.error('Document upload failed:', err); }
     setUploadingFile(false);
     if (docInputRef.current) docInputRef.current.value = '';
@@ -359,13 +369,13 @@ export default function Chat() {
           setCallState('not_answering');
           cleanupCall();
           if (userId && currentUser) {
-            await DB.sendMessage({
+            const sent = await DB.sendMessage({
               senderId: currentUser.id,
               receiverId: userId,
               content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · Declined`,
               messageType: 'text',
-            });
-            await loadMessages();
+            }, currentUser.name);
+            setMessages(prev => [...prev, sent]);
           }
           setTimeout(() => {
             setActiveCall(null);
@@ -399,15 +409,15 @@ export default function Chat() {
         setCallState('not_answering');
         cleanupCall();
         await DB.updateCall(call.id, { status: 'missed', endedAt: new Date().toISOString() });
-        if (userId && currentUser) {
-          await DB.sendMessage({
-            senderId: currentUser.id,
-            receiverId: userId,
-            content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · No answer`,
-            messageType: 'text',
-          });
-          await loadMessages();
-        }
+          if (userId && currentUser) {
+            const sent = await DB.sendMessage({
+              senderId: currentUser.id,
+              receiverId: userId,
+              content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · No answer`,
+              messageType: 'text',
+            }, currentUser.name);
+            setMessages(prev => [...prev, sent]);
+          }
         setTimeout(() => {
           setActiveCall(null);
           setCallState('idle');
@@ -439,13 +449,13 @@ export default function Chat() {
         const m = Math.floor(duration / 60);
         const s = duration % 60;
         const dur = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        await DB.sendMessage({
+        const sent = await DB.sendMessage({
           senderId: currentUser.id,
           receiverId: userId,
           content: `${emoji} ${type === 'video' ? 'Video' : 'Voice'} call · ${dur}`,
           messageType: 'text',
-        });
-        await loadMessages();
+        }, currentUser.name);
+        setMessages(prev => [...prev, sent]);
       }
 
       setTimeout(() => DB.cleanupCall(call.id), 5000);
