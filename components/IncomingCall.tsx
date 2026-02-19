@@ -329,12 +329,12 @@ export default function IncomingCall() {
           <div className="relative mx-auto w-24 h-24 mb-5">
             <div className="absolute inset-0 rounded-full bg-green-500/20 animate-ping" style={{ animationDuration: '2s' }} />
             <div className="absolute -inset-2 rounded-full bg-green-500/10 animate-pulse" />
-            <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#1a2b49] to-[#2a4a7f] flex items-center justify-center text-white text-3xl font-bold">
+            <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-[#000000] to-[#2a4a7f] flex items-center justify-center text-white text-3xl font-bold">
               {incomingCall.callerName?.charAt(0)?.toUpperCase() || '?'}
             </div>
           </div>
 
-          <h3 className="text-[#1a2b49] text-xl font-semibold mb-1">{incomingCall.callerName}</h3>
+          <h3 className="text-[#000000] text-xl font-semibold mb-1">{incomingCall.callerName}</h3>
           <p className="text-gray-400 text-sm mb-1">
             Incoming {incomingCall.type === 'video' ? 'video' : 'voice'} call
           </p>
@@ -375,7 +375,7 @@ export default function IncomingCall() {
   if (activeCall && activeCall.type === 'voice' && callState !== 'idle') {
     if (isMinimized) {
       return (
-        <div className="fixed bottom-6 right-6 z-[60] bg-[#1a2b49] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 z-[60] bg-[#000000] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
           <audio ref={remoteAudioRef} autoPlay />
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
             <Phone className="w-4 h-4 text-white" />
@@ -397,7 +397,7 @@ export default function IncomingCall() {
     }
 
     return (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gradient-to-b from-[#0f1a2e] to-[#1a2b49]">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-gradient-to-b from-[#0f1a2e] to-[#000000]">
         <audio ref={remoteAudioRef} autoPlay />
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-blue-400 blur-[100px]" />
@@ -413,7 +413,7 @@ export default function IncomingCall() {
             {callState === 'connected' && (
               <div className="absolute -inset-3 rounded-full border-2 border-green-400/30 animate-pulse" />
             )}
-            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#1a73e8] flex items-center justify-center text-white text-4xl font-bold shadow-lg relative z-10">
+            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#4169E1] flex items-center justify-center text-white text-4xl font-bold shadow-lg relative z-10">
               {activeCall.callerName?.charAt(0)?.toUpperCase() || 'U'}
             </div>
           </div>
@@ -460,7 +460,7 @@ export default function IncomingCall() {
   if (activeCall && activeCall.type === 'video' && callState !== 'idle') {
     if (isMinimized) {
       return (
-        <div className="fixed bottom-6 right-6 z-[60] bg-[#1a2b49] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 z-[60] bg-[#000000] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
             <Video className="w-4 h-4 text-white" />
           </div>
@@ -486,13 +486,13 @@ export default function IncomingCall() {
           {/* Remote video */}
           <div className="absolute inset-0">
           {callState === 'connected' ? (
-            <div className="w-full h-full bg-gradient-to-br from-[#1a2b49] via-[#0f1a2e] to-[#1a2b49] flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-br from-[#000000] via-[#0f1a2e] to-[#000000] flex items-center justify-center">
               <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
               {/* If no remote video tracks, show avatar */}
               {(!remoteStreamRef.current || remoteStreamRef.current.getVideoTracks().length === 0) && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#1a73e8] flex items-center justify-center text-white text-5xl font-bold mx-auto mb-4 shadow-xl">
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#4169E1] flex items-center justify-center text-white text-5xl font-bold mx-auto mb-4 shadow-xl">
                       {activeCall.callerName?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
                     <p className="text-white/60 text-sm">{activeCall.callerName}</p>
@@ -513,7 +513,7 @@ export default function IncomingCall() {
             {!isCameraOff ? (
               <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#1a2b49] to-[#2a4a7f] flex items-center justify-center">
+              <div className="w-full h-full bg-gradient-to-br from-[#000000] to-[#2a4a7f] flex items-center justify-center">
                 <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
                   <VideoOff className="w-5 h-5 text-white/50" />
                 </div>

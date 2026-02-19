@@ -43,12 +43,12 @@ export default function BookingHistory() {
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#1a2b49] mb-6 transition-colors">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#000000] mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
 
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#1a2b49]">Booking History</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#000000]">Booking History</h1>
           <p className="text-sm text-gray-500 mt-1">Your complete transaction archive</p>
         </div>
 
@@ -56,14 +56,14 @@ export default function BookingHistory() {
         {analytics && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
             {[
-              { icon: Calendar, label: 'Total Bookings', value: analytics.totalBookings, color: 'text-[#1a73e8]', bg: 'bg-blue-50' },
+              { icon: Calendar, label: 'Total Bookings', value: analytics.totalBookings, color: 'text-[#4169E1]', bg: 'bg-blue-50' },
               { icon: DollarSign, label: 'Total Spent', value: `₹${analytics.totalSpent}`, color: 'text-green-600', bg: 'bg-green-50' },
               { icon: Star, label: 'Avg Rating', value: analytics.averageRating.toFixed(1), color: 'text-yellow-500', bg: 'bg-yellow-50' },
               { icon: TrendingUp, label: 'Top Category', value: analytics.favoriteCategory, color: 'text-purple-600', bg: 'bg-purple-50' },
             ].map(stat => (
               <div key={stat.label} className="bg-white border border-gray-100 rounded-xl p-4">
                 <stat.icon className={`w-6 h-6 ${stat.color} mb-2`} />
-                <p className="text-xl font-bold text-[#1a2b49]">{stat.value}</p>
+                <p className="text-xl font-bold text-[#000000]">{stat.value}</p>
                 <p className="text-xs text-gray-400">{stat.label}</p>
               </div>
             ))}
@@ -75,7 +75,7 @@ export default function BookingHistory() {
           <Filter className="w-4 h-4 text-gray-400" />
           {(['all', 'completed', 'cancelled'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${filter === f ? (f === 'completed' ? 'bg-green-600 text-white' : f === 'cancelled' ? 'bg-red-500 text-white' : 'bg-[#1a2b49] text-white') : 'bg-white border border-gray-200 text-gray-500'}`}>
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${filter === f ? (f === 'completed' ? 'bg-green-600 text-white' : f === 'cancelled' ? 'bg-red-500 text-white' : 'bg-[#000000] text-white') : 'bg-white border border-gray-200 text-gray-500'}`}>
               {f}
             </button>
           ))}
@@ -95,12 +95,12 @@ export default function BookingHistory() {
                   <div className="flex items-center gap-3">
                       <img src={spec.avatar} alt={spec.name} className="w-10 h-10 rounded-full flex-shrink-0 object-cover" />
                     <div>
-                      <h3 className="font-semibold text-[#1a2b49] text-sm">{spec.name}</h3>
-                      <p className="text-xs text-[#1a73e8] font-medium">{spec.category}</p>
+                      <h3 className="font-semibold text-[#000000] text-sm">{spec.name}</h3>
+                      <p className="text-xs text-[#4169E1] font-medium">{spec.category}</p>
                     </div>
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className="text-lg font-bold text-[#1a2b49]">₹{booking.totalValue}</p>
+                    <p className="text-lg font-bold text-[#000000]">₹{booking.totalValue}</p>
                     <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded ${
                       booking.status === 'completed' ? 'bg-green-50 text-green-600' : booking.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-600'
                     }`}>{booking.status}</span>

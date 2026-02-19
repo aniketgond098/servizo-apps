@@ -29,6 +29,10 @@ export default function Login() {
     setError('');
     const user = await AuthService.login(email, pass);
     if (user) {
+      if (!user.emailVerified) {
+        navigate('/verify-email', { replace: true });
+        return;
+      }
       if (user.role === 'admin') navigate('/admin', { replace: true });
       else if (user.role === 'worker') navigate('/worker-dashboard', { replace: true });
       else navigate('/dashboard', { replace: true });
@@ -44,7 +48,7 @@ export default function Login() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <div className="text-center mb-8">
               <ServizoIcon size={48} className="mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-[#1a2b49]">Welcome back</h1>
+            <h1 className="text-2xl font-bold text-[#000000]">Welcome back</h1>
             <p className="text-sm text-gray-500 mt-1">Sign in to your Servizo account</p>
           </div>
 
@@ -57,7 +61,7 @@ export default function Login() {
                   type="email" required
                   value={email} onChange={handleEmailChange}
                   placeholder="you@example.com"
-                  className={`w-full border rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/20 transition-all ${emailError ? 'border-red-400 focus:border-red-400' : 'border-gray-200 focus:border-[#1a73e8]'}`}
+                  className={`w-full border rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4169E1]/20 transition-all ${emailError ? 'border-red-400 focus:border-red-400' : 'border-gray-200 focus:border-[#4169E1]'}`}
                 />
               </div>
               {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
@@ -70,14 +74,14 @@ export default function Login() {
                   type="password" required
                   value={pass} onChange={e => setPass(e.target.value)}
                   placeholder="Enter your password"
-                  className="w-full border border-gray-200 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/20 focus:border-[#1a73e8] transition-all"
+                  className="w-full border border-gray-200 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4169E1]/20 focus:border-[#4169E1] transition-all"
                 />
               </div>
             </div>
             {error && <p className="text-red-500 text-sm text-center bg-red-50 rounded-lg py-2">{error}</p>}
             <button 
               disabled={loading || !!emailError}
-              className="w-full bg-[#1a2b49] text-white py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#0f1d35] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#000000] text-white py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1a1a1a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign In'}
               {!loading && <ArrowRight className="w-4 h-4" />}
@@ -85,7 +89,7 @@ export default function Login() {
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-6">
-            Don't have an account? <Link to="/signup" className="text-[#1a73e8] font-semibold hover:underline">Sign up</Link>
+            Don't have an account? <Link to="/signup" className="text-[#4169E1] font-semibold hover:underline">Sign up</Link>
           </p>
         </div>
         
@@ -95,7 +99,7 @@ export default function Login() {
           <div className="grid grid-cols-3 gap-3 text-xs">
             <div className="bg-gray-50 p-2.5 rounded-lg text-center">
               <p className="text-gray-400 mb-1 font-medium">User</p>
-              <p className="text-[#1a73e8] font-medium">user@servizo.in</p>
+              <p className="text-[#4169E1] font-medium">user@servizo.in</p>
               <p className="text-gray-400">user123</p>
             </div>
             <div className="bg-gray-50 p-2.5 rounded-lg text-center">

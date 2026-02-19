@@ -48,10 +48,10 @@ export default function Favorites() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
-            <ArrowLeft className="w-4 h-4 text-[#1a2b49]" />
+            <ArrowLeft className="w-4 h-4 text-[#000000]" />
           </button>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-[#1a2b49]">Saved Specialists</h1>
+            <h1 className="text-xl font-bold text-[#000000]">Saved Specialists</h1>
             {favorites.length > 0 && (
               <p className="text-xs text-gray-400 mt-0.5">{favorites.length} specialist{favorites.length !== 1 ? 's' : ''}</p>
             )}
@@ -91,8 +91,8 @@ export default function Favorites() {
                       </div>
                     </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-[#1a2b49] text-sm truncate">{specialist.name}</h3>
-                    <p className="text-xs text-[#1a73e8] font-medium">{specialist.category}</p>
+                    <h3 className="font-semibold text-[#000000] text-sm truncate">{specialist.name}</h3>
+                    <p className="text-xs text-[#4169E1] font-medium">{specialist.category}</p>
                     {specialist.location && (
                       <div className="flex items-center gap-1 mt-0.5">
                         <MapPin className="w-3 h-3 text-gray-400" />
@@ -106,14 +106,14 @@ export default function Favorites() {
                 <div className="flex items-center justify-between pt-3.5 border-t border-gray-100">
                   <div className="flex items-center gap-1.5">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-semibold text-[#1a2b49]">{specialist.rating}</span>
+                    <span className="text-sm font-semibold text-[#000000]">{specialist.rating}</span>
                     {specialist.reviews !== undefined && (
                       <span className="text-xs text-gray-400">({specialist.reviews})</span>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-base font-bold text-[#1a2b49]">{'\u20B9'}{specialist.hourlyRate}<span className="text-xs font-normal text-gray-400">/hr</span></span>
-                    <div className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center group-hover:bg-[#1a2b49] group-hover:text-white group-hover:border-[#1a2b49] transition-all">
+                    <span className="text-base font-bold text-[#000000]">{'\u20B9'}{specialist.hourlyRate}<span className="text-xs font-normal text-gray-400">/hr</span></span>
+                    <div className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center group-hover:bg-[#000000] group-hover:text-white group-hover:border-[#000000] transition-all">
                       <ChevronRight className="w-3.5 h-3.5" />
                     </div>
                   </div>
@@ -126,11 +126,11 @@ export default function Favorites() {
             <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">
               <Bookmark className="w-7 h-7 text-gray-300" />
             </div>
-            <h3 className="text-sm font-semibold text-[#1a2b49] mb-1">No saved specialists</h3>
+            <h3 className="text-sm font-semibold text-[#000000] mb-1">No saved specialists</h3>
             <p className="text-xs text-gray-400 mb-5 text-center max-w-xs">
               Save your favorite specialists to quickly find and book them later
             </p>
-            <Link to="/listing" className="px-5 py-2.5 bg-[#1a2b49] text-white rounded-lg text-xs font-semibold hover:bg-[#0f1d35] transition-colors inline-block">
+            <Link to="/listing" className="px-5 py-2.5 bg-[#000000] text-white rounded-lg text-xs font-semibold hover:bg-[#1a1a1a] transition-colors inline-block">
               Browse Specialists
             </Link>
           </div>

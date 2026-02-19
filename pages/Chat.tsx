@@ -497,7 +497,7 @@ export default function Chat() {
   if (!chatUser) {
     return (
       <div className="bg-gray-50 min-h-[calc(100vh-64px)] flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-[#1a73e8]" />
+        <Loader2 className="w-6 h-6 animate-spin text-[#4169E1]" />
       </div>
     );
   }
@@ -536,11 +536,11 @@ export default function Chat() {
     if (msg.messageType === 'document' && msg.attachment) {
       return (
         <a href={msg.attachment.url} download={msg.attachment.name} className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${isOwn ? 'bg-white/10 hover:bg-white/20' : 'bg-gray-50 hover:bg-gray-100'}`}>
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isOwn ? 'bg-white/20' : 'bg-[#1a73e8]/10'}`}>
-            <FileText className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-[#1a73e8]'}`} />
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${isOwn ? 'bg-white/20' : 'bg-[#4169E1]/10'}`}>
+            <FileText className={`w-5 h-5 ${isOwn ? 'text-white' : 'text-[#4169E1]'}`} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className={`text-sm font-medium truncate ${isOwn ? 'text-white' : 'text-[#1a2b49]'}`}>{msg.attachment.name}</p>
+            <p className={`text-sm font-medium truncate ${isOwn ? 'text-white' : 'text-[#000000]'}`}>{msg.attachment.name}</p>
             {msg.attachment.size && <p className={`text-[10px] ${isOwn ? 'text-white/60' : 'text-gray-400'}`}>{formatFileSize(msg.attachment.size)}</p>}
           </div>
           <Download className={`w-4 h-4 flex-shrink-0 ${isOwn ? 'text-white/70' : 'text-gray-400'}`} />
@@ -566,7 +566,7 @@ export default function Chat() {
 
     if (isMinimized) {
       return (
-          <div className="fixed bottom-6 right-6 z-[1200] bg-[#1a2b49] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
+          <div className="fixed bottom-6 right-6 z-[1200] bg-[#000000] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
             <audio ref={remoteAudioRef} autoPlay />
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center">
               <Phone className="w-4 h-4 text-white" />
@@ -588,7 +588,7 @@ export default function Chat() {
     }
 
     return (
-        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-gradient-to-b from-[#0f1a2e] to-[#1a2b49]">
+        <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-gradient-to-b from-[#0f1a2e] to-[#000000]">
           <audio ref={remoteAudioRef} autoPlay />
           <div className="absolute inset-0 opacity-5">
             <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full bg-blue-400 blur-[100px]" />
@@ -606,7 +606,7 @@ export default function Chat() {
               </>
             )}
             {callState === 'connected' && <div className="absolute -inset-3 rounded-full border-2 border-green-400/30 animate-pulse" />}
-            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#1a73e8] flex items-center justify-center text-white text-4xl font-bold shadow-lg relative z-10">
+            <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#4169E1] flex items-center justify-center text-white text-4xl font-bold shadow-lg relative z-10">
               {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
             </div>
           </div>
@@ -691,7 +691,7 @@ export default function Chat() {
 
     if (isMinimized) {
       return (
-          <div className="fixed bottom-6 right-6 z-[1200] bg-[#1a2b49] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
+          <div className="fixed bottom-6 right-6 z-[1200] bg-[#000000] rounded-2xl shadow-2xl p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center">
               <Video className="w-4 h-4 text-white" />
           </div>
@@ -716,12 +716,12 @@ export default function Chat() {
             <audio ref={remoteAudioRef} autoPlay />
           <div className="absolute inset-0">
             {callState === 'connected' ? (
-            <div className="w-full h-full bg-gradient-to-br from-[#1a2b49] via-[#0f1a2e] to-[#1a2b49] flex items-center justify-center relative">
+            <div className="w-full h-full bg-gradient-to-br from-[#000000] via-[#0f1a2e] to-[#000000] flex items-center justify-center relative">
               <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
               {(!remoteStreamRef.current || remoteStreamRef.current.getVideoTracks().length === 0) && (
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#1a73e8] flex items-center justify-center text-white text-5xl font-bold mx-auto mb-4 shadow-xl">
+                    <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#4169E1] flex items-center justify-center text-white text-5xl font-bold mx-auto mb-4 shadow-xl">
                       {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
                     </div>
                     <p className="text-white/60 text-sm">{chatUser?.name}'s camera</p>
@@ -730,11 +730,11 @@ export default function Chat() {
               )}
             </div>
           ) : callState === 'ringing' ? (
-            <div className="w-full h-full bg-gradient-to-b from-[#0f1a2e] to-[#1a2b49] flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-b from-[#0f1a2e] to-[#000000] flex items-center justify-center">
               <div className="text-center">
                 <div className="relative mb-6">
                   <div className="absolute inset-0 rounded-full bg-blue-500/20 animate-ping" style={{ animationDuration: '2s' }} />
-                  <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#1a73e8] flex items-center justify-center text-white text-4xl font-bold relative z-10 mx-auto">
+                  <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#4169E1] flex items-center justify-center text-white text-4xl font-bold relative z-10 mx-auto">
                     {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
                 </div>
@@ -750,9 +750,9 @@ export default function Chat() {
               </div>
             </div>
           ) : callState === 'not_answering' ? (
-            <div className="w-full h-full bg-gradient-to-b from-[#0f1a2e] to-[#1a2b49] flex items-center justify-center">
+            <div className="w-full h-full bg-gradient-to-b from-[#0f1a2e] to-[#000000] flex items-center justify-center">
               <div className="text-center">
-                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#1a73e8] flex items-center justify-center text-white text-4xl font-bold mx-auto mb-6 opacity-60">
+                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-[#2a4a7f] to-[#4169E1] flex items-center justify-center text-white text-4xl font-bold mx-auto mb-6 opacity-60">
                   {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
                 <h2 className="text-white text-xl font-semibold mb-1">{chatUser?.name}</h2>
@@ -783,7 +783,7 @@ export default function Chat() {
             {!isCameraOff ? (
               <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full bg-gradient-to-br from-[#1a2b49] to-[#2a4a7f] flex items-center justify-center">
+              <div className="w-full h-full bg-gradient-to-br from-[#000000] to-[#2a4a7f] flex items-center justify-center">
                 <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
                   <VideoOff className="w-5 h-5 text-white/50" />
                 </div>
@@ -847,7 +847,7 @@ export default function Chat() {
       {renderVideoCallOverlay()}
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#1a2b49] mb-4 transition-colors">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#000000] mb-4 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back to Messages
         </button>
 
@@ -856,19 +856,19 @@ export default function Chat() {
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <div className="flex items-center gap-3">
               <div className="relative">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#1a2b49] to-[#2a4a7f] flex items-center justify-center text-white font-semibold text-sm">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#000000] to-[#2a4a7f] flex items-center justify-center text-white font-semibold text-sm">
                   {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white" />
               </div>
               <div>
                 {specialistId ? (
-                  <Link to={`/profile/${specialistId}`} className="font-semibold text-[#1a2b49] hover:text-[#1a73e8] transition-colors flex items-center gap-1.5 group text-sm">
+                  <Link to={`/profile/${specialistId}`} className="font-semibold text-[#000000] hover:text-[#4169E1] transition-colors flex items-center gap-1.5 group text-sm">
                     {chatUser?.displayName || chatUser?.name || 'User'}
                     <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </Link>
                 ) : (
-                  <h2 className="font-semibold text-[#1a2b49] text-sm">{chatUser?.displayName || chatUser?.name || 'User'}</h2>
+                  <h2 className="font-semibold text-[#000000] text-sm">{chatUser?.displayName || chatUser?.name || 'User'}</h2>
                 )}
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
@@ -882,7 +882,7 @@ export default function Chat() {
                 disabled={callState !== 'idle'}
                 className="w-9 h-9 rounded-lg hover:bg-blue-50 flex items-center justify-center transition-colors group disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <Video className="w-4 h-4 text-gray-500 group-hover:text-[#1a73e8]" />
+                <Video className="w-4 h-4 text-gray-500 group-hover:text-[#4169E1]" />
               </button>
               <button
                 onClick={() => startCall('voice')}
@@ -916,7 +916,7 @@ export default function Chat() {
                           {!isOwn && (
                             <div className="flex-shrink-0 mr-2 mt-auto">
                               {showAvatar ? (
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1a2b49] to-[#2a4a7f] flex items-center justify-center text-white text-xs font-semibold">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#000000] to-[#2a4a7f] flex items-center justify-center text-white text-xs font-semibold">
                                   {chatUser?.name?.charAt(0)?.toUpperCase() || 'U'}
                                 </div>
                               ) : (
@@ -925,12 +925,12 @@ export default function Chat() {
                             </div>
                           )}
                           <div className={`max-w-[65%] ${isOwn ? 'items-end' : 'items-start'}`}>
-                            <div className={`${msg.messageType === 'image' ? 'p-1.5' : 'px-4 py-2.5'} ${isOwn ? 'bg-gradient-to-br from-[#1a9be8] to-[#0ea5e9] text-white rounded-2xl rounded-br-md' : 'bg-white border border-gray-100 text-[#1a2b49] rounded-2xl rounded-bl-md shadow-sm'}`}>
+                            <div className={`${msg.messageType === 'image' ? 'p-1.5' : 'px-4 py-2.5'} ${isOwn ? 'bg-gradient-to-br from-[#1a9be8] to-[#0ea5e9] text-white rounded-2xl rounded-br-md' : 'bg-white border border-gray-100 text-[#000000] rounded-2xl rounded-bl-md shadow-sm'}`}>
                               {renderMessageContent(msg, isOwn)}
                             </div>
                             <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
                               <span className="text-[10px] text-gray-400">{formatTime(msg.createdAt)}</span>
-                              {isOwn && <CheckCheck className="w-3 h-3 text-[#1a73e8]" />}
+                              {isOwn && <CheckCheck className="w-3 h-3 text-[#4169E1]" />}
                             </div>
                           </div>
                         </div>
@@ -953,8 +953,8 @@ export default function Chat() {
 
           {uploadingFile && (
             <div className="px-6 py-2 border-t border-gray-100 bg-blue-50 flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin text-[#1a73e8]" />
-              <span className="text-xs text-[#1a73e8] font-medium">Uploading file...</span>
+              <Loader2 className="w-4 h-4 animate-spin text-[#4169E1]" />
+              <span className="text-xs text-[#4169E1] font-medium">Uploading file...</span>
             </div>
           )}
 
@@ -965,18 +965,18 @@ export default function Chat() {
 
               <form onSubmit={handleSend} className="flex items-center gap-1.5 sm:gap-2">
                 <div className="relative" ref={attachRef}>
-                  <button type="button" onClick={() => { setShowAttachMenu(!showAttachMenu); setShowEmojiPicker(false); }} className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${showAttachMenu ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'hover:bg-gray-100 text-gray-400'}`}>
+                  <button type="button" onClick={() => { setShowAttachMenu(!showAttachMenu); setShowEmojiPicker(false); }} className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${showAttachMenu ? 'bg-[#4169E1]/10 text-[#4169E1]' : 'hover:bg-gray-100 text-gray-400'}`}>
                     <Paperclip className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                   {showAttachMenu && (
                     <div className="absolute bottom-12 left-0 bg-white border border-gray-200 rounded-xl shadow-lg py-2 w-48 z-50">
                       <button type="button" onClick={() => fileInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
                         <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><Image className="w-4 h-4 text-green-600" /></div>
-                        <div><p className="text-sm font-medium text-[#1a2b49]">Photo</p><p className="text-[10px] text-gray-400">Up to 10 MB</p></div>
+                        <div><p className="text-sm font-medium text-[#000000]">Photo</p><p className="text-[10px] text-gray-400">Up to 10 MB</p></div>
                       </button>
                       <button type="button" onClick={() => docInputRef.current?.click()} className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left">
                         <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center"><FileText className="w-4 h-4 text-purple-600" /></div>
-                        <div><p className="text-sm font-medium text-[#1a2b49]">Document</p><p className="text-[10px] text-gray-400">PDF, DOC, XLS, etc.</p></div>
+                        <div><p className="text-sm font-medium text-[#000000]">Document</p><p className="text-[10px] text-gray-400">PDF, DOC, XLS, etc.</p></div>
                       </button>
                     </div>
                   )}
@@ -987,17 +987,17 @@ export default function Chat() {
                   <Image className="w-5 h-5 text-gray-400" />
                 </button>
 
-                <input ref={inputRef} value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm text-[#1a2b49] placeholder-gray-400 focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]/20 transition-all" />
+                <input ref={inputRef} value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder="Type a message..." className="flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded-xl px-3 sm:px-4 py-2 sm:py-2.5 text-sm text-[#000000] placeholder-gray-400 focus:outline-none focus:border-[#4169E1] focus:ring-1 focus:ring-[#4169E1]/20 transition-all" />
 
                 <div className="relative" ref={emojiRef}>
-                  <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowAttachMenu(false); }} className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${showEmojiPicker ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'hover:bg-gray-100 text-gray-400'}`}>
+                  <button type="button" onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowAttachMenu(false); }} className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center transition-colors flex-shrink-0 ${showEmojiPicker ? 'bg-[#4169E1]/10 text-[#4169E1]' : 'hover:bg-gray-100 text-gray-400'}`}>
                     <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                   {showEmojiPicker && (
                     <div className="absolute bottom-12 right-0 bg-white border border-gray-200 rounded-xl shadow-lg z-50 w-[280px] sm:w-[320px]">
                       <div className="flex border-b border-gray-100 px-2 pt-2 overflow-x-auto">
                         {EMOJI_CATEGORIES.map((cat, i) => (
-                          <button key={cat.name} type="button" onClick={() => setEmojiCategory(i)} className={`px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium rounded-t-lg transition-colors whitespace-nowrap ${emojiCategory === i ? 'bg-[#1a73e8]/10 text-[#1a73e8]' : 'text-gray-400 hover:text-gray-600'}`}>
+                          <button key={cat.name} type="button" onClick={() => setEmojiCategory(i)} className={`px-2 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium rounded-t-lg transition-colors whitespace-nowrap ${emojiCategory === i ? 'bg-[#4169E1]/10 text-[#4169E1]' : 'text-gray-400 hover:text-gray-600'}`}>
                             {cat.name}
                           </button>
                         ))}
@@ -1013,7 +1013,7 @@ export default function Chat() {
                   )}
                 </div>
 
-                <button type="submit" disabled={loading || !newMessage.trim()} className="w-8 h-8 sm:w-10 sm:h-10 bg-[#1a73e8] rounded-xl flex items-center justify-center hover:bg-[#1557b0] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0">
+                <button type="submit" disabled={loading || !newMessage.trim()} className="w-8 h-8 sm:w-10 sm:h-10 bg-[#4169E1] rounded-xl flex items-center justify-center hover:bg-[#1557b0] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0">
                   {loading ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Send className="w-4 h-4 text-white" />}
                 </button>
               </form>

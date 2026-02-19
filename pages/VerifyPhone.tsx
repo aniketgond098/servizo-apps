@@ -182,11 +182,11 @@ export default function VerifyPhone() {
             <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/20">
               <Phone className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-[#1a2b49]">Verify your phone</h1>
+            <h1 className="text-2xl font-bold text-[#000000]">Verify your phone</h1>
             <p className="text-sm text-gray-500 mt-2">
               {step === 'phone'
                 ? 'Secure your account with phone verification'
-                : <>We sent a 6-digit code to <span className="font-semibold text-[#1a2b49]">+91 {maskedPhone}</span></>
+                : <>We sent a 6-digit code to <span className="font-semibold text-[#000000]">+91 {maskedPhone}</span></>
               }
             </p>
           </div>
@@ -227,7 +227,7 @@ export default function VerifyPhone() {
                 id="send-otp-btn"
                 type="submit"
                 disabled={sending || phone.length !== 10}
-                className="w-full bg-[#1a2b49] text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#0f1d35] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-[#000000] text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1a1a1a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {sending ? (
                   <>
@@ -260,7 +260,7 @@ export default function VerifyPhone() {
                         onChange={e => handleOtpChange(i, e.target.value)}
                         onKeyDown={e => handleKeyDown(i, e)}
                         className={`w-12 h-14 text-center text-xl font-bold rounded-xl border-2 transition-all outline-none
-                          ${digit ? 'border-emerald-500 bg-emerald-50/50 text-[#1a2b49]' : 'border-gray-200 text-gray-700'}
+                          ${digit ? 'border-emerald-500 bg-emerald-50/50 text-[#000000]' : 'border-gray-200 text-gray-700'}
                           focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10
                           ${error ? 'border-red-300 focus:border-red-400 focus:ring-red-100' : ''}`}
                         disabled={verifying}
@@ -282,7 +282,7 @@ export default function VerifyPhone() {
               <button
                 type="submit"
                 disabled={verifying || otp.some(d => d === '')}
-                className="w-full bg-[#1a2b49] text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#0f1d35] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-[#000000] text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1a1a1a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {verifying ? (
                   <>
@@ -333,7 +333,7 @@ export default function VerifyPhone() {
             <p className="text-xs text-gray-400 mb-2">Want to add phone later?</p>
             <button
               onClick={skipVerification}
-              className="text-sm text-gray-500 hover:text-[#1a2b49] font-semibold transition-colors"
+              className="text-sm text-gray-500 hover:text-[#000000] font-semibold transition-colors"
             >
               Skip for now &rarr;
             </button>

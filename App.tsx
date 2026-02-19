@@ -64,11 +64,12 @@ const Navbar = () => {
       id: 'ADMIN-001',
       email: 'admin@servizo.in',
       name: 'System Administrator',
-      role: 'admin',
-      avatar: 'https://i.pravatar.cc/150?u=admin',
-      createdAt: new Date().toISOString(),
-      favorites: [],
-      theme: 'dark'
+        role: 'admin',
+        avatar: 'https://i.pravatar.cc/150?u=admin',
+        createdAt: new Date().toISOString(),
+        favorites: [],
+        theme: 'dark',
+        emailVerified: true
     };
     localStorage.setItem('prolux_session', JSON.stringify(adminUser));
     setUser(adminUser);
@@ -85,15 +86,15 @@ const Navbar = () => {
         }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Left: Logo */}
-            <Link to="/" className="flex items-center gap-2.5 flex-shrink-0">
-              <ServizoIcon size={32} />
-              <span className="text-lg font-bold tracking-tight text-[#1a2b49]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Servizo</span>
-            </Link>
+              <Link to="/" className="flex items-center flex-shrink-0">
+                <ServizoIcon size={32} />
+                  <span className="text-lg font-bold tracking-wider text-[#4169E1] mt-4 ml-0" style={{ marginLeft: "2.04px", fontFamily: "'Josefin Sans', sans-serif", fontStyle: 'italic' }}>ervizo</span>
+              </Link>
 
           {/* Center: Nav links (desktop) */}
           <div className="hidden md:flex items-center gap-1">
             <Link to="/" className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              isActive('/') ? 'text-[#1a2b49] font-semibold' : 'text-gray-500 hover:text-[#1a2b49]'
+              isActive('/') ? 'text-[#000000] font-semibold' : 'text-gray-500 hover:text-[#000000]'
             }`}>
               Browse Categories
             </Link>
@@ -114,12 +115,12 @@ const Navbar = () => {
                     setTimeout(highlight, 100);
                   }
               }}
-              className="px-4 py-2 rounded-full text-sm font-medium transition-colors text-gray-500 hover:text-[#1a2b49]"
+              className="px-4 py-2 rounded-full text-sm font-medium transition-colors text-gray-500 hover:text-[#000000]"
             >
               How It Works
             </button>
             <Link to="/listing" className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              false ? 'text-[#1a2b49] font-semibold' : 'text-gray-500 hover:text-[#1a2b49]'
+              false ? 'text-[#000000] font-semibold' : 'text-gray-500 hover:text-[#000000]'
             }`}>
               Top Pros
             </Link>
@@ -139,13 +140,13 @@ const Navbar = () => {
                 <button onClick={handleQuickAdminLogin} className="hidden md:block text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded transition-colors">
                   Demo
                 </button>
-                <Link to="/signup" className="hidden md:inline-flex px-4 py-2 text-sm font-medium text-[#1a2b49] border border-[#1a2b49] rounded-lg hover:bg-gray-50 transition-colors">
+                <Link to="/signup" className="hidden md:inline-flex px-4 py-2 text-sm font-medium text-[#000000] border border-[#000000] rounded-lg hover:bg-gray-50 transition-colors">
                   Become a Pro
                 </Link>
-                <Link to="/login" className="hidden md:inline-flex px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#1a2b49] transition-colors">
+                <Link to="/login" className="hidden md:inline-flex px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#000000] transition-colors">
                   Login
                 </Link>
-                <Link to="/signup" className="hidden md:inline-flex px-5 py-2.5 bg-[#1a2b49] text-white rounded-lg text-sm font-semibold hover:bg-[#0f1d35] transition-colors">
+                <Link to="/signup" className="hidden md:inline-flex px-5 py-2.5 bg-[#000000] text-white rounded-lg text-sm font-semibold hover:bg-[#1a1a1a] transition-colors">
                   Sign Up
                 </Link>
               </>
@@ -169,7 +170,7 @@ const Navbar = () => {
                   className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-200 hover:shadow-md transition-all"
                 >
                   <Menu className="w-4 h-4 text-gray-500" />
-                  <div className="w-7 h-7 rounded-full bg-[#1a2b49] flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-full bg-[#000000] flex items-center justify-center">
                     <span className="text-white text-xs font-medium">{user.name.charAt(0)}</span>
                   </div>
                 </Link>
@@ -191,10 +192,10 @@ const Navbar = () => {
             <div className="md:hidden fixed top-0 left-0 w-72 h-full z-[1200] bg-white shadow-2xl animate-fadeIn overflow-y-auto">
             <div className="px-4 py-4 space-y-1">
               <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
-                <div className="flex items-center gap-2.5">
-                  <ServizoIcon size={28} />
-                  <span className="text-lg font-bold text-[#1a2b49]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Servizo</span>
-                </div>
+                  <div className="flex items-center">
+                    <ServizoIcon size={28} />
+                      <span className="text-lg font-bold tracking-wider text-[#4169E1] mt-4 ml-0" style={{ marginLeft: "2.04px", fontFamily: "'Josefin Sans', sans-serif", fontStyle: 'italic' }}>ervizo</span>
+                  </div>
                 <button onClick={() => setMobileMenuOpen(false)} className="p-2 rounded-full hover:bg-gray-100">
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
@@ -249,7 +250,7 @@ const Navbar = () => {
               {user ? (
                 <>
                   <div className="flex items-center gap-3 px-4 py-3">
-                    <div className="w-10 h-10 rounded-full bg-[#1a2b49] flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-[#000000] flex items-center justify-center">
                       <span className="text-white font-medium">{user.name.charAt(0)}</span>
                     </div>
                     <div>
@@ -267,7 +268,7 @@ const Navbar = () => {
                   <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center px-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                     Log in
                   </Link>
-                  <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center px-4 py-3 bg-[#1a2b49] text-white rounded-xl text-sm font-semibold hover:bg-[#0f1d35] transition-colors">
+                  <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="block w-full text-center px-4 py-3 bg-[#000000] text-white rounded-xl text-sm font-semibold hover:bg-[#1a1a1a] transition-colors">
                     Sign up
                   </Link>
                 </div>
@@ -281,28 +282,28 @@ const Navbar = () => {
       {/* Mobile Bottom Tab Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-bottom">
         <div className="flex items-center justify-around h-14">
-          <Link to="/" className={`flex flex-col items-center gap-0.5 px-3 py-1 ${isActive('/') ? 'text-[#1a2b49]' : 'text-gray-400'}`}>
+          <Link to="/" className={`flex flex-col items-center gap-0.5 px-3 py-1 ${isActive('/') ? 'text-[#000000]' : 'text-gray-400'}`}>
             <HomeIcon className="w-5 h-5" />
             <span className="text-[10px] font-medium">Home</span>
           </Link>
-          <Link to="/listing" className={`flex flex-col items-center gap-0.5 px-3 py-1 ${isActive('/listing') ? 'text-[#1a2b49]' : 'text-gray-400'}`}>
+          <Link to="/listing" className={`flex flex-col items-center gap-0.5 px-3 py-1 ${isActive('/listing') ? 'text-[#000000]' : 'text-gray-400'}`}>
             <Search className="w-5 h-5" />
             <span className="text-[10px] font-medium">Search</span>
           </Link>
           {user ? (
             <>
-              <Link to="/favorites" className={`flex flex-col items-center gap-0.5 px-3 py-1 ${isActive('/favorites') ? 'text-[#1a2b49]' : 'text-gray-400'}`}>
+              <Link to="/favorites" className={`flex flex-col items-center gap-0.5 px-3 py-1 ${isActive('/favorites') ? 'text-[#000000]' : 'text-gray-400'}`}>
                 <Heart className="w-5 h-5" />
                 <span className="text-[10px] font-medium">Saved</span>
               </Link>
-              <Link to="/messages" className={`flex flex-col items-center gap-0.5 px-3 py-1 relative ${isActive('/messages') ? 'text-[#1a2b49]' : 'text-gray-400'}`}>
+              <Link to="/messages" className={`flex flex-col items-center gap-0.5 px-3 py-1 relative ${isActive('/messages') ? 'text-[#000000]' : 'text-gray-400'}`}>
                 <MessageCircle className="w-5 h-5" />
                 <span className="text-[10px] font-medium">Inbox</span>
               </Link>
               <Link 
                 to={user.role === 'worker' ? '/worker-dashboard' : user.role === 'admin' ? '/admin' : '/dashboard'} 
                 className={`flex flex-col items-center gap-0.5 px-3 py-1 ${
-                  isActive('/dashboard') || isActive('/worker-dashboard') || isActive('/admin') ? 'text-[#1a2b49]' : 'text-gray-400'
+                  isActive('/dashboard') || isActive('/worker-dashboard') || isActive('/admin') ? 'text-[#000000]' : 'text-gray-400'
                 }`}
               >
                 <UserIcon className="w-5 h-5" />
@@ -311,7 +312,7 @@ const Navbar = () => {
             </>
           ) : (
             <>
-              <Link to="/login" className={`flex flex-col items-center gap-0.5 px-3 py-1 ${isActive('/login') ? 'text-[#1a2b49]' : 'text-gray-400'}`}>
+              <Link to="/login" className={`flex flex-col items-center gap-0.5 px-3 py-1 ${isActive('/login') ? 'text-[#000000]' : 'text-gray-400'}`}>
                 <UserIcon className="w-5 h-5" />
                 <span className="text-[10px] font-medium">Log in</span>
               </Link>
@@ -322,6 +323,19 @@ const Navbar = () => {
     </>
   );
 };
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  useEffect(() => {
+    const user = AuthService.getCurrentUser();
+    if (!user) { navigate('/login', { replace: true }); return; }
+      if (user.role !== 'admin' && !user.emailVerified) { navigate('/verify-email', { replace: true }); return; }
+  }, [location.pathname]);
+  const user = AuthService.getCurrentUser();
+  if (!user || (user.role !== 'admin' && !user.emailVerified)) return null;
+  return <>{children}</>;
+}
 
 function AppContent() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -344,29 +358,29 @@ function AppContent() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/verify-phone" element={<VerifyPhone />} />
-          <Route path="/dashboard" element={<UserDashboard />} />
-          <Route path="/worker-dashboard" element={<WorkerDashboard />} />
-          <Route path="/admin" element={<AdminPanel currentUser={currentUser} />} />
-          <Route path="/document-upload" element={<DocumentUpload currentUser={currentUser} />} />
-          <Route path="/chat/:userId" element={<Chat />} />
-          <Route path="/favorites" element={<Favorites />} />
-          <Route path="/messages" element={<Messages />} />
-          <Route path="/notifications" element={<Notifications />} />
-          <Route path="/create-profile" element={<CreateProfile />} />
-            <Route path="/booking-history" element={<BookingHistory />} />
-            <Route path="/review/:bookingId" element={<ReviewPage />} />
+          <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
+          <Route path="/worker-dashboard" element={<ProtectedRoute><WorkerDashboard /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><AdminPanel currentUser={currentUser} /></ProtectedRoute>} />
+          <Route path="/document-upload" element={<ProtectedRoute><DocumentUpload currentUser={currentUser} /></ProtectedRoute>} />
+          <Route path="/chat/:userId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
+          <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+          <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+          <Route path="/create-profile" element={<ProtectedRoute><CreateProfile /></ProtectedRoute>} />
+          <Route path="/booking-history" element={<ProtectedRoute><BookingHistory /></ProtectedRoute>} />
+          <Route path="/review/:bookingId" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
         </Routes>
       </main>
 
         {/* Footer */}
-        <footer className="border-t border-gray-200 bg-[#1a2b49] text-white pb-16 md:pb-0">
+        <footer className="border-t border-gray-200 bg-[#000000] text-white pb-16 md:pb-0">
         <div className="max-w-7xl mx-auto px-6 py-12">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             <div>
-                <div className="flex items-center gap-2.5 mb-4">
-                  <ServizoIcon size={32} />
-                  <span className="text-lg font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Servizo</span>
-                </div>
+                  <div className="flex items-center mb-4">
+                    <ServizoIcon size={32} />
+                      <span className="text-lg font-bold tracking-wider text-[#4169E1] mt-4 ml-0" style={{ marginLeft: "2.04px", fontFamily: "'Josefin Sans', sans-serif", fontStyle: 'italic' }}>ervizo</span>
+                    </div>
               <p className="text-sm text-gray-300 leading-relaxed">Connecting people with the best local professionals for all their home and personal needs.</p>
             </div>
             <div>
@@ -392,7 +406,7 @@ function AppContent() {
               <p className="text-sm text-gray-300 mb-3">Get the latest tips and service discounts.</p>
                 <div className="flex min-w-0">
                   <input type="email" placeholder="Email address" className="flex-1 min-w-0 px-3 py-2 bg-white/10 border border-white/20 rounded-l-lg text-sm text-white placeholder-gray-400 focus:outline-none focus:border-white/40" />
-                <button className="px-4 py-2 bg-[#1a73e8] text-white text-sm font-semibold rounded-r-lg hover:bg-blue-600 transition-colors">Join</button>
+                <button className="px-4 py-2 bg-[#4169E1] text-white text-sm font-semibold rounded-r-lg hover:bg-blue-600 transition-colors">Join</button>
               </div>
             </div>
           </div>

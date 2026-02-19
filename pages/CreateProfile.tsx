@@ -79,7 +79,7 @@ export default function CreateProfile() {
     <div className="max-w-4xl mx-auto px-4 sm:px-6 pb-24">
       <div className="pt-8 sm:pt-12">
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-2">Create Your Profile</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#000000] mb-2">Create Your Profile</h1>
           <p className="text-gray-500 text-sm">Your documents have been approved. Complete your profile to start receiving bookings.</p>
         </div>
 
@@ -91,7 +91,7 @@ export default function CreateProfile() {
                 className="relative w-28 h-28 rounded-full cursor-pointer group"
               >
                 {avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar" className="w-28 h-28 rounded-full object-cover ring-4 ring-[#1a73e8]/20" />
+                  <img src={avatarPreview} alt="Avatar" className="w-28 h-28 rounded-full object-cover ring-4 ring-[#4169E1]/20" />
                 ) : (
                   <div className="w-28 h-28 rounded-full bg-gray-100 flex items-center justify-center ring-4 ring-gray-200">
                     <User className="w-10 h-10 text-gray-400" />
@@ -102,7 +102,7 @@ export default function CreateProfile() {
                 </div>
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="text-xs text-[#1a73e8] font-medium hover:underline">
+              <button type="button" onClick={() => fileInputRef.current?.click()} className="text-xs text-[#4169E1] font-medium hover:underline">
                 Upload Profile Photo
               </button>
             </div>
@@ -114,7 +114,7 @@ export default function CreateProfile() {
               value={formData.title}
               onChange={e => setFormData({...formData, title: e.target.value})}
               placeholder="e.g., Senior Plumber, Master Electrician"
-              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
+              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20 outline-none transition-all"
             />
           </div>
 
@@ -123,7 +123,7 @@ export default function CreateProfile() {
             <select 
               value={formData.category}
               onChange={e => setFormData({...formData, category: e.target.value as ServiceCategory})}
-              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
+              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20 outline-none transition-all"
             >
               <option>Architecture</option>
               <option>Plumbing</option>
@@ -142,7 +142,7 @@ export default function CreateProfile() {
               value={formData.description}
               onChange={e => setFormData({...formData, description: e.target.value})}
               placeholder="Describe your expertise and experience..."
-              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
+              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20 outline-none transition-all"
             />
           </div>
 
@@ -154,7 +154,7 @@ export default function CreateProfile() {
                 required
                 value={formData.hourlyRate}
                 onChange={e => setFormData({...formData, hourlyRate: Number(e.target.value)})}
-                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
+                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20 outline-none transition-all"
               />
             </div>
 
@@ -165,7 +165,7 @@ export default function CreateProfile() {
                 value={formData.location}
                 onChange={e => setFormData({...formData, location: e.target.value})}
                 placeholder="City, State"
-                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
+                className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20 outline-none transition-all"
               />
             </div>
           </div>
@@ -176,7 +176,7 @@ export default function CreateProfile() {
               value={formData.skills}
               onChange={e => setFormData({...formData, skills: e.target.value})}
               placeholder="e.g., Welding, Pipe Fitting, Leak Detection"
-              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
+              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20 outline-none transition-all"
             />
           </div>
 
@@ -186,13 +186,13 @@ export default function CreateProfile() {
               value={formData.credentials}
               onChange={e => setFormData({...formData, credentials: e.target.value})}
               placeholder="e.g., ITI Certified, 10 Years Experience"
-              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#1a73e8] focus:ring-2 focus:ring-[#1a73e8]/20 outline-none transition-all"
+              className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20 outline-none transition-all"
             />
           </div>
 
           <button 
             type="submit"
-            className="w-full bg-[#1a2b49] text-white py-3.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#0f1d35] transition-colors"
+            className="w-full bg-[#000000] text-white py-3.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1a1a1a] transition-colors"
           >
             <Save className="w-5 h-5" />
             Create Profile

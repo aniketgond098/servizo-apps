@@ -42,7 +42,7 @@ export default function Notifications() {
     if (read) return 'bg-gray-100 text-gray-400';
     switch (type) {
       case 'message': return 'bg-emerald-50 text-emerald-600';
-      case 'booking': return 'bg-blue-50 text-[#1a73e8]';
+      case 'booking': return 'bg-blue-50 text-[#4169E1]';
       case 'emergency_booking': return 'bg-red-50 text-red-500';
       case 'booking_status': return 'bg-purple-50 text-purple-600';
       case 'review_request': return 'bg-amber-50 text-amber-600';
@@ -79,16 +79,16 @@ export default function Notifications() {
         {/* Header */}
         <div className="flex items-center gap-3 mb-8">
           <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
-            <ArrowLeft className="w-4 h-4 text-[#1a2b49]" />
+            <ArrowLeft className="w-4 h-4 text-[#000000]" />
           </button>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-[#1a2b49]">Notifications</h1>
+            <h1 className="text-xl font-bold text-[#000000]">Notifications</h1>
             {unreadCount > 0 && (
               <p className="text-xs text-gray-400 mt-0.5">{unreadCount} unread</p>
             )}
           </div>
           {unreadCount > 0 && (
-            <button onClick={handleMarkAllAsRead} className="px-4 py-2 bg-[#1a2b49] text-white rounded-lg text-xs font-semibold hover:bg-[#0f1d35] transition-colors">
+            <button onClick={handleMarkAllAsRead} className="px-4 py-2 bg-[#000000] text-white rounded-lg text-xs font-semibold hover:bg-[#1a1a1a] transition-colors">
               Mark All Read
             </button>
           )}
@@ -101,7 +101,7 @@ export default function Notifications() {
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
                 filter === 'all'
-                  ? 'bg-[#1a2b49] text-white'
+                  ? 'bg-[#000000] text-white'
                   : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}
             >
@@ -111,14 +111,14 @@ export default function Notifications() {
               onClick={() => setFilter('unread')}
               className={`px-4 py-2 rounded-full text-xs font-semibold transition-all flex items-center gap-1.5 ${
                 filter === 'unread'
-                  ? 'bg-[#1a2b49] text-white'
+                  ? 'bg-[#000000] text-white'
                   : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
               }`}
             >
               Unread
               {unreadCount > 0 && (
                 <span className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold ${
-                  filter === 'unread' ? 'bg-white/20 text-white' : 'bg-[#1a73e8] text-white'
+                  filter === 'unread' ? 'bg-white/20 text-white' : 'bg-[#4169E1] text-white'
                 }`}>
                   {unreadCount}
                 </span>
@@ -130,7 +130,7 @@ export default function Notifications() {
         {/* Content */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-10 h-10 border-[3px] border-gray-200 border-t-[#1a2b49] rounded-full animate-spin"></div>
+            <div className="w-10 h-10 border-[3px] border-gray-200 border-t-[#000000] rounded-full animate-spin"></div>
           </div>
         ) : filteredNotifications.length > 0 ? (
           <div className="space-y-1">
@@ -146,7 +146,7 @@ export default function Notifications() {
               >
                 {/* Unread indicator */}
                 {!notif.read && (
-                  <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#1a73e8]"></div>
+                  <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#4169E1]"></div>
                 )}
 
                 {/* Icon */}
@@ -158,7 +158,7 @@ export default function Notifications() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <h3 className={`text-sm leading-snug ${notif.read ? 'font-medium text-gray-600' : 'font-semibold text-[#1a2b49]'}`}>
+                      <h3 className={`text-sm leading-snug ${notif.read ? 'font-medium text-gray-600' : 'font-semibold text-[#000000]'}`}>
                         {notif.title}
                       </h3>
                       <p className="text-sm text-gray-400 mt-0.5 leading-relaxed">{notif.message}</p>
@@ -176,7 +176,7 @@ export default function Notifications() {
                   <div className="flex items-center gap-3 mt-2">
                     <span className="text-[11px] text-gray-400 font-medium">{formatTime(notif.createdAt)}</span>
                       {notif.link && (
-                        <Link to={notif.link} className="text-[11px] font-semibold text-[#1a73e8] hover:underline">
+                        <Link to={notif.link} className="text-[11px] font-semibold text-[#4169E1] hover:underline">
                           {notif.type === 'review_request' ? 'Leave Review' : 'View Details'}
                         </Link>
                     )}
@@ -190,7 +190,7 @@ export default function Notifications() {
             <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4">
               <BellOff className="w-7 h-7 text-gray-300" />
             </div>
-            <h3 className="text-sm font-semibold text-[#1a2b49] mb-1">
+            <h3 className="text-sm font-semibold text-[#000000] mb-1">
               {filter === 'unread' ? 'All caught up!' : 'No notifications yet'}
             </h3>
             <p className="text-xs text-gray-400 mb-5 text-center max-w-xs">
@@ -199,11 +199,11 @@ export default function Notifications() {
                 : "When you receive bookings, messages, or updates they'll appear here"}
             </p>
             {filter === 'unread' ? (
-              <button onClick={() => setFilter('all')} className="px-5 py-2.5 bg-gray-100 text-[#1a2b49] rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors">
+              <button onClick={() => setFilter('all')} className="px-5 py-2.5 bg-gray-100 text-[#000000] rounded-lg text-xs font-semibold hover:bg-gray-200 transition-colors">
                 View All Notifications
               </button>
             ) : (
-              <Link to="/listing" className="px-5 py-2.5 bg-[#1a2b49] text-white rounded-lg text-xs font-semibold hover:bg-[#0f1d35] transition-colors inline-block">
+              <Link to="/listing" className="px-5 py-2.5 bg-[#000000] text-white rounded-lg text-xs font-semibold hover:bg-[#1a1a1a] transition-colors inline-block">
                 Browse Specialists
               </Link>
             )}

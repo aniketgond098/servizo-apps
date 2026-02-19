@@ -92,7 +92,7 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
         html: `
           <div style="position:relative;width:20px;height:20px;">
             <div style="position:absolute;inset:-8px;border-radius:50%;background:rgba(26,115,232,0.12);animation:pulse-ring 2s ease-out infinite;"></div>
-            <div style="position:absolute;inset:0;background:#1a73e8;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(26,115,232,0.4);"></div>
+            <div style="position:absolute;inset:0;background:#4169E1;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(26,115,232,0.4);"></div>
           </div>
         `,
         iconSize: [20, 20],
@@ -116,7 +116,7 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
               <div style="width:46px;height:46px;border-radius:50%;overflow:hidden;border:2.5px solid ${style.border};box-shadow:0 4px 12px rgba(0,0,0,0.1);background:white;">
                 <img src="${specialist.avatar}" alt="${specialist.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />
             </div>
-            <div style="position:absolute;top:-5px;right:-6px;background:white;border:1.5px solid ${style.border};border-radius:8px;padding:1px 5px;font-size:9px;font-weight:700;color:#1a2b49;box-shadow:0 2px 6px rgba(0,0,0,0.08);white-space:nowrap;">
+            <div style="position:absolute;top:-5px;right:-6px;background:white;border:1.5px solid ${style.border};border-radius:8px;padding:1px 5px;font-size:9px;font-weight:700;color:#000000;box-shadow:0 2px 6px rgba(0,0,0,0.08);white-space:nowrap;">
               ₹${specialist.hourlyRate}
             </div>
             <div style="position:absolute;bottom:-2px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:${style.dot};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.1);"></div>
@@ -285,7 +285,7 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
             if (data.routes?.[0] && mapInstanceRef.current) {
               const coords = data.routes[0].geometry.coordinates.map((c: number[]) => [c[1], c[0]]);
               routeLayerRef.current = window.L.polyline(coords, {
-                color: '#1a73e8',
+                color: '#4169E1',
                 weight: 4,
                 opacity: 0.9
               }).addTo(mapInstanceRef.current);
@@ -296,7 +296,7 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
             if (mapInstanceRef.current) {
               routeLayerRef.current = window.L.polyline(
                 [[userLoc.lat, userLoc.lng], [workerSpec.lat, workerSpec.lng]],
-                { color: '#1a73e8', weight: 4, opacity: 0.9 }
+                { color: '#4169E1', weight: 4, opacity: 0.9 }
               ).addTo(mapInstanceRef.current);
               mapInstanceRef.current.fitBounds(routeLayerRef.current.getBounds(), { padding: [60, 60] });
             }
@@ -396,7 +396,7 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
           }
         .leaflet-control-zoom a {
           background: white !important;
-          color: #1a2b49 !important;
+          color: #000000 !important;
           border: 1px solid #e2e8f0 !important;
           font-weight: 600 !important;
           border-radius: 8px !important;

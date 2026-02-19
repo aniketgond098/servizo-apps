@@ -65,7 +65,7 @@ export default function Messages() {
     <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Back button */}
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#1a2b49] mb-6 transition-colors">
+        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#000000] mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
 
@@ -73,9 +73,9 @@ export default function Messages() {
         <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm" style={{ minHeight: 'calc(100vh - 220px)' }}>
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-            <h1 className="text-xl font-bold text-[#1a2b49]">Messages</h1>
+            <h1 className="text-xl font-bold text-[#000000]">Messages</h1>
             <button className="w-9 h-9 rounded-lg bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition-colors">
-              <Edit3 className="w-4 h-4 text-[#1a73e8]" />
+              <Edit3 className="w-4 h-4 text-[#4169E1]" />
             </button>
           </div>
 
@@ -88,7 +88,7 @@ export default function Messages() {
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-[#1a2b49] placeholder-gray-400 focus:outline-none focus:border-[#1a73e8] focus:ring-1 focus:ring-[#1a73e8]/20 transition-all"
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-[#000000] placeholder-gray-400 focus:outline-none focus:border-[#4169E1] focus:ring-1 focus:ring-[#4169E1]/20 transition-all"
               />
             </div>
           </div>
@@ -101,20 +101,20 @@ export default function Messages() {
                   className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 transition-colors group">
                   {/* Avatar */}
                   <div className="relative flex-shrink-0">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#1a2b49] to-[#2a4a7f] flex items-center justify-center text-white font-semibold text-sm">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#000000] to-[#2a4a7f] flex items-center justify-center text-white font-semibold text-sm">
                       {conv.userName.charAt(0).toUpperCase()}
                     </div>
                     {conv.unread > 0 && (
-                      <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-[#1a73e8] rounded-full border-2 border-white" />
+                      <div className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-[#4169E1] rounded-full border-2 border-white" />
                     )}
                   </div>
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
-                      <h3 className={`text-sm truncate ${conv.unread > 0 ? 'font-bold text-[#1a2b49]' : 'font-medium text-[#1a2b49]'}`}>
+                      <h3 className={`text-sm truncate ${conv.unread > 0 ? 'font-bold text-[#000000]' : 'font-medium text-[#000000]'}`}>
                         {conv.userName}
                       </h3>
-                      <span className={`text-xs ml-3 flex-shrink-0 ${conv.unread > 0 ? 'text-[#1a73e8] font-semibold' : 'text-gray-400'}`}>
+                      <span className={`text-xs ml-3 flex-shrink-0 ${conv.unread > 0 ? 'text-[#4169E1] font-semibold' : 'text-gray-400'}`}>
                         {formatTime(conv.lastMessage.createdAt)}
                       </span>
                     </div>
@@ -126,7 +126,7 @@ export default function Messages() {
                           {conv.lastMessage.messageType === 'image' ? '📷 Photo' : conv.lastMessage.messageType === 'document' ? `📎 ${conv.lastMessage.attachment?.name || 'Document'}` : conv.lastMessage.content}
                         </p>
                       {conv.unread > 0 && (
-                        <div className="w-5 h-5 bg-[#1a73e8] rounded-full flex items-center justify-center flex-shrink-0">
+                        <div className="w-5 h-5 bg-[#4169E1] rounded-full flex items-center justify-center flex-shrink-0">
                           <span className="text-[10px] font-bold text-white">{conv.unread}</span>
                         </div>
                       )}
@@ -140,9 +140,9 @@ export default function Messages() {
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                 <MessageCircle className="w-7 h-7 text-gray-300" />
               </div>
-              <p className="text-[#1a2b49] font-semibold mb-1">No messages yet</p>
+              <p className="text-[#000000] font-semibold mb-1">No messages yet</p>
               <p className="text-sm text-gray-400 mb-5">Start a conversation with a service provider</p>
-              <Link to="/listing" className="px-5 py-2.5 bg-[#1a2b49] text-white rounded-xl text-sm font-semibold hover:bg-[#0f1d35] transition-colors">
+              <Link to="/listing" className="px-5 py-2.5 bg-[#000000] text-white rounded-xl text-sm font-semibold hover:bg-[#1a1a1a] transition-colors">
                 Browse Specialists
               </Link>
             </div>
@@ -152,11 +152,11 @@ export default function Messages() {
           {currentUser && (
             <div className="border-t border-gray-100 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#1a73e8] flex items-center justify-center text-white text-xs font-bold">
+                <div className="w-9 h-9 rounded-full bg-[#4169E1] flex items-center justify-center text-white text-xs font-bold">
                   {currentUser.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#1a2b49]">{currentUser.name}</p>
+                  <p className="text-sm font-semibold text-[#000000]">{currentUser.name}</p>
                   <p className="text-xs text-gray-400">Active now</p>
                 </div>
               </div>

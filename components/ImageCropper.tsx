@@ -66,7 +66,7 @@ export default function ImageCropper({ imageSrc, onCropDone, onCancel }: ImageCr
     <div className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
-          <h3 className="text-sm font-bold text-[#1a2b49]">Crop Photo</h3>
+          <h3 className="text-sm font-bold text-[#000000]">Crop Photo</h3>
           <button onClick={onCancel} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
             <X className="w-4 h-4 text-gray-500" />
           </button>
@@ -94,7 +94,7 @@ export default function ImageCropper({ imageSrc, onCropDone, onCancel }: ImageCr
             <input
               type="range" min={1} max={3} step={0.05} value={zoom}
               onChange={e => setZoom(Number(e.target.value))}
-              className="flex-1 h-1.5 accent-[#1a73e8] cursor-pointer"
+              className="flex-1 h-1.5 accent-[#4169E1] cursor-pointer"
             />
             <ZoomIn className="w-4 h-4 text-gray-400 flex-shrink-0" />
           </div>
@@ -105,7 +105,7 @@ export default function ImageCropper({ imageSrc, onCropDone, onCancel }: ImageCr
             <input
               type="range" min={0} max={360} step={1} value={rotation}
               onChange={e => setRotation(Number(e.target.value))}
-              className="flex-1 h-1.5 accent-[#1a73e8] cursor-pointer"
+              className="flex-1 h-1.5 accent-[#4169E1] cursor-pointer"
             />
             <span className="text-xs text-gray-400 w-8 text-right">{rotation}°</span>
           </div>
@@ -115,7 +115,7 @@ export default function ImageCropper({ imageSrc, onCropDone, onCancel }: ImageCr
           <button onClick={onCancel} className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors">
             Cancel
           </button>
-          <button onClick={handleConfirm} className="flex-1 py-2.5 bg-[#1a2b49] text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#0f1d35] transition-colors">
+          <button onClick={handleConfirm} className="flex-1 py-2.5 bg-[#000000] text-white rounded-lg text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#1a1a1a] transition-colors">
             <Check className="w-4 h-4" />
             Apply
           </button>

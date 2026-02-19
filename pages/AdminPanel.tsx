@@ -59,7 +59,7 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
     <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[#1a2b49]">Admin Panel</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-[#000000]">Admin Panel</h1>
           <p className="text-sm text-gray-500 mt-1">Manage users, specialists, and bookings</p>
         </div>
 
@@ -67,7 +67,7 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
         <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-hide">
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${activeTab === tab.id ? 'bg-[#1a2b49] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+              className={`px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap flex items-center gap-2 transition-all ${activeTab === tab.id ? 'bg-[#000000] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'}`}>
               <tab.icon className="w-4 h-4" /> {tab.label} ({tab.count})
             </button>
           ))}
@@ -79,7 +79,7 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
             <div className="flex gap-2 mb-5 overflow-x-auto pb-1 scrollbar-hide">
               {(['all', 'pending', 'approved', 'rejected'] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${filter === f ? 'bg-[#1a73e8] text-white' : 'bg-white border border-gray-200 text-gray-500'}`}>
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize ${filter === f ? 'bg-[#4169E1] text-white' : 'bg-white border border-gray-200 text-gray-500'}`}>
                   {f} ({requests.filter(r => f === 'all' || r.status === f).length})
                 </button>
               ))}
@@ -93,9 +93,9 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
                   <div key={request.id} className="bg-white border border-gray-100 rounded-xl p-5">
                     <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[#1a2b49] flex items-center justify-center text-white font-medium">{user?.name?.charAt(0) || 'U'}</div>
+                        <div className="w-10 h-10 rounded-full bg-[#000000] flex items-center justify-center text-white font-medium">{user?.name?.charAt(0) || 'U'}</div>
                         <div>
-                          <h3 className="font-semibold text-[#1a2b49]">{user?.name || 'Unknown'}</h3>
+                          <h3 className="font-semibold text-[#000000]">{user?.name || 'Unknown'}</h3>
                           <p className="text-xs text-gray-400">{user?.email} · {new Date(request.createdAt).toLocaleDateString()}</p>
                         </div>
                       </div>
@@ -174,9 +174,9 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
             {users.map(user => (
               <div key={user.id} className="bg-white border border-gray-100 rounded-xl p-5 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#1a2b49] flex items-center justify-center text-white font-medium">{user.name.charAt(0)}</div>
+                  <div className="w-10 h-10 rounded-full bg-[#000000] flex items-center justify-center text-white font-medium">{user.name.charAt(0)}</div>
                   <div>
-                    <h3 className="font-semibold text-[#1a2b49] text-sm">{user.name}</h3>
+                    <h3 className="font-semibold text-[#000000] text-sm">{user.name}</h3>
                     <p className="text-xs text-gray-400">{user.email}</p>
                     <div className="flex gap-1.5 mt-1">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${user.role === 'admin' ? 'bg-red-50 text-red-500' : user.role === 'worker' ? 'bg-blue-50 text-blue-600' : 'bg-green-50 text-green-600'}`}>{user.role}</span>
@@ -201,8 +201,8 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
                 <div className="flex items-center gap-3">
                     <img src={spec.avatar} className="w-12 h-12 rounded-full object-cover" alt={spec.name} />
                   <div>
-                    <h3 className="font-semibold text-[#1a2b49]">{spec.name}</h3>
-                    <p className="text-xs text-[#1a73e8] font-medium">{spec.category}</p>
+                    <h3 className="font-semibold text-[#000000]">{spec.name}</h3>
+                    <p className="text-xs text-[#4169E1] font-medium">{spec.category}</p>
                     <div className="flex gap-3 mt-0.5 text-xs text-gray-400">
                       <span>Rating: {spec.rating}</span><span>₹{spec.hourlyRate}/hr</span><span>{spec.projects} projects</span>
                     </div>
@@ -227,7 +227,7 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
                 <div key={booking.id} className="bg-white border border-gray-100 rounded-xl p-5 flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-[#1a2b49] text-sm">{booking.id}</h3>
+                      <h3 className="font-semibold text-[#000000] text-sm">{booking.id}</h3>
                       {booking.isEmergency && <span className="px-2 py-0.5 bg-red-500 text-white rounded text-[10px] font-semibold">EMERGENCY</span>}
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${booking.status === 'active' ? 'bg-green-50 text-green-600' : booking.status === 'cancellation_pending' ? 'bg-orange-50 text-orange-600' : booking.status === 'pending_payment' ? 'bg-amber-50 text-amber-600' : booking.status === 'completed' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-500'}`}>{booking.status === 'cancellation_pending' ? 'Cancel Requested' : booking.status === 'pending_payment' ? 'Awaiting Payment' : booking.status}</span>
                     </div>
@@ -255,14 +255,14 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
         {editingUser && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4">
-              <h3 className="text-xl font-bold text-[#1a2b49]">Edit User</h3>
+              <h3 className="text-xl font-bold text-[#000000]">Edit User</h3>
               <input value={editingUser.name} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Name" />
               <input value={editingUser.email} onChange={(e) => setEditingUser({...editingUser, email: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Email" />
               <select value={editingUser.role} onChange={(e) => setEditingUser({...editingUser, role: e.target.value as any})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm">
                 <option value="user">User</option><option value="worker">Worker</option><option value="admin">Admin</option>
               </select>
               <div className="flex gap-3">
-                <button onClick={handleUpdateUser} className="flex-1 px-4 py-2.5 bg-[#1a2b49] text-white rounded-lg font-semibold text-sm">Save</button>
+                <button onClick={handleUpdateUser} className="flex-1 px-4 py-2.5 bg-[#000000] text-white rounded-lg font-semibold text-sm">Save</button>
                 <button onClick={() => setEditingUser(null)} className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-semibold text-sm">Cancel</button>
               </div>
             </div>
@@ -273,7 +273,7 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
           {editingSpecialist && (
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
               <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto">
-                <h3 className="text-xl font-bold text-[#1a2b49]">Edit Specialist</h3>
+                <h3 className="text-xl font-bold text-[#000000]">Edit Specialist</h3>
                 <input value={editingSpecialist.name} onChange={(e) => setEditingSpecialist({...editingSpecialist, name: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Name" />
                 <input value={editingSpecialist.title} onChange={(e) => setEditingSpecialist({...editingSpecialist, title: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Title" />
                 <input type="number" value={editingSpecialist.hourlyRate} onChange={(e) => setEditingSpecialist({...editingSpecialist, hourlyRate: Number(e.target.value)})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Rate" />
@@ -282,7 +282,7 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
                   <option value="available">Available</option><option value="busy">Busy</option><option value="unavailable">Unavailable</option>
                 </select>
                 <div className="flex gap-3">
-                  <button onClick={handleUpdateSpecialist} className="flex-1 px-4 py-2.5 bg-[#1a2b49] text-white rounded-lg font-semibold text-sm">Save</button>
+                  <button onClick={handleUpdateSpecialist} className="flex-1 px-4 py-2.5 bg-[#000000] text-white rounded-lg font-semibold text-sm">Save</button>
                   <button onClick={() => setEditingSpecialist(null)} className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg font-semibold text-sm">Cancel</button>
                 </div>
               </div>

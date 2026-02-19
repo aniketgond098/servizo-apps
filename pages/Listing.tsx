@@ -135,20 +135,20 @@ export default function Listing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#1a2b49]">Find Specialists</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-[#000000]">Find Specialists</h1>
               <p className="text-sm text-gray-500 mt-1">{specialists.length} professionals available</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <button 
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-[#1a2b49]' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-[#000000]' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                   <List className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={() => setViewMode('map')}
-                  className={`p-2 rounded-md transition-all ${viewMode === 'map' ? 'bg-white shadow-sm text-[#1a2b49]' : 'text-gray-400 hover:text-gray-600'}`}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'map' ? 'bg-white shadow-sm text-[#000000]' : 'text-gray-400 hover:text-gray-600'}`}
                 >
                   <MapIcon className="w-4 h-4" />
                 </button>
@@ -164,13 +164,13 @@ export default function Listing() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by name, service, or category..."
-                className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/20 focus:border-[#1a73e8] transition-all"
+                className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2.5 pl-10 pr-4 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#4169E1]/20 focus:border-[#4169E1] transition-all"
               />
             </div>
             <button 
               type="button"
               onClick={() => setIsFilterOpen(!isFilterOpen)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${isFilterOpen ? 'bg-[#1a2b49] border-[#1a2b49] text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-all ${isFilterOpen ? 'bg-[#000000] border-[#000000] text-white' : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'}`}
             >
               <Filter className="w-4 h-4" /> 
               <span className="hidden sm:inline">Filters</span>
@@ -186,7 +186,7 @@ export default function Listing() {
                   setActiveCategory(cat);
                   setSearchParams({ q: searchQuery, filter: cat });
                 }}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${activeCategory === cat ? 'bg-[#1a2b49] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${activeCategory === cat ? 'bg-[#000000] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
               >
                 {cat}
               </button>
@@ -204,7 +204,7 @@ export default function Listing() {
                       <button 
                         key={opt.val}
                         onClick={() => setAvailabilityFilter(opt.val)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${availabilityFilter === opt.val ? 'bg-[#1a73e8] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${availabilityFilter === opt.val ? 'bg-[#4169E1] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'}`}
                       >
                         {opt.label}
                       </button>
@@ -224,7 +224,7 @@ export default function Listing() {
                       <button 
                         key={opt.val}
                         onClick={() => setSortBy(opt.val as SortOption)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${sortBy === opt.val ? 'bg-[#1a73e8] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${sortBy === opt.val ? 'bg-[#4169E1] text-white' : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300'}`}
                       >
                         {opt.label}
                       </button>
@@ -238,7 +238,7 @@ export default function Listing() {
                       type="number" 
                       value={priceRange.min} 
                       onChange={(e) => setPriceRange(prev => ({ ...prev, min: Number(e.target.value) }))}
-                      className="w-24 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1a73e8]"
+                      className="w-24 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#4169E1]"
                       placeholder="Min"
                     />
                     <span className="text-gray-400">-</span>
@@ -246,14 +246,14 @@ export default function Listing() {
                       type="number" 
                       value={priceRange.max} 
                       onChange={(e) => setPriceRange(prev => ({ ...prev, max: Number(e.target.value) }))}
-                      className="w-24 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#1a73e8]"
+                      className="w-24 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#4169E1]"
                       placeholder="Max"
                     />
                   </div>
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-gray-200 flex justify-end">
-                <button onClick={clearFilters} className="text-xs font-semibold text-[#1a73e8] hover:underline flex items-center gap-1">
+                <button onClick={clearFilters} className="text-xs font-semibold text-[#4169E1] hover:underline flex items-center gap-1">
                   <X className="w-3 h-3" /> Reset All Filters
                 </button>
               </div>
@@ -266,7 +266,7 @@ export default function Listing() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {loading ? (
           <div className="h-64 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 text-[#1a73e8] animate-spin" />
+            <Loader2 className="w-8 h-8 text-[#4169E1] animate-spin" />
             <p className="text-sm text-gray-500">Searching specialists...</p>
           </div>
         ) : viewMode === 'map' ? (
@@ -309,8 +309,8 @@ export default function Listing() {
                         }`}></div>
                       </div>
                     <div className="min-w-0">
-                      <h4 className="font-bold text-[#1a2b49] truncate">{specialist.name}</h4>
-                      <span className="text-xs font-medium text-[#1a73e8]">{specialist.category}</span>
+                      <h4 className="font-bold text-[#000000] truncate">{specialist.name}</h4>
+                      <span className="text-xs font-medium text-[#4169E1]">{specialist.category}</span>
                     </div>
                   </div>
 
@@ -333,11 +333,11 @@ export default function Listing() {
                 <div className="flex justify-between items-center px-5 py-3.5 border-t border-gray-100 mt-auto bg-gray-50/50">
                   <div>
                     <span className="text-[10px] text-gray-400 uppercase tracking-wide">From</span>
-                    <p className="text-lg font-bold text-[#1a2b49]">₹{specialist.hourlyRate}<span className="text-xs font-normal text-gray-400">/hr</span></p>
+                    <p className="text-lg font-bold text-[#000000]">₹{specialist.hourlyRate}<span className="text-xs font-normal text-gray-400">/hr</span></p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-bold text-[#1a2b49]">{specialist.rating}</span>
+                    <span className="text-sm font-bold text-[#000000]">{specialist.rating}</span>
                     <span className="text-xs text-gray-400">({specialist.projects})</span>
                   </div>
                 </div>
@@ -345,7 +345,7 @@ export default function Listing() {
             )}) : (
               <div className="col-span-full py-20 text-center space-y-3">
                 <p className="text-gray-500 text-sm">No specialists found matching your criteria.</p>
-                <button onClick={clearFilters} className="text-[#1a73e8] font-semibold text-sm hover:underline">Clear all filters</button>
+                <button onClick={clearFilters} className="text-[#4169E1] font-semibold text-sm hover:underline">Clear all filters</button>
               </div>
             )}
           </div>

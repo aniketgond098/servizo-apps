@@ -288,9 +288,14 @@ export class DB {
 
   static async getActiveBooking(userId?: string): Promise<Booking | null> {
     try {
-      const bookings = await this.getBookings();
-      if (userId) return bookings.find(b => b.userId === userId && b.status === 'active') || null;
-      return bookings.find(b => b.status === 'active') || null;
+      const constraints = userId
+        ? [where('userId', '==', userId), where('status', '==', 'active')]
+        : [where('status', '==', 'active')];
+      const q = query(collection(db, 'bookings'), ...constraints);
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return null;
+      const d = snapshot.docs[0];
+      return { ...d.data(), id: d.id } as Booking;
     } catch (error) {
       console.error('Get active booking error:', error);
       return null;
@@ -466,11 +471,16 @@ export class DB {
 
   static async getConversation(userId1: string, userId2: string): Promise<Message[]> {
     try {
-      const messages = await this.getMessages();
-      return messages.filter(m => 
-        (m.senderId === userId1 && m.receiverId === userId2) ||
-        (m.senderId === userId2 && m.receiverId === userId1)
-      ).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      const [q1, q2] = [
+        query(collection(db, 'messages'), where('senderId', '==', userId1), where('receiverId', '==', userId2)),
+        query(collection(db, 'messages'), where('senderId', '==', userId2), where('receiverId', '==', userId1)),
+      ];
+      const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+      const messages = [
+        ...snap1.docs.map(d => ({ ...d.data(), id: d.id } as Message)),
+        ...snap2.docs.map(d => ({ ...d.data(), id: d.id } as Message)),
+      ];
+      return messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
     } catch (error) {
       console.error('Get conversation error:', error);
       return [];
@@ -510,10 +520,14 @@ export class DB {
 
   static async markMessagesAsRead(userId: string, otherUserId: string) {
     try {
-      const messages = await this.getMessages();
-      const updates = messages
-        .filter(m => m.senderId === otherUserId && m.receiverId === userId && !m.read)
-        .map(m => updateDoc(doc(db, 'messages', m.id), { read: true }));
+      const q = query(
+        collection(db, 'messages'),
+        where('senderId', '==', otherUserId),
+        where('receiverId', '==', userId),
+        where('read', '==', false)
+      );
+      const snapshot = await getDocs(q);
+      const updates = snapshot.docs.map(d => updateDoc(doc(db, 'messages', d.id), { read: true }));
       await Promise.all(updates);
     } catch (error) {
       console.error('Mark messages as read error:', error);
@@ -522,8 +536,13 @@ export class DB {
 
   static async getUnreadCount(userId: string): Promise<number> {
     try {
-      const messages = await this.getMessages();
-      return messages.filter(m => m.receiverId === userId && !m.read).length;
+      const q = query(
+        collection(db, 'messages'),
+        where('receiverId', '==', userId),
+        where('read', '==', false)
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.size;
     } catch (error) {
       console.error('Get unread count error:', error);
       return 0;
@@ -648,12 +667,13 @@ export class DB {
 
   static async getNotifications(userId: string): Promise<Notification[]> {
     try {
-      const snapshot = await getDocs(collection(db, 'notifications'));
-      const notifications = snapshot.docs
-        .map(doc => ({ ...doc.data(), id: doc.id } as Notification))
-        .filter(n => n.userId === userId)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      return notifications;
+      const q = query(
+        collection(db, 'notifications'),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc')
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Notification));
     } catch (error) {
       console.error('Get notifications error:', error);
       return [];
@@ -662,8 +682,13 @@ export class DB {
 
   static async getUnreadNotifications(userId: string): Promise<number> {
     try {
-      const notifications = await this.getNotifications(userId);
-      return notifications.filter(n => !n.read).length;
+      const q = query(
+        collection(db, 'notifications'),
+        where('userId', '==', userId),
+        where('read', '==', false)
+      );
+      const snapshot = await getDocs(q);
+      return snapshot.size;
     } catch (error) {
       console.error('Get unread notifications error:', error);
       return 0;

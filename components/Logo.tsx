@@ -7,48 +7,75 @@ interface LogoProps {
   textClassName?: string;
 }
 
-export const ServizoLogo: React.FC<LogoProps> = ({ 
-  className = "", 
-  size = 32, 
+const ServizoSvgLogo: React.FC<{ size: number; className?: string }> = ({ size, className = "" }) => {
+  const h = Math.round(size * 1.3);
+  return (
+    <svg
+      width={size}
+      height={h}
+      viewBox="0 0 100 130"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {/*
+        Logo analysis from image:
+        - Top circle: centered around (40, 35), radius ~26. Nearly full circle.
+          Opens at bottom-right, where it "hands off" to the bottom circle.
+        - Bottom circle: centered around (60, 93), radius ~26. Nearly full circle.
+          Opens at top-left, where it connects from the top circle.
+        - They cross in the middle area (~50, 64).
+        - 3 dots: top-right of top circle, at the crossing, bottom-left of bottom circle.
+
+        Top circle arc: starts at the crossing point (56, 58), goes counter-clockwise
+        (large arc) almost all the way around, ending back near (56, 58) opening.
+        We draw it from (57, 55) sweeping CCW large arc to (46, 72).
+
+        Bottom circle arc: starts at (54, 57) sweeping CW large arc to (43, 73).
+      */}
+
+      {/* Top loop: center ~(40,36), r=26. 
+          Arc from dot1 (65,42) going counter-clockwise (sweep=0, large-arc=1)
+          around nearly full circle to dot2 (54,62) */}
+      <path
+        d="M 65 42 A 27 27 0 1 0 54 62"
+        stroke="#4169E1"
+        strokeWidth="8.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+
+      {/* Bottom loop: center ~(60,92), r=26.
+          Arc from dot2 (54,68) going clockwise (sweep=1, large-arc=1)
+          around nearly full circle to dot3 (35,88) */}
+      <path
+        d="M 46 68 A 27 27 0 1 1 35 88"
+        stroke="#4169E1"
+        strokeWidth="8.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+
+      {/* 3 filled dots */}
+      {/* Dot 1: top-right of top circle */}
+      <circle cx="65" cy="42" r="5.5" fill="#4169E1" />
+      {/* Dot 2: crossing / junction in the middle — between the two arc endpoints */}
+      <circle cx="50" cy="65" r="5.5" fill="#4169E1" />
+      {/* Dot 3: bottom-left of bottom circle */}
+      <circle cx="35" cy="88" r="5.5" fill="#4169E1" />
+    </svg>
+  );
+};
+
+export const ServizoLogo: React.FC<LogoProps> = ({
+  className = "",
+  size = 32,
   showText = false,
-  textClassName = "text-lg font-bold tracking-tight text-[#1a2b49]"
+  textClassName = "text-lg font-bold tracking-tight text-black"
 }) => {
   return (
     <div className={`flex items-center gap-2.5 ${className}`}>
-      <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 64 64" 
-        fill="none" 
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Background rounded square */}
-        <rect width="64" height="64" rx="16" fill="#1a2b49"/>
-        
-        {/* Wrench handle - diagonal line behind the S */}
-        <line x1="16" y1="48" x2="48" y2="16" stroke="#2a3d63" strokeWidth="6" strokeLinecap="round"/>
-        
-        {/* Stylized S path */}
-        <path 
-          d="M38 18H28C24.134 18 21 21.134 21 25v0c0 3.866 3.134 7 7 7h8c3.866 0 7 3.134 7 7v0c0 3.866-3.134 7-7 7H26" 
-          stroke="white" 
-          strokeWidth="5" 
-          strokeLinecap="round"
-        />
-        
-        {/* Wrench jaw top-right */}
-        <circle cx="48" cy="16" r="5" stroke="#4B9CFF" strokeWidth="2.5" fill="none"/>
-        
-        {/* Wrench jaw bottom-left */}
-        <circle cx="16" cy="48" r="5" stroke="#4B9CFF" strokeWidth="2.5" fill="none"/>
-        
-        {/* Bolt/nut accent top-right */}
-        <circle cx="48" cy="16" r="1.5" fill="#4B9CFF"/>
-        
-        {/* Bolt/nut accent bottom-left */}
-        <circle cx="16" cy="48" r="1.5" fill="#4B9CFF"/>
-      </svg>
-      
+      <ServizoSvgLogo size={size} />
       {showText && (
         <span className={textClassName} style={{ fontFamily: "'Plus Jakarta Sans', 'Inter', sans-serif" }}>
           Servizo
@@ -59,29 +86,7 @@ export const ServizoLogo: React.FC<LogoProps> = ({
 };
 
 export const ServizoIcon: React.FC<{ size?: number; className?: string }> = ({ size = 24, className = "" }) => {
-  return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 64 64" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg"
-      className={className}
-    >
-      <rect width="64" height="64" rx="16" fill="#1a2b49"/>
-      <line x1="16" y1="48" x2="48" y2="16" stroke="#2a3d63" strokeWidth="6" strokeLinecap="round"/>
-      <path 
-        d="M38 18H28C24.134 18 21 21.134 21 25v0c0 3.866 3.134 7 7 7h8c3.866 0 7 3.134 7 7v0c0 3.866-3.134 7-7 7H26" 
-        stroke="white" 
-        strokeWidth="5" 
-        strokeLinecap="round"
-      />
-      <circle cx="48" cy="16" r="5" stroke="#4B9CFF" strokeWidth="2.5" fill="none"/>
-      <circle cx="16" cy="48" r="5" stroke="#4B9CFF" strokeWidth="2.5" fill="none"/>
-      <circle cx="48" cy="16" r="1.5" fill="#4B9CFF"/>
-      <circle cx="16" cy="48" r="1.5" fill="#4B9CFF"/>
-    </svg>
-  );
+  return <ServizoSvgLogo size={size} className={className} />;
 };
 
 export const LoadingSpinner: React.FC = () => {
@@ -89,11 +94,11 @@ export const LoadingSpinner: React.FC = () => {
     <div className="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 flex items-center justify-center">
       <div className="flex flex-col items-center gap-5">
         <div className="relative">
-          <div className="absolute inset-0 rounded-2xl bg-[#1a2b49]/10 animate-ping" style={{ animationDuration: '1.5s' }}/>
-          <ServizoIcon size={56} />
+          <div className="absolute inset-0 animate-ping opacity-30 rounded-full bg-[#4169E1]" style={{ animationDuration: '1.5s' }} />
+          <ServizoSvgLogo size={56} />
         </div>
         <div className="flex flex-col items-center gap-1.5">
-          <span className="text-sm font-semibold text-[#1a2b49] tracking-wide" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <span className="text-sm font-semibold text-black tracking-wide" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Servizo
           </span>
           <span className="text-xs text-gray-400 font-medium tracking-widest uppercase">Loading</span>

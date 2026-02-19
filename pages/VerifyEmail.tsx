@@ -137,14 +137,14 @@ export default function VerifyEmail() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-[#1a73e8] to-[#1557b0] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+            <div className="w-16 h-16 bg-gradient-to-br from-[#4169E1] to-[#1557b0] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
               <Mail className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-[#1a2b49]">Verify your email</h1>
+            <h1 className="text-2xl font-bold text-[#000000]">Verify your email</h1>
             <p className="text-sm text-gray-500 mt-2">
               We sent a 6-digit code to
             </p>
-            <p className="text-sm font-semibold text-[#1a2b49] mt-1">{maskedEmail}</p>
+            <p className="text-sm font-semibold text-[#000000] mt-1">{maskedEmail}</p>
           </div>
 
           {/* Success toast */}
@@ -173,8 +173,8 @@ export default function VerifyEmail() {
                       onChange={e => handleChange(i, e.target.value)}
                       onKeyDown={e => handleKeyDown(i, e)}
                       className={`w-12 h-14 text-center text-xl font-bold rounded-xl border-2 transition-all outline-none
-                        ${digit ? 'border-[#1a73e8] bg-blue-50/50 text-[#1a2b49]' : 'border-gray-200 text-gray-700'}
-                        focus:border-[#1a73e8] focus:ring-4 focus:ring-[#1a73e8]/10
+                        ${digit ? 'border-[#4169E1] bg-blue-50/50 text-[#000000]' : 'border-gray-200 text-gray-700'}
+                        focus:border-[#4169E1] focus:ring-4 focus:ring-[#4169E1]/10
                         ${error ? 'border-red-300 focus:border-red-400 focus:ring-red-100' : ''}`}
                       disabled={verifying}
                     />
@@ -195,7 +195,7 @@ export default function VerifyEmail() {
             <button
               type="submit"
               disabled={verifying || otp.some(d => d === '')}
-              className="w-full bg-[#1a2b49] text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#0f1d35] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#000000] text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1a1a1a] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {verifying ? (
                 <>
@@ -217,7 +217,7 @@ export default function VerifyEmail() {
             <button
               onClick={sendOTP}
               disabled={sending || countdown > 0}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#1a73e8] hover:text-[#1557b0] disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#4169E1] hover:text-[#1557b0] disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${sending ? 'animate-spin' : ''}`} />
               {sending ? 'Sending...' : countdown > 0 ? `Resend in ${countdown}s` : 'Resend code'}

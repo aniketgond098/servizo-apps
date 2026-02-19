@@ -81,16 +81,16 @@ export default function Home() {
             <div className="max-w-7xl mx-auto relative z-10">
           {/* Trust badge */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-100 rounded-full mb-6">
-            <span className="text-xs font-semibold text-[#1a73e8] uppercase tracking-wide">Trusted by 50,000+ users</span>
+            <span className="text-xs font-semibold text-[#4169E1] uppercase tracking-wide">Trusted by 50,000+ users</span>
           </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
               {/* Left: Copy */}
               <div className="space-y-6">
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#1a2b49] leading-[1.1] tracking-tight">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#000000] leading-[1.1] tracking-tight">
                     Find the perfect professional for{' '}
                     <span className="inline-flex items-center">
-                      <span className="text-[#1a73e8]">any task.</span>
+                      <span className="text-[#4169E1]">any task.</span>
                       {/* Mobile-only inline animation right after "any task." */}
                         <span className="lg:hidden inline-block relative ml-2" style={{ width: 72, height: 72, verticalAlign: 'middle', overflow: 'visible', position: 'relative', top: 6 }}>
                         <HeroToolsAnimation variant="mobile" />
@@ -123,7 +123,7 @@ export default function Home() {
                     className="w-full text-sm text-gray-700 placeholder-gray-400 outline-none bg-transparent"
                   />
                 </div>
-                <button type="submit" className="px-6 py-3 sm:py-3.5 bg-[#1a2b49] text-white text-sm font-semibold sm:rounded-full hover:bg-[#0f1d35] transition-colors flex-shrink-0">
+                <button type="submit" className="px-6 py-3 sm:py-3.5 bg-[#000000] text-white text-sm font-semibold sm:rounded-full hover:bg-[#1a1a1a] transition-colors flex-shrink-0">
                   Search Now
                 </button>
               </form>
@@ -132,7 +132,7 @@ export default function Home() {
               <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
                 <span className="font-medium">Popular:</span>
                 {['Plumbing', 'House Cleaning', 'Handyman'].map(tag => (
-                  <Link key={tag} to={`/listing?q=${tag}`} className="text-gray-600 hover:text-[#1a73e8] transition-colors underline underline-offset-2">
+                  <Link key={tag} to={`/listing?q=${tag}`} className="text-gray-600 hover:text-[#4169E1] transition-colors underline underline-offset-2">
                     {tag}
                   </Link>
                 ))}
@@ -152,10 +152,10 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-end justify-between mb-10">
             <div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-2">Featured Categories</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#000000] mb-2">Featured Categories</h2>
               <p className="text-gray-500 text-sm sm:text-base">Explore high-quality services by category</p>
             </div>
-            <Link to="/listing" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#1a73e8] hover:underline">
+            <Link to="/listing" className="hidden sm:inline-flex items-center gap-1 text-sm font-semibold text-[#4169E1] hover:underline">
               View All Categories <ChevronRight className="w-4 h-4" />
             </Link>
           </div>
@@ -169,7 +169,7 @@ export default function Home() {
                 <div className={`w-14 h-14 ${cat.color} rounded-xl flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform`}>
                   <cat.icon className="w-7 h-7" />
                 </div>
-                <p className="text-sm font-semibold text-[#1a2b49] mb-1">{cat.name}</p>
+                <p className="text-sm font-semibold text-[#000000] mb-1">{cat.name}</p>
                 <p className="text-xs text-gray-400">{cat.count} Pros</p>
               </Link>
             ))}
@@ -180,7 +180,7 @@ export default function Home() {
       {/* How It Works */}
       <section id="how-it-works" className="bg-white py-16 sm:py-20 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-3">Simple, Fast, and Secure</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#000000] mb-3">Simple, Fast, and Secure</h2>
           <p className="text-gray-500 text-sm sm:text-base max-w-xl mx-auto mb-14">
             Get your project started in just three easy steps. We handle the hard part so you can focus on the results.
           </p>
@@ -189,24 +189,24 @@ export default function Home() {
             <div className="hidden md:block absolute top-10 left-[20%] right-[20%] border-t-2 border-dashed border-gray-200"></div>
 
             <div className="flex flex-col items-center text-center relative">
-              <div className="w-16 h-16 bg-[#1a2b49] rounded-full flex items-center justify-center mb-5 shadow-lg relative z-10">
+              <div className="w-16 h-16 bg-[#000000] rounded-full flex items-center justify-center mb-5 shadow-lg relative z-10">
                 <Search className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-[#1a2b49] mb-2">1. Search for a service</h3>
+              <h3 className="text-lg font-bold text-[#000000] mb-2">1. Search for a service</h3>
               <p className="text-sm text-gray-500 leading-relaxed max-w-xs">Tell us what you need and where. We'll show you the best pros for the job.</p>
             </div>
             <div className="flex flex-col items-center text-center relative">
-              <div className="w-16 h-16 bg-[#1a73e8] rounded-full flex items-center justify-center mb-5 shadow-lg relative z-10">
+              <div className="w-16 h-16 bg-[#4169E1] rounded-full flex items-center justify-center mb-5 shadow-lg relative z-10">
                 <CheckCircle className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-[#1a2b49] mb-2">2. Compare Quotes</h3>
+              <h3 className="text-lg font-bold text-[#000000] mb-2">2. Compare Quotes</h3>
               <p className="text-sm text-gray-500 leading-relaxed max-w-xs">Review profiles, ratings, and quotes. Message professionals directly through our platform.</p>
             </div>
             <div className="flex flex-col items-center text-center relative">
-              <div className="w-16 h-16 bg-[#1a2b49] rounded-full flex items-center justify-center mb-5 shadow-lg relative z-10">
+              <div className="w-16 h-16 bg-[#000000] rounded-full flex items-center justify-center mb-5 shadow-lg relative z-10">
                 <Shield className="w-7 h-7 text-white" />
               </div>
-              <h3 className="text-lg font-bold text-[#1a2b49] mb-2">3. Book & Pay</h3>
+              <h3 className="text-lg font-bold text-[#000000] mb-2">3. Book & Pay</h3>
               <p className="text-sm text-gray-500 leading-relaxed max-w-xs">Schedule your appointment and pay securely. Your satisfaction is our priority.</p>
             </div>
           </div>
@@ -221,7 +221,7 @@ export default function Home() {
               <Shield className="w-4 h-4 text-green-600" />
               <span className="text-xs font-semibold text-green-700 uppercase tracking-wide">Your Safety Comes First</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#1a2b49] mb-3">How Servizo Keeps You Safe</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#000000] mb-3">How Servizo Keeps You Safe</h2>
             <p className="text-gray-500 text-sm sm:text-base max-w-2xl mx-auto">
               We go beyond just connecting you with professionals. Every layer of Servizo is built to ensure trust, transparency, and accountability.
             </p>
@@ -235,7 +235,7 @@ export default function Home() {
                 <div className={`w-12 h-12 ${feature.color} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                   <feature.icon className="w-6 h-6" />
                 </div>
-                <h3 className="text-base font-bold text-[#1a2b49] mb-2">{feature.title}</h3>
+                <h3 className="text-base font-bold text-[#000000] mb-2">{feature.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{feature.description}</p>
               </div>
             ))}
@@ -247,13 +247,13 @@ export default function Home() {
       {!user && (
         <section className="bg-gray-50 py-16 sm:py-20 px-4 sm:px-6">
           <div className="max-w-3xl mx-auto text-center space-y-6">
-            <h2 className="text-2xl sm:text-3xl font-bold text-[#1a2b49]">Ready to get started?</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#000000]">Ready to get started?</h2>
             <p className="text-gray-500 max-w-xl mx-auto">Join thousands of satisfied customers. Find and book trusted professionals in minutes.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link to="/listing" className="px-8 py-3.5 bg-[#1a2b49] text-white rounded-lg text-sm font-semibold hover:bg-[#0f1d35] transition-colors inline-flex items-center justify-center gap-2">
+              <Link to="/listing" className="px-8 py-3.5 bg-[#000000] text-white rounded-lg text-sm font-semibold hover:bg-[#1a1a1a] transition-colors inline-flex items-center justify-center gap-2">
                 Browse Specialists <ChevronRight className="w-4 h-4" />
               </Link>
-              <Link to="/signup" className="px-8 py-3.5 border border-[#1a2b49] text-[#1a2b49] rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors">
+              <Link to="/signup" className="px-8 py-3.5 border border-[#000000] text-[#000000] rounded-lg text-sm font-semibold hover:bg-gray-100 transition-colors">
                 Sign Up Free
               </Link>
             </div>

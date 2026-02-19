@@ -74,15 +74,15 @@ export function PhotoGallery({ bookingId, beforePhotos = [], afterPhotos = [], p
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-              <Camera className="w-5 h-5 text-[#1a73e8]" />
+              <Camera className="w-5 h-5 text-[#4169E1]" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-[#1a2b49]">Photo Evidence</h3>
+              <h3 className="text-base font-bold text-[#000000]">Photo Evidence</h3>
               <p className="text-xs text-gray-400">{allPhotos.length} photo{allPhotos.length !== 1 ? 's' : ''} uploaded</p>
             </div>
           </div>
           {canUpload && (
-            <label className={`px-4 py-2.5 bg-[#1a2b49] text-white rounded-lg text-xs font-semibold cursor-pointer hover:bg-[#0f1d35] transition-colors flex items-center gap-2 ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
+            <label className={`px-4 py-2.5 bg-[#000000] text-white rounded-lg text-xs font-semibold cursor-pointer hover:bg-[#1a1a1a] transition-colors flex items-center gap-2 ${uploading ? 'opacity-60 pointer-events-none' : ''}`}>
               <Upload className="w-3.5 h-3.5" />
               {uploading ? 'Uploading...' : 'Upload Photos'}
               <input
@@ -106,7 +106,7 @@ export function PhotoGallery({ bookingId, beforePhotos = [], afterPhotos = [], p
                 onClick={() => setActiveTab(tab)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center gap-1.5 ${
                   activeTab === tab
-                    ? 'bg-[#1a2b49] text-white'
+                    ? 'bg-[#000000] text-white'
                     : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
                 }`}
               >
@@ -131,7 +131,7 @@ export function PhotoGallery({ bookingId, beforePhotos = [], afterPhotos = [], p
               return (
                 <div
                   key={idx}
-                  className="relative group cursor-pointer rounded-xl overflow-hidden border border-gray-100 hover:border-[#1a73e8]/30 hover:shadow-md transition-all"
+                  className="relative group cursor-pointer rounded-xl overflow-hidden border border-gray-100 hover:border-[#4169E1]/30 hover:shadow-md transition-all"
                   onClick={() => setSelectedIndex(idx)}
                 >
                   <div className="aspect-[4/3] overflow-hidden">
@@ -145,7 +145,7 @@ export function PhotoGallery({ bookingId, beforePhotos = [], afterPhotos = [], p
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-10 h-10 bg-white/90 rounded-full flex items-center justify-center shadow-lg">
-                        <ZoomIn className="w-5 h-5 text-[#1a2b49]" />
+                        <ZoomIn className="w-5 h-5 text-[#000000]" />
                       </div>
                     </div>
                   </div>
@@ -162,7 +162,7 @@ export function PhotoGallery({ bookingId, beforePhotos = [], afterPhotos = [], p
       ) : canUpload ? (
         <div
           className={`mx-6 mb-6 border-2 border-dashed rounded-xl p-8 text-center transition-colors ${
-            dragOver ? 'border-[#1a73e8] bg-blue-50/50' : 'border-gray-200 bg-gray-50/50'
+            dragOver ? 'border-[#4169E1] bg-blue-50/50' : 'border-gray-200 bg-gray-50/50'
           }`}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
           onDragLeave={() => setDragOver(false)}

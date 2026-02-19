@@ -130,7 +130,7 @@ export default function NotificationToast() {
         >
           <div className="flex-shrink-0 mt-0.5">
             <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
-              {typeIcons[notification.type] || <Bell className="w-5 h-5 text-[#1a2b49]" />}
+              {typeIcons[notification.type] || <Bell className="w-5 h-5 text-[#000000]" />}
             </div>
           </div>
           <div className="flex-1 min-w-0">

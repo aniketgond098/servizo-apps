@@ -40,7 +40,7 @@ export default function DocumentUpload({ currentUser: initialUser }: { currentUs
           <div className="w-20 h-20 mx-auto mb-6 bg-amber-50 rounded-full flex items-center justify-center">
             <Clock className="w-10 h-10 text-amber-500" />
           </div>
-          <h2 className="text-2xl font-bold text-[#1a2b49] mb-3">Your Profile is Being Reviewed</h2>
+          <h2 className="text-2xl font-bold text-[#000000] mb-3">Your Profile is Being Reviewed</h2>
           <p className="text-gray-500 text-sm leading-relaxed mb-2">
             Thank you for submitting your documents! Our admin team is currently reviewing your application.
           </p>
@@ -57,7 +57,7 @@ export default function DocumentUpload({ currentUser: initialUser }: { currentUs
           </div>
           <button 
             onClick={() => navigate('/')} 
-            className="px-6 py-3 bg-[#1a2b49] text-white rounded-lg font-semibold text-sm hover:bg-[#0f1d35] transition-colors"
+            className="px-6 py-3 bg-[#000000] text-white rounded-lg font-semibold text-sm hover:bg-[#1a1a1a] transition-colors"
           >
             Go to Home
           </button>
@@ -73,13 +73,13 @@ export default function DocumentUpload({ currentUser: initialUser }: { currentUs
           <div className="w-20 h-20 mx-auto mb-6 bg-green-50 rounded-full flex items-center justify-center">
             <CheckCircle className="w-10 h-10 text-green-500" />
           </div>
-          <h2 className="text-2xl font-bold text-[#1a2b49] mb-3">You're Verified!</h2>
+          <h2 className="text-2xl font-bold text-[#000000] mb-3">You're Verified!</h2>
           <p className="text-gray-500 text-sm leading-relaxed mb-8">
             Your documents have been approved. Create your professional profile to start receiving bookings from customers.
           </p>
           <button 
             onClick={() => navigate('/create-profile')} 
-            className="px-6 py-3 bg-[#1a73e8] text-white rounded-lg font-semibold text-sm hover:bg-blue-600 transition-colors flex items-center gap-2 mx-auto"
+            className="px-6 py-3 bg-[#4169E1] text-white rounded-lg font-semibold text-sm hover:bg-blue-600 transition-colors flex items-center gap-2 mx-auto"
           >
             Create Profile <ArrowRight className="w-4 h-4" />
           </button>
@@ -134,7 +134,7 @@ export default function DocumentUpload({ currentUser: initialUser }: { currentUs
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 p-4 pt-24">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-8">
-          <h1 className="text-2xl font-bold text-[#1a2b49] mb-2">Document Verification</h1>
+          <h1 className="text-2xl font-bold text-[#000000] mb-2">Document Verification</h1>
           <p className="text-gray-500 text-sm mb-8">Upload your Aadhaar and PAN card for verification</p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
