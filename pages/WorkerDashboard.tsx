@@ -6,7 +6,7 @@ import { DB } from '../services/db';
 import { Specialist, ServiceCategory, Booking, Message } from '../types';
 import { Save, Star, Activity, Zap, TrendingUp, DollarSign, MessageCircle, Camera, Plus, Trash2, Send, IndianRupee, ChevronDown } from 'lucide-react';
 import { PhotoGallery } from '../components/PhotoGallery';
-import ImageCropper from '../components/ImageCropper';
+const ImageCropper = React.lazy(() => import('../components/ImageCropper'));
 
 export default function WorkerDashboard() {
   const user = AuthService.getCurrentUser();
@@ -528,11 +528,13 @@ export default function WorkerDashboard() {
         </div>
 
         {rawAvatarImage && (
-          <ImageCropper
-            imageSrc={rawAvatarImage}
-            onCropDone={(cropped) => { setProfile({ ...profile, avatar: cropped }); setRawAvatarImage(null); }}
-            onCancel={() => setRawAvatarImage(null)}
-          />
+          <React.Suspense fallback={null}>
+            <ImageCropper
+              imageSrc={rawAvatarImage}
+              onCropDone={(cropped) => { setProfile({ ...profile, avatar: cropped }); setRawAvatarImage(null); }}
+              onCancel={() => setRawAvatarImage(null)}
+            />
+          </React.Suspense>
         )}
       </div>
   );

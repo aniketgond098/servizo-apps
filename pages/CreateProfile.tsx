@@ -4,7 +4,7 @@ import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
 import { ServiceCategory } from '../types';
 import { Save, Camera, User } from 'lucide-react';
-import ImageCropper from '../components/ImageCropper';
+const ImageCropper = React.lazy(() => import('../components/ImageCropper'));
 
 export default function CreateProfile() {
   const navigate = useNavigate();
@@ -201,11 +201,13 @@ export default function CreateProfile() {
         </div>
 
         {rawImage && (
-          <ImageCropper
-            imageSrc={rawImage}
-            onCropDone={(cropped) => { setAvatarPreview(cropped); setRawImage(null); }}
-            onCancel={() => setRawImage(null)}
-          />
+          <React.Suspense fallback={null}>
+            <ImageCropper
+              imageSrc={rawImage}
+              onCropDone={(cropped) => { setAvatarPreview(cropped); setRawImage(null); }}
+              onCancel={() => setRawImage(null)}
+            />
+          </React.Suspense>
         )}
       </div>
   );

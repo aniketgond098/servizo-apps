@@ -5,7 +5,7 @@ import { Search, Filter, Star, MapPin, Loader2, X, List, Map as MapIcon, Heart, 
 import { DB } from '../services/db';
 import { Specialist, ServiceCategory, AvailabilityStatus, SortOption, PriceRange } from '../types';
 import { parseSearchIntent } from '../services/ai';
-import { MapView } from '../components/MapView';
+const MapView = React.lazy(() => import('../components/MapView').then(m => ({ default: m.MapView })));
 import { calculateDistance, formatDistance } from '../utils/distance';
 import { AuthService } from '../services/auth';
 import VerificationBadges from '../components/VerificationBadges';
@@ -265,11 +265,13 @@ export default function Listing() {
             <p className="text-sm text-gray-500">Searching specialists...</p>
           </div>
         ) : viewMode === 'map' ? (
-          <MapView 
-            specialists={specialists} 
-            userLoc={userLoc} 
-            getAvailabilityColor={getAvailabilityColor}
-          />
+          <React.Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 text-[#4169E1] animate-spin" /></div>}>
+            <MapView 
+              specialists={specialists} 
+              userLoc={userLoc} 
+              getAvailabilityColor={getAvailabilityColor}
+            />
+          </React.Suspense>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {specialists.length > 0 ? specialists.map(specialist => {

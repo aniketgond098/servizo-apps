@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, ChevronRight, Shield, CheckCircle, Wrench, Paintbrush, Plug, Bot, Droplets, Ruler, FileCheck, UserCheck, ShieldCheck, MessageSquareWarning, Lock, Eye } from 'lucide-react';
 import { AuthService } from '../services/auth';
 import HeroToolsAnimation from '../components/HeroToolsAnimation';
+import SnakeAnimation from '../components/SnakeAnimation';
 
 export default function Home() {
   const [query, setQuery] = useState("");
@@ -92,12 +93,9 @@ export default function Home() {
               <div className="space-y-6">
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-[#000000] leading-[1.1] tracking-tight">
                     Find the perfect professional for{' '}
-                    <span className="inline-flex items-center">
+                    <span className="inline-flex items-center flex-wrap gap-x-2">
                       <span className="text-[#4169E1]">any task.</span>
-                      {/* Mobile-only inline animation right after "any task." */}
-                        <span className="lg:hidden inline-block relative ml-2" style={{ width: 72, height: 72, verticalAlign: 'middle', overflow: 'visible', position: 'relative', top: 6 }}>
-                        <HeroToolsAnimation variant="mobile" />
-                      </span>
+                        <HeroToolsAnimation />
                     </span>
                   </h1>
                   <p className="text-gray-700 text-base sm:text-lg max-w-lg leading-relaxed">
@@ -142,9 +140,9 @@ export default function Home() {
               </div>
             </div>
 
-              {/* Right: Tool Animation — desktop/tablet only */}
+              {/* Right: Snake — desktop/tablet only */}
                 <div className="relative hidden lg:flex items-center justify-center h-[500px]">
-                  <HeroToolsAnimation variant="desktop" />
+                  <SnakeAnimation />
                 </div>
           </div>
         </div>

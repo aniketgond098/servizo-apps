@@ -1,677 +1,349 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+
+interface ToolDef {
+  color: string;
+  glowColor: string;
+  svg: React.ReactNode;
+}
+
+const tools: ToolDef[] = [
+  {
+    color: '#f97316',
+    glowColor: 'rgba(249,115,22,0.25)',
+    svg: (
+      <svg viewBox="0 0 80 80" fill="none" className="w-full h-full">
+        <defs>
+          <linearGradient id="wrench-g" x1="10" y1="10" x2="70" y2="70" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#fdba74" />
+            <stop offset="1" stopColor="#ea580c" />
+          </linearGradient>
+        </defs>
+        <path d="M55 18a16 16 0 0 0-22.6 0l-1.2 1.2 8.6 8.6-2.8 2.8-8.6-8.6-1.2 1.2a16 16 0 0 0 0 22.6 16 16 0 0 0 18.2 3l17 17a5 5 0 0 0 7.1-7.1l-17-17A16 16 0 0 0 55 18z" fill="url(#wrench-g)" />
+        <rect x="54" y="52" width="8" height="16" rx="2" transform="rotate(45 58 60)" fill="#c2410c" opacity="0.6" />
+        <circle cx="56" cy="58" r="3" fill="#fff" opacity="0.4" />
+        <path d="M24 24l6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" opacity="0.5" />
+      </svg>
+    ),
+  },
+  {
+    color: '#ec4899',
+    glowColor: 'rgba(236,72,153,0.25)',
+    svg: (
+      <svg viewBox="0 0 80 80" fill="none" className="w-full h-full">
+        <defs>
+          <linearGradient id="roller-g" x1="10" y1="10" x2="70" y2="40" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#f9a8d4" />
+            <stop offset="1" stopColor="#db2777" />
+          </linearGradient>
+        </defs>
+        <rect x="12" y="12" width="50" height="20" rx="6" fill="url(#roller-g)" />
+        <rect x="14" y="14" width="46" height="16" rx="4" fill="#db2777" opacity="0.5" />
+        <rect x="14" y="14" width="20" height="16" rx="4" fill="#fff" opacity="0.15" />
+        <rect x="62" y="18" width="8" height="8" rx="2" fill="#9d174d" />
+        <rect x="36" y="32" width="6" height="22" rx="3" fill="#6b7280" />
+        <rect x="36" y="32" width="3" height="22" rx="1.5" fill="#9ca3af" opacity="0.5" />
+        <rect x="32" y="52" width="14" height="6" rx="3" fill="#4b5563" />
+        <circle cx="25" cy="22" r="4" fill="#fff" opacity="0.2" />
+      </svg>
+    ),
+  },
+  {
+    color: '#6366f1',
+    glowColor: 'rgba(99,102,241,0.25)',
+    svg: (
+      <svg viewBox="0 0 80 80" fill="none" className="w-full h-full">
+        <defs>
+          <linearGradient id="screw-g" x1="20" y1="10" x2="60" y2="70" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#a5b4fc" />
+            <stop offset="1" stopColor="#4338ca" />
+          </linearGradient>
+          <linearGradient id="screw-h" x1="30" y1="40" x2="50" y2="75" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#fbbf24" />
+            <stop offset="1" stopColor="#d97706" />
+          </linearGradient>
+        </defs>
+        <path d="M40 8l-6 3 2 22h8l2-22-6-3z" fill="url(#screw-g)" />
+        <path d="M40 8l-3 1.5 1 11h4l1-11L40 8z" fill="#fff" opacity="0.2" />
+        <rect x="33" y="33" width="14" height="6" rx="2" fill="#c7d2fe" />
+        <path d="M34 39h12l4 6H30l4-6z" fill="url(#screw-h)" />
+        <rect x="32" y="45" width="16" height="22" rx="3" fill="url(#screw-h)" />
+        <rect x="32" y="45" width="8" height="22" rx="3" fill="#fff" opacity="0.15" />
+        <line x1="36" y1="50" x2="36" y2="62" stroke="#92400e" strokeWidth="1" opacity="0.3" />
+        <line x1="40" y1="48" x2="40" y2="64" stroke="#92400e" strokeWidth="1" opacity="0.2" />
+        <line x1="44" y1="50" x2="44" y2="62" stroke="#92400e" strokeWidth="1" opacity="0.3" />
+      </svg>
+    ),
+  },
+  {
+    color: '#0ea5e9',
+    glowColor: 'rgba(14,165,233,0.25)',
+    svg: (
+      <svg viewBox="0 0 80 80" fill="none" className="w-full h-full">
+        <defs>
+          <linearGradient id="pipe-g" x1="10" y1="10" x2="70" y2="70" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#7dd3fc" />
+            <stop offset="1" stopColor="#0369a1" />
+          </linearGradient>
+        </defs>
+        {/* Handle */}
+        <rect x="36" y="52" width="8" height="22" rx="4" fill="#475569" />
+        <rect x="36" y="52" width="4" height="22" rx="2" fill="#94a3b8" opacity="0.4" />
+        {/* Body of pipe wrench */}
+        <path d="M14 34 Q12 26 20 22 L52 38 Q58 42 56 50 L24 50 Q14 50 14 42 Z" fill="url(#pipe-g)" />
+        <path d="M14 34 Q12 26 20 22 L36 30 Q30 32 28 40 L14 42 Q14 50 24 50 L14 42 Z" fill="#fff" opacity="0.12" />
+        {/* Upper jaw */}
+        <path d="M20 22 L56 22 Q64 22 64 30 L64 34 Q64 38 56 38 L20 38 Z" fill="url(#pipe-g)" />
+        <path d="M20 22 L38 22 L38 38 L20 38 Z" fill="#fff" opacity="0.1" />
+        {/* Jaw teeth */}
+        <rect x="22" y="38" width="6" height="5" rx="1" fill="#0369a1" opacity="0.8" />
+        <rect x="32" y="38" width="6" height="5" rx="1" fill="#0369a1" opacity="0.8" />
+        <rect x="42" y="38" width="6" height="5" rx="1" fill="#0369a1" opacity="0.8" />
+        <rect x="22" y="17" width="6" height="5" rx="1" fill="#0369a1" opacity="0.8" />
+        <rect x="32" y="17" width="6" height="5" rx="1" fill="#0369a1" opacity="0.8" />
+        <rect x="42" y="17" width="6" height="5" rx="1" fill="#0369a1" opacity="0.8" />
+        {/* Adjustment nut */}
+        <circle cx="58" cy="46" r="7" fill="#1e40af" />
+        <circle cx="58" cy="46" r="4" fill="#3b82f6" opacity="0.6" />
+        <line x1="55" y1="46" x2="61" y2="46" stroke="#fff" strokeWidth="1.5" opacity="0.7" />
+        <line x1="58" y1="43" x2="58" y2="49" stroke="#fff" strokeWidth="1.5" opacity="0.7" />
+        {/* Shine */}
+        <path d="M24 26 L46 26" stroke="#fff" strokeWidth="2" strokeLinecap="round" opacity="0.3" />
+      </svg>
+    ),
+  },
+  {
+    color: '#d946ef',
+    glowColor: 'rgba(217,70,239,0.25)',
+    svg: (
+      <svg viewBox="0 0 80 80" fill="none" className="w-full h-full">
+        <defs>
+          <linearGradient id="brush-handle-g" x1="38" y1="8" x2="42" y2="58" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#f0abfc" />
+            <stop offset="1" stopColor="#a21caf" />
+          </linearGradient>
+          <linearGradient id="brush-bristle-g" x1="30" y1="55" x2="50" y2="78" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#fdf4ff" />
+            <stop offset="1" stopColor="#e879f9" />
+          </linearGradient>
+        </defs>
+        {/* Handle */}
+        <rect x="36" y="8" width="8" height="44" rx="4" fill="url(#brush-handle-g)" />
+        <rect x="36" y="8" width="4" height="44" rx="2" fill="#fff" opacity="0.2" />
+        {/* Ferrule (metal band) */}
+        <rect x="33" y="48" width="14" height="8" rx="2" fill="#c0c0c0" />
+        <rect x="33" y="48" width="7" height="8" rx="2" fill="#fff" opacity="0.2" />
+        <line x1="33" y1="51" x2="47" y2="51" stroke="#a0a0a0" strokeWidth="1" opacity="0.5" />
+        <line x1="33" y1="54" x2="47" y2="54" stroke="#a0a0a0" strokeWidth="1" opacity="0.5" />
+        {/* Bristles */}
+        <path d="M33 56 Q30 62 32 70 Q36 75 40 75 Q44 75 48 70 Q50 62 47 56 Z" fill="url(#brush-bristle-g)" />
+        <path d="M33 56 Q31 62 33 70 Q36 75 40 75 L40 56 Z" fill="#fff" opacity="0.15" />
+        {/* Bristle lines */}
+        <line x1="37" y1="57" x2="36" y2="73" stroke="#c026d3" strokeWidth="1" opacity="0.4" />
+        <line x1="40" y1="56" x2="40" y2="74" stroke="#c026d3" strokeWidth="1" opacity="0.4" />
+        <line x1="43" y1="57" x2="44" y2="73" stroke="#c026d3" strokeWidth="1" opacity="0.4" />
+        {/* Glitter dots on bristles */}
+        <circle cx="35" cy="65" r="1.5" fill="#fff" opacity="0.7" />
+        <circle cx="43" cy="68" r="1.5" fill="#fff" opacity="0.6" />
+        <circle cx="40" cy="62" r="1" fill="#fff" opacity="0.8" />
+        {/* Top cap */}
+        <rect x="34" y="6" width="12" height="5" rx="2.5" fill="#86198f" opacity="0.7" />
+      </svg>
+    ),
+  },
+  {
+    color: '#eab308',
+    glowColor: 'rgba(234,179,8,0.25)',
+    svg: (
+      <svg viewBox="0 0 80 80" fill="none" className="w-full h-full">
+        <defs>
+          <linearGradient id="drill-g" x1="10" y1="25" x2="55" y2="55" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#fde68a" />
+            <stop offset="1" stopColor="#ca8a04" />
+          </linearGradient>
+          <linearGradient id="drill-bit" x1="55" y1="35" x2="75" y2="45" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#d4d4d8" />
+            <stop offset="1" stopColor="#71717a" />
+          </linearGradient>
+        </defs>
+        <path d="M10 30h35c4 0 8 3 8 8v4c0 5-4 8-8 8H10c-3 0-4-2-4-5V35c0-3 1-5 4-5z" fill="url(#drill-g)" />
+        <path d="M10 30h18c2 0 4 3 4 8v4c0 5-2 8-4 8H10c-3 0-4-2-4-5V35c0-3 1-5 4-5z" fill="#fff" opacity="0.15" />
+        <rect x="14" y="42" width="16" height="5" rx="2" fill="#92400e" opacity="0.3" />
+        <circle cx="20" cy="40" r="3" fill="#fff" opacity="0.3" />
+        <path d="M53 36l22-2v12l-22-2V36z" fill="url(#drill-bit)" />
+        <line x1="57" y1="38" x2="72" y2="37" stroke="#a1a1aa" strokeWidth="1" opacity="0.5" />
+        <line x1="57" y1="42" x2="72" y2="43" stroke="#a1a1aa" strokeWidth="1" opacity="0.5" />
+        <rect x="8" y="50" width="12" height="8" rx="2" fill="#a16207" opacity="0.5" />
+      </svg>
+    ),
+  },
+];
+
+const TOOL_DURATION = 4000;
+
+interface Droplet {
+  angle: number;
+  distance: number;
+  size: number;
+  delay: number;
+}
+
+function generateDroplets(count: number): Droplet[] {
+  const droplets: Droplet[] = [];
+  for (let i = 0; i < count; i++) {
+    droplets.push({
+      angle: (360 / count) * i + (Math.random() - 0.5) * 30,
+      distance: 35 + Math.random() * 50,
+      size: 3 + Math.random() * 7,
+      delay: Math.random() * 0.12,
+    });
+  }
+  return droplets;
+}
+
+const splashDroplets = generateDroplets(12);
 
 interface Props {
   variant?: 'desktop' | 'mobile';
 }
 
+const ICON_SIZE = 56; // px — inline icon size
+
 export default function HeroToolsAnimation({ variant = 'desktop' }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const isMobile = variant === 'mobile';
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [phase, setPhase] = useState<'enter' | 'center' | 'exit'>('enter');
+  const [splashKey, setSplashKey] = useState(0);
 
-  const W = isMobile ? 340 : 620;
-  const H = isMobile ? 200 : 360;
-  const cx = W / 2;
-  const cy = H / 2;
-  const a = isMobile ? 108 : 215;
-
-  function lemniscate(t: number): [number, number] {
-    const s = Math.sin(t);
-    const denom = 1 + s * s;
-    return [cx + (a * Math.cos(t)) / denom, cy + (a * s * Math.cos(t)) / denom];
-  }
+  const advance = useCallback(() => {
+    setActiveIndex(prev => (prev + 1) % tools.length);
+  }, []);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const PATH_STEPS = 1200;
-    const pathX = new Float32Array(PATH_STEPS);
-    const pathY = new Float32Array(PATH_STEPS);
-    const pathAngle = new Float32Array(PATH_STEPS);
-
-    for (let i = 0; i < PATH_STEPS; i++) {
-      const t = (i / PATH_STEPS) * 2 * Math.PI;
-      const [x, y] = lemniscate(t);
-      pathX[i] = x;
-      pathY[i] = y;
-    }
-    for (let i = 0; i < PATH_STEPS; i++) {
-      const next = (i + 1) % PATH_STEPS;
-      pathAngle[i] = Math.atan2(pathY[next] - pathY[i], pathX[next] - pathX[i]);
-    }
-
-      const SEGMENTS = isMobile ? 26 : 42;
-      const SEG_SPACING = 0.016;
-      const SPEED = 0.00042;
-
-    function segRadius(i: number): number {
-      if (i === 0) return isMobile ? 7 : 12;
-      const t = i / (SEGMENTS - 1);
-      const base = isMobile ? 5 : 8;
-      const tip = isMobile ? 1 : 1.5;
-      const bulge = Math.sin(t * Math.PI) * (isMobile ? 1 : 1.5);
-      return Math.max(tip, base - t * (base - tip) + bulge);
-    }
-
-    // Main body color: deep royal blue
-    function segColor(i: number, light = false): string {
-      const t = i / (SEGMENTS - 1);
-      if (light) {
-        const r = Math.round(100 + t * 30);
-        const g = Math.round(180 - t * 60);
-        const b = 255;
-        return `rgb(${r},${g},${b})`;
-      }
-      const r = Math.round(20 + t * 15);
-      const g = Math.round(80 - t * 40);
-      const b = Math.round(220 - t * 50);
-      return `rgb(${r},${g},${b})`;
-    }
-
-    function getPosAt(fraction: number) {
-      const f = ((fraction % 1) + 1) % 1;
-      const idx = Math.floor(f * PATH_STEPS) % PATH_STEPS;
-      return { x: pathX[idx], y: pathY[idx], angle: pathAngle[idx] };
-    }
-
-    // Draw a single fish-scale arc on a body segment
-    function drawScale(
-      sx: number, sy: number, segAngle: number,
-      r: number, col: string, highlightCol: string,
-      side: number // +1 or -1
-    ) {
-      const perp = segAngle + Math.PI / 2;
-      const scaleR = r * 0.72;
-      const bx = sx + Math.cos(perp) * side * r * 0.55;
-      const by = sy + Math.sin(perp) * side * r * 0.55;
-
-      ctx.save();
-      ctx.translate(bx, by);
-      ctx.rotate(segAngle + (side > 0 ? -0.3 : 0.3));
-
-      // Scale body (teardrop shape)
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.bezierCurveTo(
-        -scaleR * 0.6, -scaleR * 0.8,
-        scaleR * 0.6, -scaleR * 0.8,
-        0, 0
-      );
-      ctx.bezierCurveTo(
-        scaleR * 0.8, scaleR * 0.5,
-        -scaleR * 0.8, scaleR * 0.5,
-        0, 0
-      );
-      ctx.fillStyle = col;
-      ctx.fill();
-
-      // Scale highlight
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.bezierCurveTo(
-        -scaleR * 0.3, -scaleR * 0.5,
-        scaleR * 0.3, -scaleR * 0.5,
-        0, 0
-      );
-      ctx.fillStyle = highlightCol;
-      ctx.fill();
-
-      // Scale outline
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.bezierCurveTo(
-        -scaleR * 0.6, -scaleR * 0.8,
-        scaleR * 0.6, -scaleR * 0.8,
-        0, 0
-      );
-      ctx.bezierCurveTo(
-        scaleR * 0.8, scaleR * 0.5,
-        -scaleR * 0.8, scaleR * 0.5,
-        0, 0
-      );
-      ctx.strokeStyle = 'rgba(147,197,253,0.4)';
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-
-      ctx.restore();
-    }
-
-    // Draw a dorsal spine
-    function drawSpine(sx: number, sy: number, segAngle: number, r: number, big: boolean) {
-      const spineLen = r * (big ? (isMobile ? 2.2 : 2.8) : (isMobile ? 1.4 : 1.9));
-      const spineAng = segAngle - Math.PI / 2;
-
-      ctx.save();
-      ctx.translate(sx, sy);
-
-      // Spine base-to-tip shape
-      ctx.beginPath();
-      ctx.moveTo(-r * 0.25, 0);
-      ctx.lineTo(r * 0.25, 0);
-      ctx.lineTo(Math.cos(spineAng - segAngle) * r * 0.12, -spineLen);
-      ctx.closePath();
-
-      const spineGrad = ctx.createLinearGradient(0, 0, Math.cos(spineAng - segAngle) * r * 0.12, -spineLen);
-      spineGrad.addColorStop(0, '#1565c0');
-      spineGrad.addColorStop(1, '#90caf9');
-      ctx.fillStyle = spineGrad;
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(144,202,249,0.5)';
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
-
-      ctx.restore();
-    }
-
-    // Wing-like fin
-    function drawFin(sx: number, sy: number, segAngle: number, r: number, side: number) {
-      const finLen = r * (isMobile ? 2.5 : 3.5);
-      const perp = segAngle + (side > 0 ? Math.PI / 2 : -Math.PI / 2);
-
-      ctx.save();
-      ctx.translate(sx, sy);
-      ctx.rotate(segAngle);
-
-      const fx = Math.cos(perp - segAngle) * finLen;
-      const fy = Math.sin(perp - segAngle) * finLen;
-
-      ctx.beginPath();
-      ctx.moveTo(-r * 0.4, 0);
-      ctx.quadraticCurveTo(fx * 0.3, fy * 0.8, fx, fy);
-      ctx.quadraticCurveTo(fx * 0.7, fy * 0.4, r * 0.4, 0);
-      ctx.closePath();
-
-      const finGrad = ctx.createLinearGradient(0, 0, fx, fy);
-      finGrad.addColorStop(0, 'rgba(21,101,192,0.8)');
-      finGrad.addColorStop(1, 'rgba(144,202,249,0.15)');
-      ctx.fillStyle = finGrad;
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(144,202,249,0.3)';
-      ctx.lineWidth = 0.7;
-      ctx.stroke();
-
-      // Claw-like tips on fin
-      for (let c = 0; c < 3; c++) {
-        const t = (c + 1) / 4;
-        const clawX = fx * t + (r * 0.4) * (1 - t) + (-r * 0.4) * 0;
-        const clawY = fy * t;
-        const clawLen = r * 0.45;
-        const clawAng = perp - segAngle + (c - 1) * 0.25;
-        ctx.beginPath();
-        ctx.moveTo(clawX, clawY);
-        ctx.lineTo(
-          clawX + Math.cos(clawAng) * clawLen,
-          clawY + Math.sin(clawAng) * clawLen
-        );
-        ctx.strokeStyle = '#90caf9';
-        ctx.lineWidth = isMobile ? 0.8 : 1.2;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-      }
-
-      ctx.restore();
-    }
-
-    // Entire head drawn in local coordinates (facing right = 0)
-    function drawHead(hx: number, hy: number, headAngle: number, hr: number, timestamp: number) {
-      ctx.save();
-      ctx.translate(hx, hy);
-      ctx.rotate(headAngle);
-
-      // Head glow
-      const glowR = hr * 4;
-      const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, glowR);
-      glow.addColorStop(0, 'rgba(59,130,246,0.35)');
-      glow.addColorStop(1, 'rgba(29,78,216,0)');
-      ctx.beginPath();
-      ctx.arc(0, 0, glowR, 0, Math.PI * 2);
-      ctx.fillStyle = glow;
-      ctx.fill();
-
-      // ---- LOWER JAW ----
-      const jawOpen = 0.28 + Math.sin(timestamp / 500) * 0.12; // breathing jaw motion
-      ctx.save();
-      ctx.rotate(jawOpen);
-      ctx.beginPath();
-      ctx.moveTo(-hr * 0.3, 0);
-      ctx.bezierCurveTo(hr * 0.4, hr * 0.1, hr * 1.0, hr * 0.55, hr * 1.7, hr * 0.3);
-      ctx.bezierCurveTo(hr * 1.3, hr * 0.75, hr * 0.5, hr * 0.9, -hr * 0.3, hr * 0.5);
-      ctx.closePath();
-      ctx.fillStyle = '#0d47a1';
-      ctx.fill();
-      ctx.strokeStyle = '#1565c0';
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
-
-      // Lower teeth
-      const lowerTeeth = isMobile ? 4 : 6;
-      for (let t = 0; t < lowerTeeth; t++) {
-        const tx = hr * 0.2 + (t / (lowerTeeth - 1)) * hr * 1.3;
-        const ty = hr * 0.38 + Math.sin((t / lowerTeeth) * Math.PI) * hr * 0.15;
-        const th = hr * (t % 2 === 0 ? 0.45 : 0.3);
-        ctx.beginPath();
-        ctx.moveTo(tx - hr * 0.1, ty);
-        ctx.lineTo(tx, ty - th);
-        ctx.lineTo(tx + hr * 0.1, ty);
-        ctx.closePath();
-        ctx.fillStyle = '#e3f2fd';
-        ctx.strokeStyle = 'rgba(144,202,249,0.5)';
-        ctx.lineWidth = 0.5;
-        ctx.fill();
-        ctx.stroke();
-      }
-      ctx.restore(); // jaw
-
-      // ---- UPPER HEAD ----
-      // Main skull shape
-      ctx.beginPath();
-      ctx.moveTo(-hr * 0.4, -hr * 0.7);
-      ctx.bezierCurveTo(hr * 0.2, -hr * 1.1, hr * 1.0, -hr * 0.9, hr * 1.8, -hr * 0.15);
-      ctx.bezierCurveTo(hr * 2.0, hr * 0.05, hr * 1.95, hr * 0.2, hr * 1.7, hr * 0.25);
-      ctx.bezierCurveTo(hr * 1.1, hr * 0.15, hr * 0.3, hr * 0.0, -hr * 0.3, hr * 0.0);
-      ctx.bezierCurveTo(-hr * 0.5, hr * 0.0, -hr * 0.6, -hr * 0.35, -hr * 0.4, -hr * 0.7);
-      ctx.closePath();
-      const headGrad = ctx.createLinearGradient(-hr * 0.4, -hr, hr * 2, 0);
-      headGrad.addColorStop(0, '#1565c0');
-      headGrad.addColorStop(0.5, '#1e88e5');
-      headGrad.addColorStop(1, '#42a5f5');
-      ctx.fillStyle = headGrad;
-      ctx.fill();
-      ctx.strokeStyle = '#90caf9';
-      ctx.lineWidth = isMobile ? 0.8 : 1.1;
-      ctx.stroke();
-
-      // Snout brow ridge
-      ctx.beginPath();
-      ctx.moveTo(hr * 0.6, -hr * 0.85);
-      ctx.bezierCurveTo(hr * 1.0, -hr * 1.05, hr * 1.4, -hr * 0.85, hr * 1.7, -hr * 0.4);
-      ctx.strokeStyle = '#64b5f6';
-      ctx.lineWidth = isMobile ? 1 : 1.5;
-      ctx.stroke();
-
-      // Scales on head
-      for (let s = 0; s < (isMobile ? 4 : 6); s++) {
-        const sx = -hr * 0.1 + s * hr * 0.33;
-        const sy = -hr * (0.55 - Math.sin((s / 5) * Math.PI) * 0.2);
-        const sr = hr * 0.22;
-        ctx.beginPath();
-        ctx.arc(sx, sy, sr, Math.PI, 0);
-        ctx.strokeStyle = 'rgba(144,202,249,0.45)';
-        ctx.lineWidth = 0.7;
-        ctx.stroke();
-      }
-
-      // Nostril slits
-      ctx.save();
-      ctx.translate(hr * 1.55, -hr * 0.18);
-      ctx.rotate(-0.3);
-      ctx.beginPath();
-      ctx.ellipse(0, -hr * 0.1, hr * 0.07, hr * 0.16, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#0a2472';
-      ctx.fill();
-      ctx.restore();
-      ctx.save();
-      ctx.translate(hr * 1.55, hr * 0.02);
-      ctx.rotate(0.3);
-      ctx.beginPath();
-      ctx.ellipse(0, hr * 0.1, hr * 0.07, hr * 0.16, 0, 0, Math.PI * 2);
-      ctx.fillStyle = '#0a2472';
-      ctx.fill();
-      ctx.restore();
-
-      // Upper teeth (behind lip)
-      const upperTeeth = isMobile ? 4 : 6;
-      for (let t = 0; t < upperTeeth; t++) {
-        const tx = hr * 0.3 + (t / (upperTeeth - 1)) * hr * 1.2;
-        const ty = hr * 0.08;
-        const th = hr * (t % 2 === 0 ? 0.5 : 0.35);
-        ctx.beginPath();
-        ctx.moveTo(tx - hr * 0.1, ty);
-        ctx.lineTo(tx, ty + th);
-        ctx.lineTo(tx + hr * 0.1, ty);
-        ctx.closePath();
-        ctx.fillStyle = '#e3f2fd';
-        ctx.strokeStyle = 'rgba(144,202,249,0.5)';
-        ctx.lineWidth = 0.5;
-        ctx.fill();
-        ctx.stroke();
-      }
-
-      // BIG fang on upper jaw
-      ctx.beginPath();
-      ctx.moveTo(hr * 0.45, hr * 0.08);
-      ctx.lineTo(hr * 0.5, hr * 0.68);
-      ctx.lineTo(hr * 0.62, hr * 0.08);
-      ctx.closePath();
-      ctx.fillStyle = '#f0f9ff';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(144,202,249,0.7)';
-      ctx.lineWidth = 0.6;
-      ctx.stroke();
-
-      // Second big fang
-      ctx.beginPath();
-      ctx.moveTo(hr * 0.9, hr * 0.08);
-      ctx.lineTo(hr * 0.96, hr * 0.58);
-      ctx.lineTo(hr * 1.07, hr * 0.08);
-      ctx.closePath();
-      ctx.fillStyle = '#f0f9ff';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(144,202,249,0.7)';
-      ctx.lineWidth = 0.6;
-      ctx.stroke();
-
-      // ---- HORNS ----
-      // Primary large curved horn (top)
-      ctx.beginPath();
-      ctx.moveTo(hr * 0.1, -hr * 0.65);
-      ctx.bezierCurveTo(-hr * 0.3, -hr * 1.6, hr * 0.5, -hr * 2.4, hr * 0.9, -hr * 2.1);
-      ctx.bezierCurveTo(hr * 1.1, -hr * 1.9, hr * 0.7, -hr * 1.5, hr * 0.5, -hr * 1.1);
-      ctx.strokeStyle = '#90caf9';
-      ctx.lineWidth = isMobile ? 2 : 3;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(hr * 0.1, hr * 0.65);
-      ctx.bezierCurveTo(-hr * 0.3, hr * 1.6, hr * 0.5, hr * 2.4, hr * 0.9, hr * 2.1);
-      ctx.bezierCurveTo(hr * 1.1, hr * 1.9, hr * 0.7, hr * 1.5, hr * 0.5, hr * 1.1);
-      ctx.strokeStyle = '#90caf9';
-      ctx.lineWidth = isMobile ? 2 : 3;
-      ctx.stroke();
-
-      // Small secondary horn
-      ctx.beginPath();
-      ctx.moveTo(hr * 0.55, -hr * 0.82);
-      ctx.lineTo(hr * 0.4, -hr * 1.45);
-      ctx.lineTo(hr * 0.72, -hr * 0.9);
-      ctx.closePath();
-      ctx.fillStyle = '#64b5f6';
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(hr * 0.55, hr * 0.82);
-      ctx.lineTo(hr * 0.4, hr * 1.45);
-      ctx.lineTo(hr * 0.72, hr * 0.9);
-      ctx.closePath();
-      ctx.fillStyle = '#64b5f6';
-      ctx.fill();
-
-      // ---- EYES ----
-      const eyeX = hr * 0.55;
-      const eyeR = isMobile ? hr * 0.38 : hr * 0.42;
-
-      [-1, 1].forEach((side) => {
-        const ey = side * hr * 0.52;
-
-        // Eye socket dark
-        ctx.beginPath();
-        ctx.arc(eyeX, ey, eyeR * 1.25, 0, Math.PI * 2);
-        ctx.fillStyle = '#0a1628';
-        ctx.fill();
-
-        // Iris — glowing amber/gold for fearsome look
-        const irisGrad = ctx.createRadialGradient(eyeX, ey, 0, eyeX, ey, eyeR);
-        irisGrad.addColorStop(0, '#ffd54f');
-        irisGrad.addColorStop(0.5, '#ff8f00');
-        irisGrad.addColorStop(1, '#e65100');
-        ctx.beginPath();
-        ctx.arc(eyeX, ey, eyeR, 0, Math.PI * 2);
-        ctx.fillStyle = irisGrad;
-        ctx.fill();
-
-        // Vertical slit pupil
-        ctx.save();
-        ctx.translate(eyeX, ey);
-        ctx.beginPath();
-        ctx.ellipse(0, 0, eyeR * 0.22, eyeR * 0.82, 0, 0, Math.PI * 2);
-        ctx.fillStyle = '#000';
-        ctx.fill();
-        ctx.restore();
-
-        // Eye glow
-        const eg = ctx.createRadialGradient(eyeX, ey, 0, eyeX, ey, eyeR * 2.2);
-        eg.addColorStop(0, 'rgba(255,200,0,0.4)');
-        eg.addColorStop(1, 'rgba(255,140,0,0)');
-        ctx.beginPath();
-        ctx.arc(eyeX, ey, eyeR * 2.2, 0, Math.PI * 2);
-        ctx.fillStyle = eg;
-        ctx.fill();
-
-        // Glint
-        ctx.beginPath();
-        ctx.arc(eyeX - eyeR * 0.25, ey - eyeR * 0.3, eyeR * 0.2, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255,255,255,0.85)';
-        ctx.fill();
-      });
-
-      // Brow ridges (menacing)
-      [-1, 1].forEach((side) => {
-        const ey = side * hr * 0.52;
-        ctx.beginPath();
-        ctx.moveTo(eyeX - eyeR * 0.6, ey - side * eyeR * 0.95);
-        ctx.lineTo(eyeX + eyeR * 0.9, ey - side * eyeR * 0.7);
-        ctx.strokeStyle = '#1565c0';
-        ctx.lineWidth = isMobile ? 1.5 : 2.2;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-      });
-
-      // ---- WHISKERS ----
-      const whiskerPhase = timestamp / 1200;
-      [[-hr * 0.2, -hr * 0.15], [-hr * 0.2, hr * 0.15]].forEach(([wy], wi) => {
-        const wSide = wi === 0 ? -1 : 1;
-        ctx.beginPath();
-        ctx.moveTo(hr * 1.5, wSide * hr * 0.15);
-        ctx.bezierCurveTo(
-          hr * 2.1 + Math.sin(whiskerPhase) * hr * 0.15, wSide * hr * 0.5,
-          hr * 2.6 + Math.cos(whiskerPhase) * hr * 0.1, wSide * hr * 0.2,
-          hr * 3.1 + Math.sin(whiskerPhase + 1) * hr * 0.2, wSide * hr * 0.55
-        );
-        ctx.strokeStyle = '#90caf9';
-        ctx.lineWidth = isMobile ? 0.9 : 1.3;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-        // Whisker tip ball
-        ctx.beginPath();
-        ctx.arc(
-          hr * 3.1 + Math.sin(whiskerPhase + 1) * hr * 0.2,
-          wSide * hr * 0.55,
-          isMobile ? 1.5 : 2.2, 0, Math.PI * 2
-        );
-        ctx.fillStyle = '#bfdbfe';
-        ctx.fill();
-      });
-
-       ctx.restore();
-    }
-
-    let phase = 0;
-    let animId: number;
-    let lastTime = 0;
-
-    function drawFrame(timestamp: number) {
-      const dt = lastTime ? Math.min(timestamp - lastTime, 50) : 16;
-      lastTime = timestamp;
-      phase = (phase + SPEED * dt) % 1;
-
-      ctx.clearRect(0, 0, W, H);
-
-      // Faint ∞ track
-      ctx.save();
-      ctx.globalAlpha = 0.1;
-      ctx.strokeStyle = '#3b82f6';
-      ctx.lineWidth = isMobile ? 1.5 : 2.5;
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = '#3b82f6';
-      ctx.beginPath();
-      for (let i = 0; i < PATH_STEPS; i++) {
-        if (i === 0) ctx.moveTo(pathX[i], pathY[i]);
-        else ctx.lineTo(pathX[i], pathY[i]);
-      }
-      ctx.closePath();
-      ctx.stroke();
-      ctx.restore();
-
-      // Compute segment positions
-      const segs: { x: number; y: number; angle: number; r: number }[] = [];
-      for (let i = 0; i < SEGMENTS; i++) {
-        const f = phase - i * SEG_SPACING;
-        const pos = getPosAt(f);
-        segs.push({ ...pos, r: segRadius(i) });
-      }
-
-      // Body glow
-      for (let i = SEGMENTS - 1; i >= 2; i--) {
-        const s = segs[i];
-        const alpha = (1 - i / SEGMENTS) * 0.14;
-        const gr = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 2.8);
-        gr.addColorStop(0, `rgba(30,100,220,${alpha})`);
-        gr.addColorStop(1, 'rgba(30,100,220,0)');
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r * 2.8, 0, Math.PI * 2);
-        ctx.fillStyle = gr;
-        ctx.fill();
-      }
-
-      // Draw body from tail to head
-      for (let i = SEGMENTS - 1; i >= 1; i--) {
-        const s = segs[i];
-        const next = segs[i - 1];
-        const angle = Math.atan2(next.y - s.y, next.x - s.x);
-        const perp = angle + Math.PI / 2;
-        const rC = s.r;
-        const rN = next.r;
-
-        // Trapezoid connector
-        const x1 = s.x + Math.cos(perp) * rC;
-        const y1 = s.y + Math.sin(perp) * rC;
-        const x2 = s.x - Math.cos(perp) * rC;
-        const y2 = s.y - Math.sin(perp) * rC;
-        const x3 = next.x - Math.cos(perp) * rN;
-        const y3 = next.y - Math.sin(perp) * rN;
-        const x4 = next.x + Math.cos(perp) * rN;
-        const y4 = next.y + Math.sin(perp) * rN;
-
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x4, y4);
-        ctx.lineTo(x3, y3);
-        ctx.lineTo(x2, y2);
-        ctx.closePath();
-        ctx.fillStyle = segColor(i);
-        ctx.fill();
-
-        // Belly plate
-        ctx.beginPath();
-        ctx.moveTo(x1, y1);
-        ctx.lineTo(x4, y4);
-        ctx.lineTo(x3, y3);
-        ctx.lineTo(x2, y2);
-        ctx.closePath();
-        ctx.fillStyle = `rgba(147,197,253,0.12)`;
-        ctx.fill();
-
-        // Segment circle
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, rC, 0, Math.PI * 2);
-        ctx.fillStyle = segColor(i);
-        ctx.fill();
-
-        // Belly ellipse
-        if (i < SEGMENTS - 3 && rC > 3) {
-          ctx.save();
-          ctx.translate(s.x, s.y);
-          ctx.rotate(angle);
-          ctx.beginPath();
-          ctx.ellipse(0, 0, rC * 0.42, rC * 0.65, 0, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(147,197,253,0.18)';
-          ctx.fill();
-          ctx.restore();
-        }
-
-        // Scales on both sides — every segment
-        if (rC > 3.5) {
-          const scaleCol = segColor(i);
-          const highlightCol = segColor(i, true);
-          drawScale(s.x, s.y, angle, rC, scaleCol, highlightCol, 1);
-          drawScale(s.x, s.y, angle, rC, scaleCol, highlightCol, -1);
-        }
-
-        // Dorsal spines — every 2nd segment
-        if (i % 2 === 0 && i < SEGMENTS - 4 && i > 1 && rC > 4) {
-          const big = i % 6 === 0;
-          drawSpine(s.x, s.y, angle, rC, big);
-        }
-
-        // Fins — at ~1/4 and ~1/2 of body
-        const finPositions = isMobile ? [6, 14] : [8, 20];
-        if (finPositions.includes(i)) {
-          drawFin(s.x, s.y, angle, rC, 1);
-          drawFin(s.x, s.y, angle, rC, -1);
-        }
-      }
-
-      // Tail tip
-      const tail = segs[SEGMENTS - 1];
-      const preTail = segs[SEGMENTS - 2];
-      const tailAngle = Math.atan2(tail.y - preTail.y, tail.x - preTail.x);
-      ctx.beginPath();
-      ctx.moveTo(tail.x + Math.cos(tailAngle + Math.PI / 2) * tail.r * 0.6, tail.y + Math.sin(tailAngle + Math.PI / 2) * tail.r * 0.6);
-      ctx.lineTo(tail.x + Math.cos(tailAngle) * tail.r * 2, tail.y + Math.sin(tailAngle) * tail.r * 2);
-      ctx.lineTo(tail.x - Math.cos(tailAngle + Math.PI / 2) * tail.r * 0.6, tail.y - Math.sin(tailAngle + Math.PI / 2) * tail.r * 0.6);
-      ctx.closePath();
-      ctx.fillStyle = segColor(SEGMENTS - 1);
-      ctx.fill();
-
-      // HEAD
-      const head = segs[0];
-      const neck = segs[1];
-      const headAngle = Math.atan2(head.y - neck.y, head.x - neck.x);
-      drawHead(head.x, head.y, headAngle, head.r, timestamp);
-
-      // Dragon pearl
-      const pearlOffset = head.r * 4.2;
-      const pearlX = head.x + Math.cos(headAngle) * pearlOffset;
-      const pearlY = head.y + Math.sin(headAngle) * pearlOffset;
-      const pr = isMobile ? 4 : 6;
-      const pulse = 0.65 + Math.sin(timestamp / 350) * 0.35;
-
-      const pearlGrad = ctx.createRadialGradient(pearlX - pr * 0.3, pearlY - pr * 0.3, 0, pearlX, pearlY, pr);
-      pearlGrad.addColorStop(0, 'rgba(255,255,255,0.98)');
-      pearlGrad.addColorStop(0.4, 'rgba(186,230,253,0.9)');
-      pearlGrad.addColorStop(1, 'rgba(59,130,246,0.5)');
-
-      ctx.save();
-      ctx.globalAlpha = pulse;
-      ctx.shadowBlur = isMobile ? 10 : 18;
-      ctx.shadowColor = '#93c5fd';
-      ctx.beginPath();
-      ctx.arc(pearlX, pearlY, pr, 0, Math.PI * 2);
-      ctx.fillStyle = pearlGrad;
-      ctx.fill();
-      ctx.restore();
-
-      animId = requestAnimationFrame(drawFrame);
-    }
-
-    animId = requestAnimationFrame(drawFrame);
-    return () => cancelAnimationFrame(animId);
-  }, [isMobile, W, H, cx, cy, a]);
+    setPhase('enter');
+    const t1 = setTimeout(() => {
+      setPhase('center');
+      setSplashKey(k => k + 1);
+    }, 450);
+    const t2 = setTimeout(() => setPhase('exit'), TOOL_DURATION - 800);
+    const t3 = setTimeout(advance, TOOL_DURATION);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [activeIndex, advance]);
+
+  const tool = tools[activeIndex];
+
+  const translateY = phase === 'enter' ? -ICON_SIZE * 1.5 : phase === 'center' ? 0 : ICON_SIZE * 1.5;
+  const scale = phase === 'center' ? 1 : phase === 'enter' ? 0.4 : 0.3;
+  const opacity = phase === 'center' ? 1 : 0;
+  const rotate = phase === 'enter' ? -25 : phase === 'center' ? 0 : 20;
 
   return (
-    <div
-      className="w-full h-full pointer-events-none select-none flex items-center justify-center"
+    <span
+      className="inline-block relative pointer-events-none select-none align-middle"
+      style={{ width: ICON_SIZE, height: ICON_SIZE, overflow: 'visible' }}
       aria-hidden="true"
     >
-      <canvas
-        ref={canvasRef}
-        width={W}
-        height={H}
-        style={{ display: 'block' }}
-      />
-    </div>
+      {/* Splash rings — centred on the icon */}
+      {phase === 'center' && (
+        <span
+          key={splashKey}
+          className="absolute"
+          style={{ left: ICON_SIZE / 2, top: ICON_SIZE / 2, transform: 'translate(-50%, -50%)' }}
+        >
+          <span
+            className="absolute rounded-full"
+            style={{
+              width: 0, height: 0,
+              left: '50%', top: '50%',
+              transform: 'translate(-50%, -50%)',
+              border: `2px solid ${tool.color}`,
+              opacity: 0,
+              animation: 'heroSplashRing 0.8s ease-out forwards',
+            }}
+          />
+          <span
+            className="absolute rounded-full"
+            style={{
+              width: 0, height: 0,
+              left: '50%', top: '50%',
+              transform: 'translate(-50%, -50%)',
+              border: `1.5px solid ${tool.color}`,
+              opacity: 0,
+              animation: 'heroSplashRing2 1s ease-out 0.08s forwards',
+            }}
+          />
+          {splashDroplets.map((d, i) => {
+            const rad = (d.angle * Math.PI) / 180;
+            const tx = Math.cos(rad) * d.distance;
+            const ty = Math.sin(rad) * d.distance;
+            return (
+              <span
+                key={`${splashKey}-${i}`}
+                className="absolute rounded-full"
+                style={{
+                  width: d.size,
+                  height: d.size,
+                  left: '50%', top: '50%',
+                  marginLeft: -d.size / 2,
+                  marginTop: -d.size / 2,
+                  background: tool.color,
+                  opacity: 0,
+                  transform: 'translate(0, 0) scale(1)',
+                  animation: `heroSplashDrop 0.65s ease-out ${d.delay}s forwards`,
+                  '--tx': `${tx}px`,
+                  '--ty': `${ty}px`,
+                } as React.CSSProperties}
+              />
+            );
+          })}
+        </span>
+      )}
+
+      {/* Tool icon */}
+      <span
+        className="absolute will-change-transform"
+        style={{
+          width: ICON_SIZE,
+          height: ICON_SIZE,
+          left: 0,
+          top: 0,
+          transform: `translateY(${translateY}px) scale(${scale}) rotate(${rotate}deg)`,
+          opacity,
+          transition: phase === 'center'
+            ? 'all 0.9s cubic-bezier(0.16, 1, 0.3, 1)'
+            : 'all 0.7s cubic-bezier(0.55, 0, 1, 0.45)',
+        }}
+      >
+        {/* Glow */}
+        <span
+          className="absolute rounded-full blur-2xl"
+          style={{
+            width: 90, height: 90,
+            left: '50%', top: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: tool.glowColor,
+            opacity: phase === 'center' ? 0.7 : 0,
+            transition: 'opacity 0.8s ease',
+          }}
+        />
+        <span className="relative block w-full h-full">
+          {tool.svg}
+        </span>
+      </span>
+
+      <style>{`
+        @keyframes heroSplashRing {
+          0% { width: 0; height: 0; opacity: 0.7; }
+          100% { width: 120px; height: 120px; opacity: 0; }
+        }
+        @keyframes heroSplashRing2 {
+          0% { width: 0; height: 0; opacity: 0.5; }
+          100% { width: 170px; height: 170px; opacity: 0; }
+        }
+        @keyframes heroSplashDrop {
+          0% { opacity: 0.8; transform: translate(0, 0) scale(1); }
+          60% { opacity: 0.5; }
+          100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(0.15); }
+        }
+      `}</style>
+    </span>
   );
 }

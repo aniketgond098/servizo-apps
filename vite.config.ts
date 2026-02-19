@@ -20,12 +20,19 @@ export default defineConfig(({ mode }) => {
         }
       },
       build: {
+        target: 'es2020',
+        minify: 'esbuild',
+        cssMinify: true,
         rollupOptions: {
           output: {
             manualChunks: {
               'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-              'firebase-vendor': ['firebase/app', 'firebase/firestore', 'firebase/auth'],
+              'firebase-core': ['firebase/app', 'firebase/auth'],
+              'firebase-db': ['firebase/firestore'],
+              'map-vendor': ['leaflet', 'leaflet-routing-machine'],
               'ui-vendor': ['lucide-react'],
+              'crop-vendor': ['react-easy-crop'],
+              'ai-vendor': ['@google/genai'],
             }
           }
         },
@@ -39,6 +46,7 @@ export default defineConfig(({ mode }) => {
       ],
       esbuildOptions: {
         treeShaking: true,
+        target: 'es2020',
       },
     },
     };

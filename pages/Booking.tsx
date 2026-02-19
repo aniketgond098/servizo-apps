@@ -5,7 +5,7 @@ import { DB } from '../services/db';
 import { Specialist, Booking as BookingType } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/auth';
-import { MapView } from '../components/MapView';
+const MapView = React.lazy(() => import('../components/MapView').then(m => ({ default: m.MapView })));
 import { PhotoGallery } from '../components/PhotoGallery';
 
 export default function Booking() {
@@ -349,18 +349,20 @@ export default function Booking() {
               </button>
             </div>
 
-            {/* Map */}
-            <div className="flex-1 relative">
-              <MapView
-                specialists={[
-                  { ...specialist, lat: activeBooking.workerLat || specialist.lat, lng: activeBooking.workerLng || specialist.lng, name: `${specialist.name} (Worker)`, availability: 'available' },
-                  { id: 'user-location', name: 'Your Location', lat: activeBooking.userLat, lng: activeBooking.userLng, avatar: '', category: specialist.category, hourlyRate: 0, rating: 0, description: '', location: '', availability: 'busy', userId: currentUser!.id } as Specialist
-                ]}
-                userLoc={{ lat: activeBooking.userLat, lng: activeBooking.userLng }}
-                getAvailabilityColor={(status) => status === 'available' ? 'border-green-500' : 'border-blue-500'}
-                showRoute={true}
-              />
-            </div>
+              {/* Map */}
+              <div className="flex-1 relative">
+                <React.Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 text-[#4169E1] animate-spin" /></div>}>
+                  <MapView
+                    specialists={[
+                      { ...specialist, lat: activeBooking.workerLat || specialist.lat, lng: activeBooking.workerLng || specialist.lng, name: `${specialist.name} (Worker)`, availability: 'available' },
+                      { id: 'user-location', name: 'Your Location', lat: activeBooking.userLat, lng: activeBooking.userLng, avatar: '', category: specialist.category, hourlyRate: 0, rating: 0, description: '', location: '', availability: 'busy', userId: currentUser!.id } as Specialist
+                    ]}
+                    userLoc={{ lat: activeBooking.userLat, lng: activeBooking.userLng }}
+                    getAvailabilityColor={(status) => status === 'available' ? 'border-green-500' : 'border-blue-500'}
+                    showRoute={true}
+                  />
+                </React.Suspense>
+              </div>
 
             {/* Bottom Info Panel */}
             <div className="px-6 py-4 border-t border-gray-100 flex-shrink-0">
