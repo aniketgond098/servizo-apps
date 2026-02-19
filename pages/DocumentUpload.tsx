@@ -97,27 +97,20 @@ export default function DocumentUpload({ currentUser: initialUser }: { currentUs
     }
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
+    const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!aadhaar || !pan) return;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!aadhaar || !pan) return;
-
-    setUploading(true);
-    
-    try {
-      const aadhaarData = await fileToBase64(aadhaar);
-      const panData = await fileToBase64(pan);
-      const cvData = cv ? await fileToBase64(cv) : '';
+      setUploading(true);
       
-      await DB.createVerificationRequest(currentUser.id, aadhaarData, panData, cvData);
+      try {
+        const [aadhaarData, panData, cvData] = await Promise.all([
+          DB.uploadPhoto(aadhaar),
+          DB.uploadPhoto(pan),
+          cv ? DB.uploadPhoto(cv) : Promise.resolve('')
+        ]);
+        
+        await DB.createVerificationRequest(currentUser.id, aadhaarData, panData, cvData);
       
       // Update local session with pending status
       const updatedUser = { ...currentUser, verificationStatus: 'pending' as const };
