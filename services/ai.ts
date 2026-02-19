@@ -21,8 +21,8 @@ export async function getAISuggestions(_partialQuery: string): Promise<string[]>
   return [];
 }
 
-export async function getWorkerRecommendation(problemDescription: string): Promise<{ category: ServiceCategory | null; tip: string }> {
-  if (!ai) return { category: null, tip: '' };
+export async function getWorkerRecommendation(problemDescription: string): Promise<{ category: ServiceCategory | null; tip: string; error?: string }> {
+  if (!ai) return { category: null, tip: '', error: 'no_key' };
 
   try {
     const response = await ai.models.generateContent({
@@ -43,8 +43,12 @@ Return raw JSON only. Example: {"category":"Plumbing","tip":"Turn off your main 
         category: CATEGORIES.includes(parsed.category) ? parsed.category : null,
         tip: parsed.tip || '',
       };
-    } catch (err) {
+    } catch (err: any) {
       console.error('[AI getWorkerRecommendation]', err);
-      return { category: null, tip: '' };
+      const msg = err?.message || '';
+      if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
+        return { category: null, tip: '', error: 'quota' };
+      }
+      return { category: null, tip: '', error: 'unknown' };
     }
 }
