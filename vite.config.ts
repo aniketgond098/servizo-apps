@@ -25,29 +25,30 @@ export default defineConfig(({ mode }) => {
         cssMinify: true,
         rollupOptions: {
           output: {
-            manualChunks: {
-              'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-              'firebase-core': ['firebase/app', 'firebase/auth'],
-              'firebase-db': ['firebase/firestore'],
-              'map-vendor': ['leaflet', 'leaflet-routing-machine'],
-              'ui-vendor': ['lucide-react'],
-              'crop-vendor': ['react-easy-crop'],
-              'ai-vendor': ['@google/genai'],
+            manualChunks(id) {
+              if (id.includes('node_modules')) {
+                if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) return 'react-vendor';
+                if (id.includes('firebase')) return 'firebase-vendor';
+                if (id.includes('leaflet')) return 'map-vendor';
+                if (id.includes('react-easy-crop')) return 'crop-vendor';
+                if (id.includes('@google/genai')) return 'ai-vendor';
+                if (id.includes('lucide-react')) return 'ui-vendor';
+              }
             }
           }
         },
         chunkSizeWarningLimit: 1000,
       },
-  optimizeDeps: {
-      include: [
-        'react', 'react-dom', 'react-router-dom',
-        'firebase/app', 'firebase/firestore', 'firebase/auth',
-        'lucide-react',
-      ],
-      esbuildOptions: {
-        treeShaking: true,
-        target: 'es2020',
+      optimizeDeps: {
+        include: [
+          'react', 'react-dom', 'react-router-dom',
+          'firebase/app', 'firebase/firestore', 'firebase/auth',
+          'lucide-react',
+        ],
+        esbuildOptions: {
+          treeShaking: true,
+          target: 'es2020',
+        },
       },
-    },
     };
 });
