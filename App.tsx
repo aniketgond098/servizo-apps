@@ -136,12 +136,9 @@ const Navbar = () => {
 
           {/* Right: Actions */}
           <div className="flex items-center gap-2">
-            {!user ? (
-              <>
-                <button onClick={handleQuickAdminLogin} className="hidden md:block text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded transition-colors">
-                  Demo
-                </button>
-                <Link to="/signup" className="hidden md:inline-flex px-4 py-2 text-sm font-medium text-[#000000] border border-[#000000] rounded-lg hover:bg-gray-50 transition-colors">
+              {!user ? (
+                <>
+                  <Link to="/signup" className="hidden md:inline-flex px-4 py-2 text-sm font-medium text-[#000000] border border-[#000000] rounded-lg hover:bg-gray-50 transition-colors">
                   Become a Pro
                 </Link>
                 <Link to="/login" className="hidden md:inline-flex px-4 py-2 text-sm font-medium text-gray-600 hover:text-[#000000] transition-colors">
@@ -387,23 +384,23 @@ function AppContent() {
               <p className="text-sm text-gray-300 leading-relaxed">Connecting people with the best local professionals for all their home and personal needs.</p>
             </div>
             <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-300 hover:text-white cursor-pointer transition-colors">About Us</p>
-                <p className="text-sm text-gray-300 hover:text-white cursor-pointer transition-colors">How It Works</p>
-                <p className="text-sm text-gray-300 hover:text-white cursor-pointer transition-colors">Careers</p>
-                <p className="text-sm text-gray-300 hover:text-white cursor-pointer transition-colors">Press</p>
+                <h4 className="font-semibold mb-4">Company</h4>
+                <div className="space-y-2">
+                  <a href="#how-it-works" onClick={() => { const el = document.getElementById('how-it-works'); el?.scrollIntoView({ behavior: 'smooth' }); }} className="block text-sm text-gray-300 hover:text-white cursor-pointer transition-colors">About Us</a>
+                  <a href="#how-it-works" onClick={() => { const el = document.getElementById('how-it-works'); el?.scrollIntoView({ behavior: 'smooth' }); }} className="block text-sm text-gray-300 hover:text-white cursor-pointer transition-colors">How It Works</a>
+                  <Link to="/signup" className="block text-sm text-gray-300 hover:text-white transition-colors">Join as a Pro</Link>
+                  <Link to="/listing" className="block text-sm text-gray-300 hover:text-white transition-colors">Browse Services</Link>
+                </div>
               </div>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Resources</h4>
-              <div className="space-y-2">
-                <p className="text-sm text-gray-300 hover:text-white cursor-pointer transition-colors">Help Center</p>
-                <p className="text-sm text-gray-300 hover:text-white cursor-pointer transition-colors">Safety</p>
-                <p className="text-sm text-gray-300 hover:text-white cursor-pointer transition-colors">Servizo Pro</p>
-                <p className="text-sm text-gray-300 hover:text-white cursor-pointer transition-colors">Community</p>
+              <div>
+                <h4 className="font-semibold mb-4">Resources</h4>
+                <div className="space-y-2">
+                  <Link to="/listing" className="block text-sm text-gray-300 hover:text-white transition-colors">Find a Specialist</Link>
+                  <Link to="/signup" className="block text-sm text-gray-300 hover:text-white transition-colors">Safety & Trust</Link>
+                  <Link to="/listing" className="block text-sm text-gray-300 hover:text-white transition-colors">Servizo Pro</Link>
+                  <Link to="/listing" className="block text-sm text-gray-300 hover:text-white transition-colors">All Categories</Link>
+                </div>
               </div>
-            </div>
             <div>
               <h4 className="font-semibold mb-4">Stay Updated</h4>
               <p className="text-sm text-gray-300 mb-3">Get the latest tips and service discounts.</p>

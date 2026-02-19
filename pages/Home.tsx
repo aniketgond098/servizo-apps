@@ -1,14 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, Shield, CheckCircle, Wrench, Paintbrush, Plug, Bot, Droplets, Ruler, FileCheck, UserCheck, ShieldCheck, MessageSquareWarning, Lock, Eye } from 'lucide-react';
+import { Search, ChevronRight, Shield, CheckCircle, Wrench, Paintbrush, Plug, Bot, Droplets, Ruler, FileCheck, UserCheck, ShieldCheck, MessageSquareWarning, Lock, Eye, Sparkles, Loader2, Zap, Star, Users, TrendingUp } from 'lucide-react';
 import { AuthService } from '../services/auth';
 import HeroToolsAnimation from '../components/HeroToolsAnimation';
 import SnakeAnimation from '../components/SnakeAnimation';
+import { getWorkerRecommendation } from '../services/ai';
 
 export default function Home() {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("");
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<{ category: string | null; tip: string } | null>(null);
   const specialistCount = 500;
   const navigate = useNavigate();
   const user = AuthService.getCurrentUser();
@@ -20,6 +24,16 @@ export default function Home() {
     } else {
       navigate('/listing');
     }
+  };
+
+  const handleAiDiagnose = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiPrompt.trim()) return;
+    setAiLoading(true);
+    setAiResult(null);
+    const result = await getWorkerRecommendation(aiPrompt);
+    setAiResult(result);
+    setAiLoading(false);
   };
 
   const categories = [
@@ -137,6 +151,94 @@ export default function Home() {
                   <SnakeAnimation />
                 </div>
           </div>
+        </div>
+      </section>
+
+      {/* Stats Bar */}
+      <section className="bg-[#000000] py-10 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+            {[
+              { icon: Users, value: '50,000+', label: 'Happy Customers' },
+              { icon: Star, value: '4.9/5', label: 'Average Rating' },
+              { icon: CheckCircle, value: '500+', label: 'Verified Pros' },
+              { icon: TrendingUp, value: '98%', label: 'Satisfaction Rate' },
+            ].map(stat => (
+              <div key={stat.label} className="flex flex-col items-center gap-2">
+                <stat.icon className="w-6 h-6 text-[#4169E1]" />
+                <p className="text-2xl sm:text-3xl font-extrabold text-white">{stat.value}</p>
+                <p className="text-xs text-gray-400 uppercase tracking-wide">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* AI Problem Diagnosis Section */}
+      <section className="bg-gradient-to-br from-[#4169E1]/5 to-white py-16 sm:py-20 px-4 sm:px-6 border-t border-gray-100">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#4169E1]/10 border border-[#4169E1]/20 rounded-full mb-5">
+            <Sparkles className="w-4 h-4 text-[#4169E1]" />
+            <span className="text-xs font-semibold text-[#4169E1] uppercase tracking-wide">Powered by Gemini AI</span>
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#000000] mb-3">Not sure who to call?</h2>
+          <p className="text-gray-500 text-sm sm:text-base mb-8 max-w-xl mx-auto">Describe your problem in plain English and our AI will tell you exactly what kind of specialist you need — and give you an expert tip.</p>
+          <form onSubmit={handleAiDiagnose} className="flex flex-col sm:flex-row gap-3 mb-6">
+            <input
+              type="text"
+              value={aiPrompt}
+              onChange={e => setAiPrompt(e.target.value)}
+              placeholder='e.g. "my kitchen tap is leaking and water is everywhere"'
+              className="flex-1 px-5 py-3.5 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder-gray-400 outline-none focus:border-[#4169E1] focus:ring-2 focus:ring-[#4169E1]/20 shadow-sm"
+            />
+            <button type="submit" disabled={aiLoading || !aiPrompt.trim()}
+              className="px-6 py-3.5 bg-[#4169E1] text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 shadow-sm">
+              {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              Diagnose with AI
+            </button>
+          </form>
+
+          {/* AI Result */}
+          {aiResult && (
+            <div className="bg-white border border-[#4169E1]/20 rounded-2xl p-6 text-left shadow-sm animate-fadeIn">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-[#4169E1]/10 rounded-lg flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-[#4169E1]" />
+                </div>
+                <span className="text-sm font-bold text-gray-900">AI Recommendation</span>
+              </div>
+              {aiResult.category && (
+                <div className="mb-3 flex items-center gap-3">
+                  <span className="text-sm text-gray-500">You need a:</span>
+                  <span className="px-3 py-1 bg-[#4169E1] text-white rounded-full text-sm font-semibold">{aiResult.category} Specialist</span>
+                </div>
+              )}
+              {aiResult.tip && (
+                <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">
+                  <Zap className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-gray-700 leading-relaxed"><span className="font-semibold text-amber-700">Expert Tip:</span> {aiResult.tip}</p>
+                </div>
+              )}
+              {aiResult.category && (
+                <Link to={`/listing?filter=${aiResult.category}`}
+                  className="mt-4 w-full flex items-center justify-center gap-2 px-5 py-3 bg-[#000000] text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-colors">
+                  Find {aiResult.category} Specialists <ChevronRight className="w-4 h-4" />
+                </Link>
+              )}
+            </div>
+          )}
+
+          {/* Example prompts */}
+          {!aiResult && !aiLoading && (
+            <div className="flex flex-wrap justify-center gap-2 mt-2">
+              {["my pipe is bursting", "ceiling has water stains", "AC not cooling", "need a house painter"].map(ex => (
+                <button key={ex} onClick={() => setAiPrompt(ex)}
+                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-full text-xs text-gray-500 hover:border-[#4169E1] hover:text-[#4169E1] transition-colors shadow-sm">
+                  "{ex}"
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
