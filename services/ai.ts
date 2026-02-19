@@ -1,54 +1,58 @@
-
-import { GoogleGenAI } from "@google/genai";
 import { SearchIntent, ServiceCategory } from "../types";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '');
-
-let ai: GoogleGenAI | null = null;
-if (API_KEY) {
-  ai = new GoogleGenAI({ apiKey: API_KEY });
-}
-
+const API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const CATEGORIES: ServiceCategory[] = ['Plumbing', 'Mechanical', 'Electrical', 'Automation', 'Aesthetics', 'Architecture'];
 
-// Disabled to prevent quota burn — only getWorkerRecommendation (explicit button click) uses AI
 export async function parseSearchIntent(query: string): Promise<SearchIntent> {
   return { query, urgency: 'low' };
 }
 
-// Disabled to prevent quota burn — suggestions are not worth the API calls
 export async function getAISuggestions(_partialQuery: string): Promise<string[]> {
   return [];
 }
 
 export async function getWorkerRecommendation(problemDescription: string): Promise<{ category: ServiceCategory | null; tip: string; error?: string }> {
-  if (!ai) return { category: null, tip: '', error: 'no_key' };
+  if (!API_KEY) return { category: null, tip: '', error: 'no_key' };
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: `A user described their home problem: "${problemDescription}"
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        messages: [
+          {
+            role: 'user',
+            content: `A user described their home problem: "${problemDescription}"
 
 Return a JSON object:
 - category: the best service category from [${CATEGORIES.join(', ')}] or null
-- tip: a one-sentence helpful tip for the user (e.g. "Turn off your main water valve immediately before the plumber arrives.")
+- tip: a one-sentence helpful tip for the user
 
 Return raw JSON only. Example: {"category":"Plumbing","tip":"Turn off your main water supply to prevent further damage."}`
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 200,
+      }),
     });
 
-      const text = (typeof response.text === 'function' ? response.text() : response.text)?.trim() || '{}';
-      const cleaned = text.replace(/^```json\s*/i, '').replace(/```$/,'').trim();
-      const parsed = JSON.parse(cleaned);
-      return {
-        category: CATEGORIES.includes(parsed.category) ? parsed.category : null,
-        tip: parsed.tip || '',
-      };
-    } catch (err: any) {
-      console.error('[AI getWorkerRecommendation]', err);
-      const msg = err?.message || '';
-      if (msg.includes('429') || msg.includes('RESOURCE_EXHAUSTED')) {
-        return { category: null, tip: '', error: 'quota' };
-      }
-      return { category: null, tip: '', error: 'unknown' };
-    }
+    if (res.status === 429) return { category: null, tip: '', error: 'quota' };
+    if (!res.ok) return { category: null, tip: '', error: 'unknown' };
+
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content?.trim() || '{}';
+    const cleaned = text.replace(/^```json\s*/i, '').replace(/```$/, '').trim();
+    const parsed = JSON.parse(cleaned);
+    return {
+      category: CATEGORIES.includes(parsed.category) ? parsed.category : null,
+      tip: parsed.tip || '',
+    };
+  } catch (err: any) {
+    console.error('[AI getWorkerRecommendation]', err);
+    return { category: null, tip: '', error: 'unknown' };
+  }
 }

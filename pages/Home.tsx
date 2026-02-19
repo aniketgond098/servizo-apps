@@ -38,7 +38,7 @@ export default function Home() {
       if (result.error === 'quota') {
         setAiError("Daily AI quota reached. Please try again tomorrow or create a new API key at aistudio.google.com.");
       } else if (result.error === 'no_key') {
-        setAiError("Gemini API key not configured.");
+          setAiError("AI service is not configured. Please try again later.");
       } else if (result.error === 'unknown') {
         setAiError("Something went wrong. Please try again.");
       } else {
@@ -193,7 +193,7 @@ export default function Home() {
         <div className="max-w-3xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#4169E1]/10 border border-[#4169E1]/20 rounded-full mb-5">
             <Sparkles className="w-4 h-4 text-[#4169E1]" />
-            <span className="text-xs font-semibold text-[#4169E1] uppercase tracking-wide">Powered by Gemini AI</span>
+              <span className="text-xs font-semibold text-[#4169E1] uppercase tracking-wide">Powered by Groq AI</span>
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold text-[#000000] mb-3">Not sure who to call?</h2>
           <p className="text-gray-500 text-sm sm:text-base mb-8 max-w-xl mx-auto">Describe your problem in plain English and our AI will tell you exactly what kind of specialist you need — and give you an expert tip.</p>
