@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ChevronRight, Shield, CheckCircle, Wrench, Paintbrush, Plug, Bot, Droplets, Ruler, FileCheck, UserCheck, ShieldCheck, MessageSquareWarning, Lock, Eye } from 'lucide-react';
 import { AuthService } from '../services/auth';
-import { DB } from '../services/db';
 import HeroToolsAnimation from '../components/HeroToolsAnimation';
 
 export default function Home() {
@@ -14,7 +13,11 @@ export default function Home() {
   const user = AuthService.getCurrentUser();
 
   useEffect(() => {
-    DB.getSpecialists().then(specialists => setSpecialistCount(specialists.length));
+    import('firebase/firestore').then(({ getCountFromServer, collection }) => {
+      import('../services/firebase').then(({ db }) => {
+        getCountFromServer(collection(db, 'specialists')).then(snap => setSpecialistCount(snap.data().count)).catch(() => {});
+      });
+    });
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {

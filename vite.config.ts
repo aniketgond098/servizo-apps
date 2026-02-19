@@ -31,8 +31,15 @@ export default defineConfig(({ mode }) => {
         },
         chunkSizeWarningLimit: 1000,
       },
-      optimizeDeps: {
-        include: ['react', 'react-dom', 'react-router-dom', 'firebase/app', 'firebase/firestore', 'firebase/auth', 'lucide-react'],
+  optimizeDeps: {
+      include: [
+        'react', 'react-dom', 'react-router-dom',
+        'firebase/app', 'firebase/firestore', 'firebase/auth',
+        'lucide-react',
+      ],
+      esbuildOptions: {
+        treeShaking: true,
       },
+    },
     };
 });

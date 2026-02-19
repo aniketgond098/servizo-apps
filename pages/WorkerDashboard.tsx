@@ -60,13 +60,14 @@ export default function WorkerDashboard() {
       if (sp) setProfile(sp);
       setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user.id));
       // Resolve sender names for messages
-      const msgs = (await DB.getMessages()).filter(m => m.receiverId === user.id);
+      const [allMsgs, allUsers] = await Promise.all([DB.getMessages(), DB.getUsers()]);
+      const msgs = allMsgs.filter(m => m.receiverId === user.id);
       setMessages(msgs);
+      const userMap = new Map(allUsers.map(u => [u.id, u.name]));
       const names: Record<string, string> = {};
       for (const msg of msgs) {
         if (!names[msg.senderId]) {
-          const u = await DB.getUserById(msg.senderId);
-          names[msg.senderId] = u?.name || 'User';
+          names[msg.senderId] = userMap.get(msg.senderId) || 'User';
         }
       }
       setSenderNames(names);

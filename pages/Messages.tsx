@@ -22,24 +22,24 @@ export default function Messages() {
         if (!convMap.has(otherId)) convMap.set(otherId, []);
         convMap.get(otherId)!.push(msg);
       });
-      const convList = await Promise.all(
-        Array.from(convMap.entries()).map(async ([userId, msgs]) => {
-          const sortedMsgs = msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          const unread = msgs.filter(m => m.receiverId === currentUser.id && !m.read).length;
-          const user = await DB.getUserById(userId);
-          let displayName = 'User';
-          let specialistId: string | undefined;
-          if (user) {
-            if (user.role === 'worker') {
-              const specialists = await DB.getSpecialists();
-              const specialist = specialists.find(s => s.userId === user.id || s.id === user.id);
-              displayName = specialist ? `${user.name} (${specialist.category})` : `${user.name} (Service Provider)`;
-              specialistId = specialist?.id;
-            } else { displayName = user.name; }
-          }
-          return { userId, userName: displayName, lastMessage: sortedMsgs[0], unread, specialistId };
-        })
-      );
+      const [allUsers, allSpecialists] = await Promise.all([DB.getUsers(), DB.getSpecialists()]);
+      const userMap = new Map(allUsers.map(u => [u.id, u]));
+      const specialistByUserId = new Map(allSpecialists.map(s => [s.userId, s]));
+      const convList = Array.from(convMap.entries()).map(([userId, msgs]) => {
+            const sortedMsgs = msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            const unread = msgs.filter(m => m.receiverId === currentUser.id && !m.read).length;
+            const user = userMap.get(userId);
+            let displayName = 'User';
+            let specialistId: string | undefined;
+            if (user) {
+              if (user.role === 'worker') {
+                const specialist = specialistByUserId.get(user.id) || allSpecialists.find(s => s.id === user.id);
+                displayName = specialist ? `${user.name} (${specialist.category})` : `${user.name} (Service Provider)`;
+                specialistId = specialist?.id;
+              } else { displayName = user.name; }
+            }
+            return { userId, userName: displayName, lastMessage: sortedMsgs[0], unread, specialistId };
+          });
       setConversations(convList.sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()));
     };
     loadMessages();

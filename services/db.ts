@@ -194,37 +194,35 @@ export class DB {
       };
       await setDoc(doc(db, 'bookings', newBooking.id), newBooking);
       
-      // Get specialist and user info
-      const specialists = await this.getSpecialists();
-      const specialist = specialists.find(s => s.id === booking.specialistId);
-      const user = await this.getUserById(booking.userId);
-      
-      // Notify worker
-      if (specialist?.userId) {
-        await this.createNotification({
-          userId: specialist.userId,
+        // Get specialist and user info in parallel
+        const [specialists, user] = await Promise.all([this.getSpecialists(), this.getUserById(booking.userId)]);
+        const specialist = specialists.find(s => s.id === booking.specialistId);
+        
+        // Notify worker and user in parallel
+        const notifs: Promise<any>[] = [];
+        if (specialist?.userId) {
+          notifs.push(this.createNotification({
+            userId: specialist.userId,
+            type: 'booking',
+            title: 'New Booking Received',
+            message: `${user?.name || 'A user'} has booked your services.`,
+            link: '/worker-dashboard',
+            bookingId: newBooking.id
+          }));
+        }
+        notifs.push(this.createNotification({
+          userId: booking.userId,
           type: 'booking',
-          title: 'New Booking Received',
-          message: `${user?.name || 'A user'} has booked your services.`,
-          link: '/worker-dashboard',
+          title: 'Booking Confirmed',
+          message: `Your booking with ${specialist?.name || 'specialist'} has been confirmed.`,
+          link: '/booking',
           bookingId: newBooking.id
-        });
-      }
-      
-      // Notify user
-      await this.createNotification({
-        userId: booking.userId,
-        type: 'booking',
-        title: 'Booking Confirmed',
-        message: `Your booking with ${specialist?.name || 'specialist'} has been confirmed.`,
-        link: '/booking',
-        bookingId: newBooking.id
-      });
-
-      // Auto-set worker status to busy
-      if (specialist) {
-        await updateDoc(doc(db, 'specialists', specialist.id), { availability: 'busy' });
-      }
+        }));
+        const updates: Promise<any>[] = [...notifs];
+        if (specialist) {
+          updates.push(updateDoc(doc(db, 'specialists', specialist.id), { availability: 'busy' }));
+        }
+        await Promise.all(updates);
       
       return newBooking;
     } catch (error) {
@@ -247,37 +245,35 @@ export class DB {
       };
       await setDoc(doc(db, 'bookings', newBooking.id), newBooking);
       
-      // Get specialist and user info
-      const specialists = await this.getSpecialists();
-      const specialist = specialists.find(s => s.id === booking.specialistId);
-      const user = await this.getUserById(booking.userId);
-      
-      // Notify worker with emergency priority
-      if (specialist?.userId) {
-        await this.createNotification({
-          userId: specialist.userId,
+        // Get specialist and user info in parallel
+        const [specialists, user] = await Promise.all([this.getSpecialists(), this.getUserById(booking.userId)]);
+        const specialist = specialists.find(s => s.id === booking.specialistId);
+        
+        // Notify worker and user in parallel
+        const notifs: Promise<any>[] = [];
+        if (specialist?.userId) {
+          notifs.push(this.createNotification({
+            userId: specialist.userId,
+            type: 'emergency_booking',
+            title: '🚨 EMERGENCY Booking',
+            message: `URGENT: ${user?.name || 'A user'} needs immediate assistance!`,
+            link: '/worker-dashboard',
+            bookingId: newBooking.id
+          }));
+        }
+        notifs.push(this.createNotification({
+          userId: booking.userId,
           type: 'emergency_booking',
-          title: '🚨 EMERGENCY Booking',
-          message: `URGENT: ${user?.name || 'A user'} needs immediate assistance!`,
-          link: '/worker-dashboard',
+          title: 'Emergency Booking Confirmed',
+          message: `Your emergency booking with ${specialist?.name || 'specialist'} has been confirmed. Help is on the way!`,
+          link: '/booking',
           bookingId: newBooking.id
-        });
-      }
-      
-      // Notify user
-      await this.createNotification({
-        userId: booking.userId,
-        type: 'emergency_booking',
-        title: 'Emergency Booking Confirmed',
-        message: `Your emergency booking with ${specialist?.name || 'specialist'} has been confirmed. Help is on the way!`,
-        link: '/booking',
-        bookingId: newBooking.id
-      });
-
-      // Auto-set worker status to busy
-      if (specialist) {
-        await updateDoc(doc(db, 'specialists', specialist.id), { availability: 'busy' });
-      }
+        }));
+        const updates: Promise<any>[] = [...notifs];
+        if (specialist) {
+          updates.push(updateDoc(doc(db, 'specialists', specialist.id), { availability: 'busy' }));
+        }
+        await Promise.all(updates);
       
       return newBooking;
     } catch (error) {
@@ -857,13 +853,11 @@ export class DB {
   }
 
   static onIncomingCall(userId: string, callback: (call: Call) => void): () => void {
-    return onSnapshot(collection(db, 'calls'), (snapshot) => {
+    const q = query(collection(db, 'calls'), where('receiverId', '==', userId), where('status', '==', 'ringing'));
+    return onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added' || change.type === 'modified') {
-          const call = change.doc.data() as Call;
-          if (call.receiverId === userId && call.status === 'ringing') {
-            callback(call);
-          }
+          callback(change.doc.data() as Call);
         }
       });
     });
