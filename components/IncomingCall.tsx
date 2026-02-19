@@ -4,6 +4,7 @@ import { DB } from '../services/db';
 import { AuthService } from '../services/auth';
 import { Call } from '../types';
 import { startIncomingRing, stopIncomingRing, playConnectedSound, playEndCallSound } from '../utils/callSounds';
+import CallFeedbackModal from './CallFeedbackModal';
 
 const ICE_SERVERS = {
   iceServers: [
@@ -21,6 +22,7 @@ export default function IncomingCall() {
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [feedbackCall, setFeedbackCall] = useState<{ callId: string; toUserId: string; toUserName: string; callType: 'voice' | 'video'; duration: number } | null>(null);
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -279,6 +281,15 @@ export default function IncomingCall() {
 
       // Cleanup Firestore call doc after a short delay
       setTimeout(() => DB.cleanupCall(call.id), 5000);
+
+      // Show feedback modal if call was actually connected
+      if (duration > 0) {
+        const toUserId = call.callerId === currentUser.id ? call.receiverId : call.callerId;
+        const toUserName = call.callerId === currentUser.id ? call.receiverName : call.callerName;
+        setTimeout(() => {
+          setFeedbackCall({ callId: call.id, toUserId, toUserName, callType: call.type, duration });
+        }, 1600);
+      }
     }
 
     setTimeout(() => {
@@ -570,6 +581,19 @@ export default function IncomingCall() {
           </div>
         )}
       </div>
+    );
+  }
+
+  if (feedbackCall) {
+    return (
+      <CallFeedbackModal
+        callId={feedbackCall.callId}
+        toUserId={feedbackCall.toUserId}
+        toUserName={feedbackCall.toUserName}
+        callType={feedbackCall.callType}
+        callDuration={feedbackCall.duration}
+        onClose={() => setFeedbackCall(null)}
+      />
     );
   }
 

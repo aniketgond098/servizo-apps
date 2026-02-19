@@ -1,6 +1,6 @@
 import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, addDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
-import { Specialist, Booking, User, Review, Message, MessageAttachment, VerificationRequest, Notification, Call, IceCandidate, ExtraCharge } from '../types';
+import { Specialist, Booking, User, Review, Message, MessageAttachment, VerificationRequest, Notification, Call, IceCandidate, ExtraCharge, CallFeedback } from '../types';
 
 const INITIAL_SPECIALISTS: Specialist[] = [
   {
@@ -1091,6 +1091,15 @@ export class DB {
       });
     } catch (error) {
       console.error('Reject cancellation error:', error);
+    }
+  }
+
+  static async saveCallFeedback(feedback: Omit<CallFeedback, 'id' | 'createdAt'>) {
+    try {
+      const ref = doc(collection(db, 'callFeedback'));
+      await setDoc(ref, { ...feedback, id: ref.id, createdAt: new Date().toISOString() });
+    } catch (error) {
+      console.error('Save call feedback error:', error);
     }
   }
 

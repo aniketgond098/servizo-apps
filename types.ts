@@ -180,6 +180,22 @@ export interface VerificationRequest {
   reviewedBy?: string;
 }
 
+export interface CallFeedback {
+  id: string;
+  callId: string;
+  fromUserId: string;
+  toUserId: string;
+  toUserName: string;
+  callType: 'voice' | 'video';
+  callDuration: number; // seconds
+  overallRating: number; // 1-5
+  languageRating: number; // 1-5
+  behaviourRating: number; // 1-5
+  wouldRecommend: boolean;
+  comment: string;
+  createdAt: string;
+}
+
 export interface BookingAnalytics {
   totalBookings: number;
   totalSpent: number;
