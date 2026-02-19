@@ -15,6 +15,7 @@ export default function VerifyEmail() {
   const [sent, setSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const hasSentRef = useRef(false);
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
@@ -26,7 +27,9 @@ export default function VerifyEmail() {
       navigate('/verify-phone');
       return;
     }
-    // Send OTP on mount
+    // Guard: only send once, even in React strict mode double-invoke
+    if (hasSentRef.current) return;
+    hasSentRef.current = true;
     sendOTP();
   }, []);
 
