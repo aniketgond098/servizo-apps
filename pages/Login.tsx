@@ -28,12 +28,8 @@ export default function Login() {
     setLoading(true);
     setError('');
     const user = await AuthService.login(email, pass);
-    if (user) {
-      if (!user.emailVerified) {
-        navigate('/verify-email', { replace: true });
-        return;
-      }
-      if (user.role === 'admin') navigate('/admin', { replace: true });
+      if (user) {
+        if (user.role === 'admin') navigate('/admin', { replace: true });
       else if (user.role === 'worker') navigate('/worker-dashboard', { replace: true });
       else navigate('/dashboard', { replace: true });
     } else {

@@ -333,11 +333,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   useEffect(() => {
     const user = AuthService.getCurrentUser();
-    if (!user) { navigate('/login', { replace: true }); return; }
-      if (user.role !== 'admin' && !user.emailVerified) { navigate('/verify-email', { replace: true }); return; }
-  }, [location.pathname]);
-  const user = AuthService.getCurrentUser();
-  if (!user || (user.role !== 'admin' && !user.emailVerified)) return null;
+      if (!user) { navigate('/login', { replace: true }); return; }
+    }, [location.pathname]);
+    const user = AuthService.getCurrentUser();
+    if (!user) return null;
   return <>{children}</>;
 }
 
