@@ -25,16 +25,16 @@ export default defineConfig(({ mode }) => {
         cssMinify: true,
         rollupOptions: {
           output: {
-            manualChunks(id) {
-              if (id.includes('node_modules')) {
-                if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) return 'react-vendor';
-                if (id.includes('firebase')) return 'firebase-vendor';
-                if (id.includes('leaflet')) return 'map-vendor';
-                if (id.includes('react-easy-crop')) return 'crop-vendor';
-                if (id.includes('@google/genai')) return 'ai-vendor';
-                if (id.includes('lucide-react')) return 'ui-vendor';
+              manualChunks(id) {
+                if (id.includes('node_modules')) {
+                  if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) return 'react-vendor';
+                  if (id.includes('firebase')) return 'firebase-vendor';
+                  if (id.includes('leaflet')) return 'map-vendor';
+                  if (id.includes('react-easy-crop')) return 'crop-vendor';
+                  if (id.includes('@google/genai')) return 'ai-vendor';
+                  if (id.includes('lucide-react')) return 'ui-vendor';
+                }
               }
-            }
           }
         },
         chunkSizeWarningLimit: 1000,
