@@ -1,29 +1,30 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
 import { Search, Bell, Menu, X, User as UserIcon, LogOut, Home as HomeIcon, Grid3X3, MessageCircle, Heart, ChevronDown } from 'lucide-react';
 import { ServizoIcon } from './components/Logo';
-import Home from './pages/Home';
-import Listing from './pages/Listing';
-import Profile from './pages/Profile';
-import Booking from './pages/Booking';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import VerifyEmail from './pages/VerifyEmail';
-import VerifyPhone from './pages/VerifyPhone';
-import UserDashboard from './pages/UserDashboard';
-import WorkerDashboard from './pages/WorkerDashboard';
-import AdminPanel from './pages/AdminPanel';
-import DocumentUpload from './pages/DocumentUpload';
-import Chat from './pages/Chat';
-import Favorites from './pages/Favorites';
-import Messages from './pages/Messages';
-import Notifications from './pages/Notifications';
-import CreateProfile from './pages/CreateProfile';
-import BookingHistory from './pages/BookingHistory';
-import ReviewPage from './pages/ReviewPage';
-import IncomingCall from './components/IncomingCall';
-import NotificationToast from './components/NotificationToast';
+
+const Home = lazy(() => import('./pages/Home'));
+const Listing = lazy(() => import('./pages/Listing'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Booking = lazy(() => import('./pages/Booking'));
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const VerifyPhone = lazy(() => import('./pages/VerifyPhone'));
+const UserDashboard = lazy(() => import('./pages/UserDashboard'));
+const WorkerDashboard = lazy(() => import('./pages/WorkerDashboard'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
+const DocumentUpload = lazy(() => import('./pages/DocumentUpload'));
+const Chat = lazy(() => import('./pages/Chat'));
+const Favorites = lazy(() => import('./pages/Favorites'));
+const Messages = lazy(() => import('./pages/Messages'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const CreateProfile = lazy(() => import('./pages/CreateProfile'));
+const BookingHistory = lazy(() => import('./pages/BookingHistory'));
+const ReviewPage = lazy(() => import('./pages/ReviewPage'));
+const IncomingCall = lazy(() => import('./components/IncomingCall'));
+const NotificationToast = lazy(() => import('./components/NotificationToast'));
 import { AuthService } from './services/auth';
 import { User } from './types';
 import { useTheme } from './contexts/ThemeContext';
@@ -348,8 +349,9 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-white text-gray-900">
       <Navbar />
-      <main className="pt-16 pb-16 md:pb-0 min-h-[calc(100vh-64px)]">
-        <Routes>
+        <main className="pt-16 pb-16 md:pb-0 min-h-[calc(100vh-64px)]">
+          <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><div className="w-8 h-8 border-2 border-gray-200 border-t-[#4169E1] rounded-full animate-spin" /></div>}>
+          <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/listing" element={<Listing />} />
           <Route path="/profile/:id" element={<Profile />} />
@@ -369,8 +371,9 @@ function AppContent() {
           <Route path="/create-profile" element={<ProtectedRoute><CreateProfile /></ProtectedRoute>} />
           <Route path="/booking-history" element={<ProtectedRoute><BookingHistory /></ProtectedRoute>} />
           <Route path="/review/:bookingId" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
-        </Routes>
-      </main>
+          </Routes>
+          </Suspense>
+        </main>
 
         {/* Footer */}
         <footer className="border-t border-gray-200 bg-[#000000] text-white pb-16 md:pb-0">
@@ -415,8 +418,8 @@ function AppContent() {
           </div>
         </div>
       </footer>
-        <IncomingCall />
-        <NotificationToast />
+        <Suspense fallback={null}><IncomingCall /></Suspense>
+        <Suspense fallback={null}><NotificationToast /></Suspense>
         </div>
     );
   }
