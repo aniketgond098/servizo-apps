@@ -41,21 +41,16 @@ export default function Listing() {
 
   const performSearch = async (query: string, category: string) => {
     setLoading(true);
-    let all = await DB.getSpecialists();
-    
-    // Filter only approved workers
-    const approvedSpecialists = [];
-    for (const s of all) {
-      if (!s.userId) {
-        approvedSpecialists.push(s);
-      } else {
-        const user = await DB.getUserById(s.userId);
-        if (!user || user.verificationStatus === 'approved') {
-          approvedSpecialists.push(s);
-        }
-      }
-    }
-    all = approvedSpecialists;
+    // Fetch specialists and users in parallel (two requests total, not N+1)
+    const [all_raw, users] = await Promise.all([DB.getSpecialists(), DB.getUsers()]);
+    const userMap = new Map(users.map(u => [u.id, u]));
+
+    // Filter only approved workers — no extra network calls
+    let all = all_raw.filter(s => {
+      if (!s.userId) return true;
+      const user = userMap.get(s.userId);
+      return !user || user.verificationStatus === 'approved';
+    });
     
     if (category !== 'All') {
       all = all.filter(s => s.category === category);
