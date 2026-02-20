@@ -661,11 +661,11 @@ export class DB {
     try {
       const q = query(
         collection(db, 'notifications'),
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
+        where('userId', '==', userId)
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Notification));
+      const notifs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Notification));
+      return notifs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     } catch (error) {
       console.error('Get notifications error:', error);
       return [];

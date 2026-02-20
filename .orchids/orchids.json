@@ -1,8 +1,8 @@
 {
-  "projectId": "5a56cb16-e5ee-4f68-b8b0-e109fc8e2235",
+  "projectId": "3de92fd7-f7aa-40ae-a53b-43d8b76f4696",
   "createdAt": 1739836800,
   "startupCommands": [
-    "bun install; bun run dev"
+    "node run_install.js; node run_dev.js"
   ],
   "templateId": "any"
 }
