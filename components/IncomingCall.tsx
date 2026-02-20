@@ -43,6 +43,10 @@ export default function IncomingCall() {
   const activeCallRef = useRef<Call | null>(null);
   const callDurationRef = useRef(0);
   const incomingCallRef = useRef<Call | null>(null);
+  // Guard against double-endCall from stale Firestore echoes
+  const callEndedRef = useRef(false);
+  // Buffer remote ICE candidates until remoteDescription is set (callee side)
+  const pendingCandidatesRef = useRef<RTCIceCandidate[]>([]);
 
   const setActiveCallSync = (call: Call | null) => { activeCallRef.current = call; setActiveCall(call); };
   const setIncomingCallSync = (call: Call | null) => { incomingCallRef.current = call; setIncomingCall(call); };
@@ -113,13 +117,15 @@ export default function IncomingCall() {
     if (pcRef.current) { pcRef.current.close(); pcRef.current = null; }
     if (unsubCallRef.current) { unsubCallRef.current(); unsubCallRef.current = null; }
     if (unsubIceRef.current) { unsubIceRef.current(); unsubIceRef.current = null; }
+    pendingCandidatesRef.current = [];
   };
 
   const acceptCall = async () => {
     const call = incomingCallRef.current;
     if (!call || !currentUser) return;
+
+    callEndedRef.current = false;
     stopIncomingRing();
-    playConnectedSound();
 
     setActiveCallSync(call);
     setIncomingCallSync(null);
@@ -132,8 +138,8 @@ export default function IncomingCall() {
         const hasAudio = devices.some(d => d.kind === 'audioinput');
         const hasVideo = devices.some(d => d.kind === 'videoinput');
         const constraints: MediaStreamConstraints = {
-          audio: hasAudio ? true : false,
-          video: isVideo && hasVideo ? true : false,
+          audio: hasAudio,
+          video: isVideo && hasVideo,
         };
         if (!constraints.audio && !constraints.video) {
           const ctx = new AudioContext();
@@ -160,10 +166,13 @@ export default function IncomingCall() {
       pcRef.current = pc;
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-      // Always assign to ref; useEffect re-attaches to DOM when connected UI mounts
       remoteStreamRef.current = new MediaStream();
       pc.ontrack = (event) => {
-        event.streams[0].getTracks().forEach(track => remoteStreamRef.current!.addTrack(track));
+        event.streams[0].getTracks().forEach(track => {
+          if (!remoteStreamRef.current!.getTracks().find(t => t.id === track.id)) {
+            remoteStreamRef.current!.addTrack(track);
+          }
+        });
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStreamRef.current;
         if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStreamRef.current;
       };
@@ -177,7 +186,6 @@ export default function IncomingCall() {
         const state = pc.connectionState;
         if (state === 'connected') {
           if (disconnectGraceRef.current) { clearTimeout(disconnectGraceRef.current); disconnectGraceRef.current = null; }
-          setCallState('connected');
         } else if (state === 'failed') {
           endCall();
         } else if (state === 'disconnected') {
@@ -187,24 +195,40 @@ export default function IncomingCall() {
         }
       };
 
+      // ── Signaling: set offer → create answer → drain ICE ──
       if (call.offer) {
         const offer = JSON.parse(call.offer);
         await pc.setRemoteDescription(new RTCSessionDescription(offer));
+
+        // Drain any ICE candidates buffered before remoteDescription was ready
+        for (const c of pendingCandidatesRef.current) {
+          try { await pc.addIceCandidate(c); } catch (_) {}
+        }
+        pendingCandidatesRef.current = [];
+
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         await DB.updateCall(call.id, { status: 'connected', answer: JSON.stringify(answer), answeredAt: new Date().toISOString() });
       }
 
+      // ── Subscribe to remote ICE candidates AFTER remoteDescription is set ──
       unsubIceRef.current = DB.onIceCandidates(call.id, currentUser.id, async (candidate) => {
         try {
-          if (pc.remoteDescription) await pc.addIceCandidate(candidate);
-        } catch (e) { console.error('Error adding ICE candidate:', e); }
+          if (pc.remoteDescription) {
+            await pc.addIceCandidate(candidate);
+          } else {
+            pendingCandidatesRef.current.push(candidate);
+          }
+        } catch (e) { console.error('ICE candidate error (callee):', e); }
       });
 
+      // ── Watch for caller hanging up ──
       unsubCallRef.current = DB.onCallUpdated(call.id, (updated) => {
-        if (updated && (updated.status === 'ended' || updated.status === 'missed')) endCall();
+        if (!updated || callEndedRef.current) return;
+        if (updated.status === 'ended' || updated.status === 'missed') endCall();
       });
 
+      playConnectedSound();
       setCallState('connected');
       setCallDurationSync(0);
     } catch (error) {
@@ -225,6 +249,9 @@ export default function IncomingCall() {
   };
 
   const endCall = async () => {
+    if (callEndedRef.current) return;
+    callEndedRef.current = true;
+
     const call = activeCallRef.current;
     const duration = callDurationRef.current;
 
