@@ -226,7 +226,7 @@ export default function Profile() {
                 { icon: Briefcase, label: 'Projects', value: specialist.projects, sub: 'completed', color: 'text-teal-600', bg: 'bg-teal-50' },
               { icon: Clock, label: 'Experience', value: `${specialist.experience}y`, sub: 'in field', color: 'text-purple-600', bg: 'bg-purple-50' },
               { icon: ThumbsUp, label: 'Success', value: '100%', sub: 'rate', color: 'text-green-600', bg: 'bg-green-50' },
-              { icon: TrendingUp, label: 'Response', value: '~2h', sub: 'avg time', color: 'text-orange-500', bg: 'bg-orange-50' },
+              { icon: TrendingUp, label: 'Response', value: specialist.totalRequests ? `${specialist.responseRate ?? 100}%` : 'New', sub: specialist.totalRequests ? 'response rate' : 'no data yet', color: 'text-orange-500', bg: 'bg-orange-50' },
             ].map(stat => (
               <div key={stat.label} className="flex items-center gap-3 px-4 py-4 sm:py-5">
                 <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center flex-shrink-0`}>

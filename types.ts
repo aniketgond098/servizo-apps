@@ -4,7 +4,7 @@ export type UserRole = 'user' | 'worker' | 'admin';
 export type VerificationStatus = 'pending' | 'approved' | 'rejected';
 export type AvailabilityStatus = 'available' | 'busy' | 'unavailable';
 export type Theme = 'light' | 'dark';
-export type SortOption = 'rating' | 'price-low' | 'price-high' | 'distance' | 'experience';
+export type SortOption = 'rating' | 'price-low' | 'price-high' | 'distance' | 'experience' | 'response';
 
 export interface User {
   id: string;
@@ -50,6 +50,8 @@ export interface Specialist {
   insuranceVerified?: boolean;
   topRated?: boolean;
   fastResponder?: boolean;
+  responseRate?: number;   // 0-100 percentage
+  totalRequests?: number;  // total booking requests received
 }
 
 export interface ExtraCharge {

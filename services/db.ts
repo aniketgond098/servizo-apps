@@ -979,6 +979,34 @@ export class DB {
     }
   }
 
+  // ─── Response Rate Scoring ───
+
+  /**
+   * Recalculates a worker's response rate after every accept/decline.
+   * responseRate = (accepted / total) * 100, rounded to 1 decimal.
+   * Also bumps totalRequests.
+   * accepted: true = worker accepted, false = worker declined
+   */
+  static async updateWorkerResponseRate(specialistId: string, accepted: boolean) {
+    try {
+      const snap = await getDoc(doc(db, 'specialists', specialistId));
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const prevTotal: number = data.totalRequests ?? 0;
+      const prevRate: number = data.responseRate ?? 100;
+      const prevAccepted = Math.round((prevRate / 100) * prevTotal);
+      const newTotal = prevTotal + 1;
+      const newAccepted = prevAccepted + (accepted ? 1 : 0);
+      const newRate = Math.round((newAccepted / newTotal) * 1000) / 10; // 1 decimal
+      await updateDoc(doc(db, 'specialists', specialistId), {
+        responseRate: newRate,
+        totalRequests: newTotal,
+      });
+    } catch (error) {
+      console.error('updateWorkerResponseRate error:', error);
+    }
+  }
+
   static async acceptBooking(bookingId: string) {
     try {
       const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
@@ -988,7 +1016,10 @@ export class DB {
       const specialists = await this.getSpecialists();
       const specialist = specialists.find(s => s.id === booking.specialistId);
       if (specialist) {
-        await updateDoc(doc(db, 'specialists', specialist.id), { availability: 'busy' });
+        await Promise.all([
+          updateDoc(doc(db, 'specialists', specialist.id), { availability: 'busy' }),
+          this.updateWorkerResponseRate(specialist.id, true),
+        ]);
       }
       await this.createNotification({
         userId: booking.userId,
@@ -1011,6 +1042,9 @@ export class DB {
       await updateDoc(doc(db, 'bookings', bookingId), { status: 'cancelled' });
       const specialists = await this.getSpecialists();
       const specialist = specialists.find(s => s.id === booking.specialistId);
+      if (specialist) {
+        await this.updateWorkerResponseRate(specialist.id, false);
+      }
       await this.createNotification({
         userId: booking.userId,
         type: 'booking',

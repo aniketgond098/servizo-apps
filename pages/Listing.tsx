@@ -21,7 +21,7 @@ export default function Listing() {
   const [activeCategory, setActiveCategory] = useState<string>(searchParams.get('filter') || 'All');
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
-  const [sortBy, setSortBy] = useState<SortOption>('rating');
+  const [sortBy, setSortBy] = useState<SortOption>('response');
   const [priceRange, setPriceRange] = useState<PriceRange>({ min: 0, max: 10000 });
   const [favorites, setFavorites] = useState<string[]>([]);
   const [cardLoading, setCardLoading] = useState<string[]>([]);
@@ -77,6 +77,7 @@ export default function Listing() {
       else if (sortBy === 'price-low') all.sort((a, b) => a.hourlyRate - b.hourlyRate);
       else if (sortBy === 'price-high') all.sort((a, b) => b.hourlyRate - a.hourlyRate);
       else if (sortBy === 'experience') all.sort((a, b) => b.experience - a.experience);
+      else if (sortBy === 'response') all.sort((a, b) => (b.responseRate ?? 100) - (a.responseRate ?? 100));
       else if (sortBy === 'distance' && userLoc) {
         all.sort((a, b) => calculateDistance(userLoc.lat, userLoc.lng, a.lat, a.lng) - calculateDistance(userLoc.lat, userLoc.lng, b.lat, b.lng));
       }
@@ -137,7 +138,7 @@ export default function Listing() {
     setSearchQuery("");
     setActiveCategory("All");
     setAvailabilityFilter("all");
-    setSortBy('rating');
+    setSortBy('response');
     setPriceRange({ min: 0, max: 10000 });
     setSearchParams({});
   };
@@ -277,14 +278,15 @@ export default function Listing() {
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Sort By</label>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      {val: 'rating', label: 'Rating'},
-                      {val: 'price-low', label: 'Price: Low'},
-                      {val: 'price-high', label: 'Price: High'},
-                      {val: 'distance', label: 'Distance'},
-                      {val: 'experience', label: 'Experience'}
-                    ].map(opt => (
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        {val: 'response', label: 'Response Rate'},
+                        {val: 'rating', label: 'Rating'},
+                        {val: 'price-low', label: 'Price: Low'},
+                        {val: 'price-high', label: 'Price: High'},
+                        {val: 'distance', label: 'Distance'},
+                        {val: 'experience', label: 'Experience'}
+                      ].map(opt => (
                       <button 
                         key={opt.val}
                         onClick={() => setSortBy(opt.val as SortOption)}
@@ -401,9 +403,22 @@ export default function Listing() {
                     {specialist.description}
                   </p>
 
-                  <div className="mb-3">
-                    <VerificationBadges specialist={specialist} size="sm" />
-                  </div>
+                    <div className="mb-3">
+                      <VerificationBadges specialist={specialist} size="sm" />
+                    </div>
+
+                    {specialist.totalRequests != null && specialist.totalRequests > 0 && (
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          (specialist.responseRate ?? 100) >= 80 ? 'bg-green-50 text-green-700' :
+                          (specialist.responseRate ?? 100) >= 50 ? 'bg-amber-50 text-amber-700' :
+                          'bg-red-50 text-red-600'
+                        }`}>
+                          <TrendingUp className="w-2.5 h-2.5" />
+                          {specialist.responseRate ?? 100}% response rate
+                        </div>
+                      </div>
+                    )}
 
                   {distance && (
                     <div className="flex items-center gap-1 text-xs text-gray-400 mb-3">
