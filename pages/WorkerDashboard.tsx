@@ -3,13 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
-import { Specialist, ServiceCategory, Booking, Message } from '../types';
+import { Specialist, ServiceCategory, Booking, Message, User } from '../types';
 import {
   Save, Star, Activity, Zap, TrendingUp, DollarSign, MessageCircle,
   Camera, Plus, Trash2, Send, IndianRupee, ChevronDown, Clock, X,
   CalendarClock, CheckCircle2, AlertCircle, Loader2, LayoutDashboard,
-  Briefcase, BarChart2, Mail, User, ChevronRight
+  Briefcase, BarChart2, Mail, ChevronRight, FileText, Download
 } from 'lucide-react';
+import { downloadBillAsPDF, emailBill, BillData } from '../utils/generateBill';
 import { PhotoGallery } from '../components/PhotoGallery';
 const ImageCropper = React.lazy(() => import('../components/ImageCropper'));
 
@@ -36,6 +37,8 @@ export default function WorkerDashboard() {
   const [acceptLoading, setAcceptLoading] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [bookingFilter, setBookingFilter] = useState<BookingFilter>('new');
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [billModalBooking, setBillModalBooking] = useState<Booking | null>(null);
 
   // Availability window state
   const [showWindowPicker, setShowWindowPicker] = useState(false);
@@ -92,6 +95,7 @@ export default function WorkerDashboard() {
 
       setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user.id));
       const [allMsgs, allUsers] = await Promise.all([DB.getMessages(), DB.getUsers()]);
+      setAllUsers(allUsers);
       const msgs = allMsgs.filter(m => m.receiverId === user.id);
       setMessages(msgs);
       const userMap = new Map(allUsers.map(u => [u.id, u.name]));
@@ -219,6 +223,22 @@ export default function WorkerDashboard() {
       await DB.rejectBooking(bookingId);
       setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
     } finally { setAcceptLoading(p => ({ ...p, [bookingId]: false })); }
+  };
+
+  const openBillModal = (booking: Booking) => setBillModalBooking(booking);
+
+  const handleDownloadBill = () => {
+    if (!billModalBooking || !profile.id) return;
+    const customer = allUsers.find(u => u.id === billModalBooking.userId);
+    if (!customer) return;
+    downloadBillAsPDF({ booking: billModalBooking, specialist: profile as Specialist, user: customer });
+  };
+
+  const handleEmailBill = () => {
+    if (!billModalBooking || !profile.id) return;
+    const customer = allUsers.find(u => u.id === billModalBooking.userId);
+    if (!customer) return;
+    emailBill({ booking: billModalBooking, specialist: profile as Specialist, user: customer });
   };
 
   const statusConfig = {
@@ -643,7 +663,19 @@ export default function WorkerDashboard() {
                             </div>
                           )}
 
-                          {/* Cancellation request */}
+                            {/* Completed — show bill button */}
+                            {booking.status === 'completed' && (
+                              <div className="p-4">
+                                <button
+                                  onClick={() => openBillModal(booking)}
+                                  className="w-full py-2.5 border border-[#4169E1] text-[#4169E1] rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors"
+                                >
+                                  <FileText className="w-4 h-4" /> View E-Bill
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Cancellation request */}
                           {booking.status === 'cancellation_pending' && (
                             <div className="p-4">
                               <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 space-y-3">
@@ -777,6 +809,82 @@ export default function WorkerDashboard() {
           </div>
         </div>
       </div>
+
+      {/* E-Bill modal */}
+      {billModalBooking && (() => {
+        const customer = allUsers.find(u => u.id === billModalBooking.userId);
+        const total = billModalBooking.finalTotal || billModalBooking.totalValue;
+        const extras = billModalBooking.extraCharges || [];
+        return (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/50" onClick={() => setBillModalBooking(null)} />
+            <div className="fixed z-50 inset-x-4 top-1/2 -translate-y-1/2 sm:inset-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-[420px] bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div className="bg-gray-900 text-white px-6 py-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-bold">E-Bill</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">#{billModalBooking.id.slice(-8).toUpperCase()}</p>
+                  </div>
+                  <button onClick={() => setBillModalBooking(null)} className="p-1.5 text-gray-400 hover:text-white transition-colors">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              {/* Bill summary */}
+              <div className="px-6 py-5 space-y-4">
+                <div className="bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
+                  <span className="text-sm font-semibold text-green-700">Payment Received</span>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Customer</span>
+                    <span className="font-medium text-gray-900">{customer?.name || 'Customer'}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Service</span>
+                    <span className="font-medium text-gray-900">{profile.title}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Date</span>
+                    <span className="font-medium text-gray-900">{new Date(billModalBooking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Base charge</span>
+                    <span className="font-medium text-gray-900">₹{billModalBooking.totalValue.toLocaleString()}</span>
+                  </div>
+                  {extras.map(c => (
+                    <div key={c.id} className="flex justify-between text-gray-600">
+                      <span>{c.description}</span>
+                      <span className="font-medium text-amber-600">+₹{c.amount.toLocaleString()}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between border-t border-gray-100 pt-2 text-base font-bold text-gray-900">
+                    <span>Total</span>
+                    <span className="text-[#4169E1]">₹{total.toLocaleString()}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <button
+                    onClick={handleDownloadBill}
+                    className="flex items-center justify-center gap-2 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-semibold hover:bg-gray-700 transition-colors"
+                  >
+                    <Download className="w-4 h-4" /> Download PDF
+                  </button>
+                  <button
+                    onClick={handleEmailBill}
+                    className="flex items-center justify-center gap-2 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors"
+                  >
+                    <Mail className="w-4 h-4" /> Send Email
+                  </button>
+                </div>
+                <p className="text-[11px] text-gray-400 text-center">Email opens your mail client. PDF uses browser print-to-PDF.</p>
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Availability window picker modal */}
       {showWindowPicker && (

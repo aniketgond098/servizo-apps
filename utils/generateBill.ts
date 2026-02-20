@@ -116,15 +116,18 @@ export function buildBillHTML(data: BillData): string {
 </html>`;
 }
 
-/** Opens a print dialog for the bill (download as PDF via browser print-to-PDF) */
+/** Downloads the bill as an HTML file directly to the user's device */
 export function downloadBillAsPDF(data: BillData) {
   const html = buildBillHTML(data);
-  const win = window.open('', '_blank', 'width=700,height=900');
-  if (!win) return;
-  win.document.write(html);
-  win.document.close();
-  win.focus();
-  setTimeout(() => win.print(), 400);
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `servizo-bill-${data.booking.id}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /** Sends the bill HTML to the user's email via mailto: */
