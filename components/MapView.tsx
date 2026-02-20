@@ -35,11 +35,16 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
     if (!mapRef.current || !window.L) return;
 
     const center = userLoc || { lat: 19.0760, lng: 72.8777 };
-    
-    if (!mapInstanceRef.current) {
-      mapInstanceRef.current = window.L.map(mapRef.current, {
-        zoomControl: false,
-      }).setView([center.lat, center.lng], 13);
+
+    // Re-center map when user location arrives after map was already initialized
+    if (userLoc && mapInstanceRef.current) {
+      mapInstanceRef.current.setView([userLoc.lat, userLoc.lng], 14, { animate: true });
+    }
+
+      if (!mapInstanceRef.current) {
+        mapInstanceRef.current = window.L.map(mapRef.current, {
+          zoomControl: false,
+        }).setView([center.lat, center.lng], userLoc ? 14 : 12);
 
       window.L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
