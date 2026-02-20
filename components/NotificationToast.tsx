@@ -4,7 +4,7 @@ import { db } from '../services/firebase';
 import { AuthService } from '../services/auth';
 import type { Notification as AppNotification } from '../types';
 import { Bell, X, AlertTriangle, CheckCircle, Info, Calendar, Star, CreditCard, ShieldCheck, MessageCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const typeIcons: Record<string, React.ReactNode> = {
   booking: <Calendar className="w-5 h-5 text-blue-500" />,
@@ -18,6 +18,7 @@ const typeIcons: Record<string, React.ReactNode> = {
   emergency: <AlertTriangle className="w-5 h-5 text-red-500" />,
   emergency_booking: <AlertTriangle className="w-5 h-5 text-red-500" />,
   message: <MessageCircle className="w-5 h-5 text-emerald-500" />,
+  availability: <Bell className="w-5 h-5 text-indigo-500" />,
 };
 
 interface ToastItem {
@@ -27,11 +28,12 @@ interface ToastItem {
 
 export default function NotificationToast() {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
-  // Use a ref so the onSnapshot callback always has the latest seen IDs
-  // without causing the listener to re-subscribe on every change.
   const seenIdsRef = useRef<Set<string>>(new Set());
-  const initialLoadDoneRef = useRef(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  // Track the user ID the current listener is subscribed to
+  const subscribedUserIdRef = useRef<string | null>(null);
+  const unsubRef = useRef<(() => void) | null>(null);
 
   const requestBrowserPermission = useCallback(async () => {
     if ('Notification' in window && Notification.permission === 'default') {
@@ -57,52 +59,68 @@ export default function NotificationToast() {
   }, [navigate]);
 
   const dismissToast = useCallback((id: string) => {
-    // Mark as removing to trigger slide-out animation
     setToasts(prev => prev.map(t => t.notification.id === id ? { ...t, removing: true } : t));
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.notification.id !== id));
     }, 350);
   }, []);
 
+  // Re-evaluate subscription whenever the route changes (catches login/logout)
   useEffect(() => {
     requestBrowserPermission();
 
     const user = AuthService.getCurrentUser();
-    if (!user) return;
+    const userId = user?.id ?? null;
+
+    // Already subscribed for this user — nothing to do
+    if (userId && userId === subscribedUserIdRef.current) return;
+
+    // Tear down previous subscription
+    if (unsubRef.current) {
+      unsubRef.current();
+      unsubRef.current = null;
+      subscribedUserIdRef.current = null;
+    }
+
+    if (!userId) return;
+
+    subscribedUserIdRef.current = userId;
+    let initialDone = false;
 
     const q = query(
       collection(db, 'notifications'),
-      where('userId', '==', user.id),
+      where('userId', '==', userId),
       where('read', '==', false)
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      if (!initialLoadDoneRef.current) {
-        // On initial load, seed seen IDs from existing unread notifications
-        snapshot.docs.forEach(doc => seenIdsRef.current.add(doc.id));
-        initialLoadDoneRef.current = true;
+    unsubRef.current = onSnapshot(q, (snapshot) => {
+      if (!initialDone) {
+        // Seed existing unread IDs so we don't toast old notifications
+        snapshot.docs.forEach(d => seenIdsRef.current.add(d.id));
+        initialDone = true;
         return;
       }
 
-      // Only show toasts for docs that were added (not modified/removed)
       snapshot.docChanges().forEach((change) => {
         if (change.type === 'added' && !seenIdsRef.current.has(change.doc.id)) {
           const notif = { ...change.doc.data(), id: change.doc.id } as AppNotification;
           seenIdsRef.current.add(notif.id);
-
           showBrowserNotification(notif);
           setToasts(prev => [...prev, { notification: notif, removing: false }]);
-
-          // Auto-dismiss after 6 seconds
           setTimeout(() => dismissToast(notif.id), 6000);
         }
       });
     });
 
-    return () => unsubscribe();
-  // Only run once on mount — refs don't need to be deps
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => {
+      if (unsubRef.current) {
+        unsubRef.current();
+        unsubRef.current = null;
+        subscribedUserIdRef.current = null;
+      }
+    };
+  // Re-run on every route change to pick up login/logout
+  }, [location.pathname, showBrowserNotification, dismissToast, requestBrowserPermission]);
 
   const handleToastClick = (notif: AppNotification) => {
     dismissToast(notif.id);

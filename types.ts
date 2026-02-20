@@ -73,8 +73,6 @@ export interface Booking {
   scheduledDate?: string;
   reviewed?: boolean;
   completedAt?: string;
-  isEmergency?: boolean;
-  emergencyMultiplier?: number;
   workerLat?: number;
   workerLng?: number;
   workerLastUpdate?: string;
@@ -125,7 +123,7 @@ export interface Message {
   attachment?: MessageAttachment;
 }
 
-export type NotificationType = 'booking' | 'message' | 'booking_status' | 'emergency_booking' | 'push' | 'review_request' | 'availability';
+export type NotificationType = 'booking' | 'message' | 'booking_status' | 'push' | 'review_request' | 'availability';
 
 export interface Notification {
   id: string;

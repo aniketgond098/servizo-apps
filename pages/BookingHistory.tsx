@@ -106,10 +106,9 @@ export default function BookingHistory() {
                     }`}>{booking.status}</span>
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
-                  <span>{booking.id}</span><span>·</span><span>{new Date(booking.createdAt).toLocaleDateString()}</span>
-                  {booking.isEmergency && <><span>·</span><span className="text-red-500 font-semibold">EMERGENCY</span></>}
-                </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">
+                    <span>{booking.id}</span><span>·</span><span>{new Date(booking.createdAt).toLocaleDateString()}</span>
+                  </div>
               </div>
             );
           })}

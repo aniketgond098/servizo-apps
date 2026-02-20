@@ -226,11 +226,10 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
               return (
                 <div key={booking.id} className="bg-white border border-gray-100 rounded-xl p-5 flex items-center justify-between">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-[#000000] text-sm">{booking.id}</h3>
-                      {booking.isEmergency && <span className="px-2 py-0.5 bg-red-500 text-white rounded text-[10px] font-semibold">EMERGENCY</span>}
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${booking.status === 'active' ? 'bg-green-50 text-green-600' : booking.status === 'cancellation_pending' ? 'bg-orange-50 text-orange-600' : booking.status === 'pending_payment' ? 'bg-amber-50 text-amber-600' : booking.status === 'completed' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-500'}`}>{booking.status === 'cancellation_pending' ? 'Cancel Requested' : booking.status === 'pending_payment' ? 'Awaiting Payment' : booking.status}</span>
-                    </div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-[#000000] text-sm">{booking.id}</h3>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${booking.status === 'active' ? 'bg-green-50 text-green-600' : booking.status === 'cancellation_pending' ? 'bg-orange-50 text-orange-600' : booking.status === 'pending_payment' ? 'bg-amber-50 text-amber-600' : booking.status === 'completed' ? 'bg-blue-50 text-blue-600' : 'bg-red-50 text-red-500'}`}>{booking.status === 'cancellation_pending' ? 'Cancel Requested' : booking.status === 'pending_payment' ? 'Awaiting Payment' : booking.status}</span>
+                      </div>
                     <p className="text-xs text-gray-400">Client: {user?.name || 'Unknown'} · Worker: {specialist?.name || 'Unknown'} · ₹{booking.totalValue}</p>
                     <p className="text-xs text-gray-400">{new Date(booking.createdAt).toLocaleString()}</p>
                     {booking.status === 'cancellation_pending' && booking.cancellationReason && (

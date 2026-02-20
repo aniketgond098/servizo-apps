@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Clock, MapPin, CreditCard, MessageCircle, Phone, RefreshCw, Activity, CheckCircle2, Star, Loader2, Share2, X, ArrowLeft, AlertTriangle, Navigation, Info, IndianRupee, Check, XCircle } from 'lucide-react';
+import { Shield, Clock, MapPin, CreditCard, MessageCircle, Phone, RefreshCw, Activity, CheckCircle2, Star, Loader2, Share2, X, ArrowLeft, Navigation, Info, IndianRupee, Check, XCircle } from 'lucide-react';
 import { DB } from '../services/db';
 import { Specialist, Booking as BookingType } from '../types';
 import { useNavigate } from 'react-router-dom';
@@ -92,13 +92,13 @@ export default function Booking() {
         </button>
 
           {/* Status Banner */}
-          <div className={`rounded-xl p-6 sm:p-8 mb-6 ${activeBooking.status === 'cancellation_pending' ? 'bg-orange-50 border border-orange-100' : activeBooking.status === 'pending_payment' ? 'bg-amber-50 border border-amber-100' : activeBooking.isEmergency ? 'bg-red-50 border border-red-100' : 'bg-blue-50 border border-blue-100'}`}>
+          <div className={`rounded-xl p-6 sm:p-8 mb-6 ${activeBooking.status === 'cancellation_pending' ? 'bg-orange-50 border border-orange-100' : activeBooking.status === 'pending_payment' ? 'bg-amber-50 border border-amber-100' : 'bg-blue-50 border border-blue-100'}`}>
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  {activeBooking.status === 'cancellation_pending' ? <XCircle className="w-5 h-5 text-orange-500" /> : activeBooking.status === 'pending_payment' ? <IndianRupee className="w-5 h-5 text-amber-600" /> : activeBooking.isEmergency ? <AlertTriangle className="w-5 h-5 text-red-500" /> : <Activity className="w-5 h-5 text-[#4169E1]" />}
-                  <span className={`text-xs font-bold uppercase tracking-wide ${activeBooking.status === 'cancellation_pending' ? 'text-orange-600' : activeBooking.status === 'pending_payment' ? 'text-amber-600' : activeBooking.isEmergency ? 'text-red-600' : 'text-[#4169E1]'}`}>
-                    {activeBooking.status === 'cancellation_pending' ? 'Cancellation Pending' : activeBooking.status === 'pending_payment' ? 'Payment Required' : activeBooking.isEmergency ? 'Emergency Booking' : 'Active Booking'}
+                  {activeBooking.status === 'cancellation_pending' ? <XCircle className="w-5 h-5 text-orange-500" /> : activeBooking.status === 'pending_payment' ? <IndianRupee className="w-5 h-5 text-amber-600" /> : <Activity className="w-5 h-5 text-[#4169E1]" />}
+                  <span className={`text-xs font-bold uppercase tracking-wide ${activeBooking.status === 'cancellation_pending' ? 'text-orange-600' : activeBooking.status === 'pending_payment' ? 'text-amber-600' : 'text-[#4169E1]'}`}>
+                    {activeBooking.status === 'cancellation_pending' ? 'Cancellation Pending' : activeBooking.status === 'pending_payment' ? 'Payment Required' : 'Active Booking'}
                   </span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-[#000000] mb-1">
@@ -107,7 +107,7 @@ export default function Booking() {
                 <p className="text-sm text-gray-500">Booking ID: {activeBooking.id}</p>
               </div>
               {activeBooking.status !== 'pending_payment' && activeBooking.status !== 'cancellation_pending' && (
-                <div className={`px-5 py-3 rounded-xl text-center ${activeBooking.isEmergency ? 'bg-red-100' : 'bg-blue-100'}`}>
+                <div className="px-5 py-3 rounded-xl text-center bg-blue-100">
                   <p className="text-xs text-gray-500 mb-0.5">ETA</p>
                   <p className="text-3xl font-bold text-[#000000]">{eta}<span className="text-sm font-normal text-gray-500 ml-1">min</span></p>
                 </div>
@@ -154,18 +154,16 @@ export default function Booking() {
                 </div>
 
                 <div className="relative">
-                  <div className={`absolute -left-8 top-0 w-6 h-6 ${activeBooking.isEmergency ? 'bg-red-100' : 'bg-blue-100'} rounded-full flex items-center justify-center`}>
-                    <RefreshCw className={`w-4 h-4 ${activeBooking.isEmergency ? 'text-red-600' : 'text-[#4169E1]'} animate-spin`} />
+                    <div className="absolute -left-8 top-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                      <RefreshCw className="w-4 h-4 text-[#4169E1] animate-spin" />
+                    </div>
+                    <div className="p-4 rounded-lg bg-blue-50 border border-blue-100">
+                      <h4 className="text-sm font-semibold text-[#4169E1]">Professional En Route</h4>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {specialist.name} is on the way. Estimated arrival in {eta} minutes.
+                      </p>
+                    </div>
                   </div>
-                  <div className={`p-4 rounded-lg ${activeBooking.isEmergency ? 'bg-red-50 border border-red-100' : 'bg-blue-50 border border-blue-100'}`}>
-                    <h4 className={`text-sm font-semibold ${activeBooking.isEmergency ? 'text-red-700' : 'text-[#4169E1]'}`}>
-                      {activeBooking.isEmergency ? 'Emergency Dispatch' : 'Professional En Route'}
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {specialist.name} is on the way. Estimated arrival in {eta} minutes.
-                    </p>
-                  </div>
-                </div>
 
                 <div className="relative opacity-40">
                   <div className="absolute -left-8 top-0 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
@@ -430,9 +428,9 @@ export default function Booking() {
             </div>
 
             <div className="bg-amber-50 border border-amber-100 rounded-lg p-3 mb-5 flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700 leading-relaxed">This will send a cancellation request to the worker. The booking will only be cancelled once the worker approves it.</p>
-            </div>
+                <Info className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-amber-700 leading-relaxed">This will send a cancellation request to the worker. The booking will only be cancelled once the worker approves it.</p>
+              </div>
 
             <div className="flex gap-3">
               <button

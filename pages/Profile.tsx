@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Shield, Star, MapPin, ArrowLeft, CheckCircle2, Loader2, Award, Briefcase, Clock, MessageCircle, Heart, AlertTriangle, Zap, Users, ThumbsUp, Calendar, Globe, Share2, BadgeCheck, Sparkles, TrendingUp, Bell, BellOff } from 'lucide-react';
+import { Shield, Star, MapPin, ArrowLeft, CheckCircle2, Loader2, Award, Briefcase, Clock, MessageCircle, Heart, Zap, Users, ThumbsUp, Calendar, Globe, Share2, BadgeCheck, Sparkles, TrendingUp, Bell, BellOff } from 'lucide-react';
 import { DB } from '../services/db';
 import { AuthService } from '../services/auth';
 import { Review, User } from '../types';
@@ -42,7 +42,6 @@ export default function Profile() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [bookingInProgress, setBookingInProgress] = useState(false);
-  const [emergencyBookingInProgress, setEmergencyBookingInProgress] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [specialist, setSpecialist] = useState<any>(null);
@@ -105,16 +104,6 @@ export default function Profile() {
     setBookingInProgress(true);
     setTimeout(() => {
       DB.createBooking({ specialistId: specialist.id, userId: currentUser.id, userLat: 19.0760, userLng: 72.8777, startTime: new Date().toISOString(), totalValue: specialist.hourlyRate });
-      navigate('/booking');
-    }, 1500);
-  };
-
-  const handleEmergencyBooking = () => {
-    if (!currentUser) { navigate('/login'); return; }
-    if (currentUser.role !== 'user') { alert('Only regular users can book services.'); return; }
-    setEmergencyBookingInProgress(true);
-    setTimeout(() => {
-      DB.createEmergencyBooking({ specialistId: specialist.id, userId: currentUser.id, userLat: 19.0760, userLng: 72.8777, startTime: new Date().toISOString() }, specialist.hourlyRate);
       navigate('/booking');
     }, 1500);
   };
@@ -476,22 +465,27 @@ export default function Profile() {
                   </div>
 
                   <div className="p-5 space-y-3">
-                    <button onClick={handleBooking} disabled={bookingInProgress || specialist.availability !== 'available'}
-                      className="w-full bg-gray-900 text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-gray-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg">
-                    {bookingInProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
-                    {bookingInProgress ? 'Booking...' : specialist.availability === 'available' ? 'Book Now' : 'Currently Unavailable'}
-                  </button>
+                      <button onClick={handleBooking} disabled={bookingInProgress || specialist.availability !== 'available'}
+                        className="w-full py-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={specialist.availability === 'available' && !bookingInProgress ? {
+                          background: 'linear-gradient(135deg, #4169E1 0%, #2f54c8 100%)',
+                          color: '#fff',
+                          boxShadow: '0 4px 18px rgba(65,105,225,0.45)',
+                        } : {
+                          background: '#1f2937',
+                          color: '#fff',
+                        }}
+                        onMouseEnter={e => { if (specialist.availability === 'available' && !bookingInProgress) { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.02)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 24px rgba(65,105,225,0.55)'; } }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)'; if (specialist.availability === 'available' && !bookingInProgress) (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 18px rgba(65,105,225,0.45)'; }}
+                      >
+                        {bookingInProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4 fill-white" />}
+                        {bookingInProgress ? 'Booking...' : specialist.availability === 'available' ? 'Book Now' : 'Currently Unavailable'}
+                      </button>
 
-                    <button onClick={handleEmergencyBooking} disabled={emergencyBookingInProgress || specialist.availability !== 'available'}
-                      className="w-full bg-red-500 text-white py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-red-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-lg">
-                      {emergencyBookingInProgress ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
-                      {emergencyBookingInProgress ? 'Booking...' : specialist.availability === 'available' ? 'Emergency Hire (+20%)' : 'Currently Unavailable'}
-                    </button>
-
-                    <button onClick={handleMessage}
-                      className="w-full border border-gray-200 text-gray-700 py-3.5 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
-                      <MessageCircle className="w-4 h-4" /> Send Message
-                    </button>
+                      <button onClick={handleMessage}
+                        className="w-full border border-gray-200 text-gray-700 py-3.5 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                        <MessageCircle className="w-4 h-4" /> Send Message
+                      </button>
 
                     {specialist.availability !== 'available' && currentUser?.role === 'user' && (
                       <button
@@ -520,16 +514,7 @@ export default function Profile() {
                 </div>
               </div>
 
-              {/* Emergency Info */}
-              <div className="bg-red-50 border border-red-100 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="w-4 h-4 text-red-500" />
-                  <span className="text-xs font-bold text-red-600 uppercase tracking-wide">Emergency Hire</span>
-                </div>
-                <p className="text-xs text-gray-500 leading-relaxed">Priority response with 20% surcharge. Worker will be dispatched immediately for urgent requirements.</p>
-              </div>
-
-              {/* Quick Info */}
+                {/* Quick Info */}
               <div className="bg-white border border-gray-100 rounded-2xl p-5">
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Quick Info</h4>
                 <div className="space-y-3.5">

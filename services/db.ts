@@ -265,57 +265,6 @@ export class DB {
     }
   }
 
-  static async createEmergencyBooking(booking: Omit<Booking, 'id' | 'createdAt' | 'status' | 'isEmergency' | 'emergencyMultiplier' | 'totalValue'>, baseRate: number): Promise<Booking> {
-    try {
-      const emergencyMultiplier = 1.2;
-      const newBooking: Booking = {
-        ...booking,
-        id: `EMG-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-        createdAt: new Date().toISOString(),
-        status: 'active',
-        isEmergency: true,
-        emergencyMultiplier,
-        totalValue: Math.round(baseRate * emergencyMultiplier)
-      };
-      await setDoc(doc(db, 'bookings', newBooking.id), newBooking);
-      
-        // Get specialist and user info in parallel
-        const [specialists, user] = await Promise.all([this.getSpecialists(), this.getUserById(booking.userId)]);
-        const specialist = specialists.find(s => s.id === booking.specialistId);
-        
-        // Notify worker and user in parallel
-        const notifs: Promise<any>[] = [];
-        if (specialist?.userId) {
-          notifs.push(this.createNotification({
-            userId: specialist.userId,
-            type: 'emergency_booking',
-            title: '🚨 EMERGENCY Booking',
-            message: `URGENT: ${user?.name || 'A user'} needs immediate assistance!`,
-            link: '/worker-dashboard',
-            bookingId: newBooking.id
-          }));
-        }
-        notifs.push(this.createNotification({
-          userId: booking.userId,
-          type: 'emergency_booking',
-          title: 'Emergency Booking Confirmed',
-          message: `Your emergency booking with ${specialist?.name || 'specialist'} has been confirmed. Help is on the way!`,
-          link: '/booking',
-          bookingId: newBooking.id
-        }));
-        const updates: Promise<any>[] = [...notifs];
-        if (specialist) {
-          updates.push(updateDoc(doc(db, 'specialists', specialist.id), { availability: 'busy' }));
-        }
-        await Promise.all(updates);
-      
-      return newBooking;
-    } catch (error) {
-      console.error('Create emergency booking error:', error);
-      throw error;
-    }
-  }
-
   static async getActiveBooking(userId?: string): Promise<Booking | null> {
     try {
       const constraints = userId
