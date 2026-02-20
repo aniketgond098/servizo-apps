@@ -103,7 +103,7 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
                         <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${request.status === 'approved' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>{request.status}</span>
                       )}
                     </div>
-                    <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                         {[{ label: 'Aadhaar', value: request.aadhaarUrl, color: 'blue' }, { label: 'PAN', value: request.panUrl, color: 'purple' }, { label: 'CV', value: request.cvUrl, color: 'green' }].map(doc => {
                           const isDataUrl = doc.value && doc.value.startsWith('data:');
                           const isImage = isDataUrl && doc.value.startsWith('data:image');
@@ -114,7 +114,7 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
                               {isImage ? (
                                 <button
                                   onClick={() => setViewingDoc({ url: doc.value, label: doc.label })}
-                                  className="w-full aspect-[4/3] rounded-lg border border-gray-200 overflow-hidden hover:border-blue-400 transition-colors relative cursor-pointer"
+                                  className="w-full aspect-video sm:aspect-[4/3] rounded-lg border border-gray-200 overflow-hidden hover:border-blue-400 transition-colors relative cursor-pointer"
                                 >
                                   <img src={doc.value} alt={doc.label} className="w-full h-full object-cover" />
                                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
@@ -128,20 +128,20 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
                                     const w = window.open();
                                     if (w) { w.document.write(`<iframe src="${doc.value}" style="width:100%;height:100%;border:none"></iframe>`); }
                                   }}
-                                  className="w-full aspect-[4/3] rounded-lg border border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2 hover:border-blue-400 transition-colors cursor-pointer"
+                                  className="w-full aspect-video sm:aspect-[4/3] rounded-lg border border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2 hover:border-blue-400 transition-colors cursor-pointer"
                                 >
                                   <File className={`w-8 h-8 text-${doc.color}-600`} />
                                   <span className="text-xs font-semibold text-gray-600">{doc.label} (PDF)</span>
                                   <span className="text-[10px] text-blue-600 font-medium">Click to view</span>
                                 </button>
                               ) : hasData ? (
-                                <div className="w-full aspect-[4/3] rounded-lg border border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2">
+                                <div className="w-full aspect-video sm:aspect-[4/3] rounded-lg border border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-2">
                                   <FileText className={`w-8 h-8 text-${doc.color}-600`} />
                                   <span className="text-xs font-semibold text-gray-600">{doc.label}</span>
                                   <span className="text-[10px] text-gray-400 truncate max-w-[90%]">{doc.value.substring(0, 30)}...</span>
                                 </div>
                               ) : (
-                                <div className="w-full aspect-[4/3] rounded-lg border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-1">
+                                <div className="w-full aspect-video sm:aspect-[4/3] rounded-lg border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-1">
                                   <FileText className="w-6 h-6 text-gray-300" />
                                   <span className="text-[10px] text-gray-400">{doc.label}</span>
                                   <span className="text-[10px] text-gray-300">Not provided</span>
@@ -251,8 +251,8 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
         )}
 
         {/* Edit User Modal */}
-        {editingUser && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          {editingUser && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1050] flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4">
               <h3 className="text-xl font-bold text-[#000000]">Edit User</h3>
               <input value={editingUser.name} onChange={(e) => setEditingUser({...editingUser, name: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Name" />
@@ -269,8 +269,8 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
         )}
 
           {/* Edit Specialist Modal */}
-          {editingSpecialist && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            {editingSpecialist && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1050] flex items-center justify-center p-4">
               <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4 max-h-[90vh] overflow-y-auto">
                 <h3 className="text-xl font-bold text-[#000000]">Edit Specialist</h3>
                 <input value={editingSpecialist.name} onChange={(e) => setEditingSpecialist({...editingSpecialist, name: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2.5 text-sm" placeholder="Name" />
@@ -290,7 +290,7 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
 
           {/* Document Viewer Modal */}
           {viewingDoc && (
-            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={() => setViewingDoc(null)}>
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[1100] flex items-center justify-center p-4" onClick={() => setViewingDoc(null)}>
               <div className="relative max-w-4xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-white font-semibold text-lg">{viewingDoc.label} Document</h3>
