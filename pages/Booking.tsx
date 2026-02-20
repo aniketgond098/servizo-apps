@@ -26,7 +26,7 @@ export default function Booking() {
       const bookings = await DB.getBookings();
       // Find active or pending_payment booking for this user
         const userBookings = bookings
-          .filter(b => b.userId === currentUser.id && (b.status === 'active' || b.status === 'pending_payment' || b.status === 'cancellation_pending'))
+           .filter(b => b.userId === currentUser.id && (b.status === 'pending_worker_acceptance' || b.status === 'active' || b.status === 'pending_payment' || b.status === 'cancellation_pending'))
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         const booking = userBookings[0] || null;
       if (booking) {
@@ -92,28 +92,45 @@ export default function Booking() {
         </button>
 
           {/* Status Banner */}
-          <div className={`rounded-xl p-6 sm:p-8 mb-6 ${activeBooking.status === 'cancellation_pending' ? 'bg-orange-50 border border-orange-100' : activeBooking.status === 'pending_payment' ? 'bg-amber-50 border border-amber-100' : 'bg-blue-50 border border-blue-100'}`}>
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  {activeBooking.status === 'cancellation_pending' ? <XCircle className="w-5 h-5 text-orange-500" /> : activeBooking.status === 'pending_payment' ? <IndianRupee className="w-5 h-5 text-amber-600" /> : <Activity className="w-5 h-5 text-[#4169E1]" />}
-                  <span className={`text-xs font-bold uppercase tracking-wide ${activeBooking.status === 'cancellation_pending' ? 'text-orange-600' : activeBooking.status === 'pending_payment' ? 'text-amber-600' : 'text-[#4169E1]'}`}>
-                    {activeBooking.status === 'cancellation_pending' ? 'Cancellation Pending' : activeBooking.status === 'pending_payment' ? 'Payment Required' : 'Active Booking'}
-                  </span>
+          <div className={`rounded-xl p-6 sm:p-8 mb-6 ${
+            activeBooking.status === 'cancellation_pending' ? 'bg-orange-50 border border-orange-100' :
+            activeBooking.status === 'pending_payment' ? 'bg-amber-50 border border-amber-100' :
+            activeBooking.status === 'pending_worker_acceptance' ? 'bg-purple-50 border border-purple-100' :
+            'bg-blue-50 border border-blue-100'}`}>
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    {activeBooking.status === 'cancellation_pending' ? <XCircle className="w-5 h-5 text-orange-500" /> :
+                     activeBooking.status === 'pending_payment' ? <IndianRupee className="w-5 h-5 text-amber-600" /> :
+                     activeBooking.status === 'pending_worker_acceptance' ? <Clock className="w-5 h-5 text-purple-500" /> :
+                     <Activity className="w-5 h-5 text-[#4169E1]" />}
+                    <span className={`text-xs font-bold uppercase tracking-wide ${
+                      activeBooking.status === 'cancellation_pending' ? 'text-orange-600' :
+                      activeBooking.status === 'pending_payment' ? 'text-amber-600' :
+                      activeBooking.status === 'pending_worker_acceptance' ? 'text-purple-600' :
+                      'text-[#4169E1]'}`}>
+                      {activeBooking.status === 'cancellation_pending' ? 'Cancellation Pending' :
+                       activeBooking.status === 'pending_payment' ? 'Payment Required' :
+                       activeBooking.status === 'pending_worker_acceptance' ? 'Awaiting Worker Acceptance' :
+                       'Active Booking'}
+                    </span>
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-[#000000] mb-1">
+                    {activeBooking.status === 'cancellation_pending' ? 'Awaiting Worker Approval' :
+                     activeBooking.status === 'pending_payment' ? 'Review & Pay' :
+                     activeBooking.status === 'pending_worker_acceptance' ? 'Waiting for Confirmation' :
+                     'Service In Progress'}
+                  </h1>
+                  <p className="text-sm text-gray-500">Booking ID: {activeBooking.id}</p>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-bold text-[#000000] mb-1">
-                  {activeBooking.status === 'cancellation_pending' ? 'Awaiting Worker Approval' : activeBooking.status === 'pending_payment' ? 'Review & Pay' : 'Service In Progress'}
-                </h1>
-                <p className="text-sm text-gray-500">Booking ID: {activeBooking.id}</p>
+                {activeBooking.status !== 'pending_payment' && activeBooking.status !== 'cancellation_pending' && activeBooking.status !== 'pending_worker_acceptance' && (
+                  <div className="px-5 py-3 rounded-xl text-center bg-blue-100">
+                    <p className="text-xs text-gray-500 mb-0.5">ETA</p>
+                    <p className="text-3xl font-bold text-[#000000]">{eta}<span className="text-sm font-normal text-gray-500 ml-1">min</span></p>
+                  </div>
+                )}
               </div>
-              {activeBooking.status !== 'pending_payment' && activeBooking.status !== 'cancellation_pending' && (
-                <div className="px-5 py-3 rounded-xl text-center bg-blue-100">
-                  <p className="text-xs text-gray-500 mb-0.5">ETA</p>
-                  <p className="text-3xl font-bold text-[#000000]">{eta}<span className="text-sm font-normal text-gray-500 ml-1">min</span></p>
-                </div>
-              )}
             </div>
-          </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Main */}
@@ -143,27 +160,37 @@ export default function Booking() {
               <div className="relative pl-8 space-y-8">
                 <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gray-200"></div>
                 
-                <div className="relative">
-                  <div className="absolute -left-8 top-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-[#000000]">Booking Confirmed</h4>
-                    <p className="text-xs text-gray-400 mt-0.5">Order processed and confirmed</p>
-                  </div>
-                </div>
-
-                <div className="relative">
-                    <div className="absolute -left-8 top-0 w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                      <RefreshCw className="w-4 h-4 text-[#4169E1] animate-spin" />
+                  <div className="relative">
+                    <div className="absolute -left-8 top-0 w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
                     </div>
-                    <div className="p-4 rounded-lg bg-blue-50 border border-blue-100">
-                      <h4 className="text-sm font-semibold text-[#4169E1]">Professional En Route</h4>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {specialist.name} is on the way. Estimated arrival in {eta} minutes.
+                    <div>
+                      <h4 className="text-sm font-semibold text-[#000000]">
+                        {activeBooking.status === 'pending_worker_acceptance' ? 'Booking Request Sent' : 'Booking Confirmed'}
+                      </h4>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {activeBooking.status === 'pending_worker_acceptance' ? 'Waiting for worker to accept your request' : 'Order processed and confirmed'}
                       </p>
                     </div>
                   </div>
+
+                  <div className="relative">
+                      <div className={`absolute -left-8 top-0 w-6 h-6 rounded-full flex items-center justify-center ${activeBooking.status === 'pending_worker_acceptance' ? 'bg-purple-100' : 'bg-blue-100'}`}>
+                        {activeBooking.status === 'pending_worker_acceptance'
+                          ? <Clock className="w-4 h-4 text-purple-500 animate-pulse" />
+                          : <RefreshCw className="w-4 h-4 text-[#4169E1] animate-spin" />}
+                      </div>
+                      <div className={`p-4 rounded-lg ${activeBooking.status === 'pending_worker_acceptance' ? 'bg-purple-50 border border-purple-100' : 'bg-blue-50 border border-blue-100'}`}>
+                        <h4 className={`text-sm font-semibold ${activeBooking.status === 'pending_worker_acceptance' ? 'text-purple-600' : 'text-[#4169E1]'}`}>
+                          {activeBooking.status === 'pending_worker_acceptance' ? 'Awaiting Acceptance' : 'Professional En Route'}
+                        </h4>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {activeBooking.status === 'pending_worker_acceptance'
+                            ? `${specialist.name} has been notified and will accept or decline shortly.`
+                            : `${specialist.name} is on the way. Estimated arrival in ${eta} minutes.`}
+                        </p>
+                      </div>
+                    </div>
 
                 <div className="relative opacity-40">
                   <div className="absolute -left-8 top-0 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
@@ -224,7 +251,23 @@ export default function Booking() {
 
             {/* Actions */}
               <div className="grid grid-cols-1 gap-3">
-                {activeBooking.status === 'active' && (
+                  {activeBooking.status === 'pending_worker_acceptance' && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 bg-purple-500 rounded-full animate-pulse" />
+                        <h4 className="text-sm font-bold text-purple-800">Waiting for Worker</h4>
+                      </div>
+                      <p className="text-xs text-purple-700 leading-relaxed">
+                        Your booking request has been sent to {specialist.name}. The booking will be confirmed once they accept. This page refreshes automatically.
+                      </p>
+                      <div className="flex items-center gap-2 text-[11px] text-purple-500">
+                        <RefreshCw className="w-3 h-3 animate-spin" />
+                        Checking for updates...
+                      </div>
+                    </div>
+                  )}
+
+                  {activeBooking.status === 'active' && (
                   <>
                     <button onClick={() => setShowMap(!showMap)} className="bg-white border border-gray-100 rounded-xl p-4 text-center hover:border-[#4169E1] transition-all group">
                       <Navigation className="w-5 h-5 text-gray-400 group-hover:text-[#4169E1] mx-auto mb-2 transition-colors" />

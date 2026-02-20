@@ -14,7 +14,7 @@ import { PhotoGallery } from '../components/PhotoGallery';
 const ImageCropper = React.lazy(() => import('../components/ImageCropper'));
 
 type Tab = 'overview' | 'bookings' | 'earnings' | 'messages';
-type BookingFilter = 'active' | 'pending' | 'completed' | 'cancelled';
+type BookingFilter = 'new' | 'active' | 'pending' | 'completed' | 'cancelled';
 
 export default function WorkerDashboard() {
   const user = AuthService.getCurrentUser();
@@ -33,8 +33,9 @@ export default function WorkerDashboard() {
   const [senderNames, setSenderNames] = useState<Record<string, string>>({});
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [cancelActionLoading, setCancelActionLoading] = useState<Record<string, boolean>>({});
+  const [acceptLoading, setAcceptLoading] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const [bookingFilter, setBookingFilter] = useState<BookingFilter>('active');
+  const [bookingFilter, setBookingFilter] = useState<BookingFilter>('new');
 
   // Availability window state
   const [showWindowPicker, setShowWindowPicker] = useState(false);
@@ -204,6 +205,22 @@ export default function WorkerDashboard() {
     } finally { setCancelActionLoading(p => ({ ...p, [bookingId]: false })); }
   };
 
+  const handleAcceptBooking = async (bookingId: string) => {
+    setAcceptLoading(p => ({ ...p, [bookingId]: true }));
+    try {
+      await DB.acceptBooking(bookingId);
+      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
+    } finally { setAcceptLoading(p => ({ ...p, [bookingId]: false })); }
+  };
+
+  const handleRejectBooking = async (bookingId: string) => {
+    setAcceptLoading(p => ({ ...p, [bookingId]: true }));
+    try {
+      await DB.rejectBooking(bookingId);
+      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
+    } finally { setAcceptLoading(p => ({ ...p, [bookingId]: false })); }
+  };
+
   const statusConfig = {
     available: { label: 'Available', dot: 'bg-green-500', bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200' },
     busy: { label: 'Busy', dot: 'bg-red-500', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' },
@@ -212,6 +229,7 @@ export default function WorkerDashboard() {
   const currentStatus = statusConfig[profile.availability || 'available'];
 
   const filteredBookings = myBookings.filter(b => {
+    if (bookingFilter === 'new') return b.status === 'pending_worker_acceptance';
     if (bookingFilter === 'active') return b.status === 'active' || b.status === 'cancellation_pending';
     if (bookingFilter === 'pending') return b.status === 'pending_payment';
     if (bookingFilter === 'completed') return b.status === 'completed';
@@ -221,7 +239,7 @@ export default function WorkerDashboard() {
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode; count?: number }[] = [
     { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: 'bookings', label: 'Bookings', icon: <Briefcase className="w-4 h-4" />, count: myBookings.filter(b => b.status === 'active' || b.status === 'cancellation_pending').length || undefined },
+    { id: 'bookings', label: 'Bookings', icon: <Briefcase className="w-4 h-4" />, count: myBookings.filter(b => b.status === 'pending_worker_acceptance' || b.status === 'active' || b.status === 'cancellation_pending').length || undefined },
     { id: 'earnings', label: 'Earnings', icon: <BarChart2 className="w-4 h-4" /> },
     { id: 'messages', label: 'Messages', icon: <Mail className="w-4 h-4" />, count: messages.filter(m => !m.read).length || undefined },
   ];
@@ -451,9 +469,10 @@ export default function WorkerDashboard() {
               <div>
                 {/* Sub-filter pills */}
                 <div className="flex gap-2 flex-wrap mb-5">
-                  {([
-                    { key: 'active', label: 'Active', count: myBookings.filter(b => b.status === 'active' || b.status === 'cancellation_pending').length },
-                    { key: 'pending', label: 'Awaiting Payment', count: myBookings.filter(b => b.status === 'pending_payment').length },
+                    {([
+                      { key: 'new', label: 'New Requests', count: myBookings.filter(b => b.status === 'pending_worker_acceptance').length },
+                      { key: 'active', label: 'Active', count: myBookings.filter(b => b.status === 'active' || b.status === 'cancellation_pending').length },
+                      { key: 'pending', label: 'Awaiting Payment', count: myBookings.filter(b => b.status === 'pending_payment').length },
                     { key: 'completed', label: 'Completed', count: myBookings.filter(b => b.status === 'completed').length },
                     { key: 'cancelled', label: 'Cancelled', count: myBookings.filter(b => b.status === 'cancelled').length },
                   ] as { key: BookingFilter; label: string; count: number }[]).map(f => (
@@ -528,8 +547,38 @@ export default function WorkerDashboard() {
                             )}
                           </div>
 
-                          {/* Extra charges — active only */}
-                          {booking.status === 'active' && (
+                            {/* New booking request — accept or reject */}
+                            {booking.status === 'pending_worker_acceptance' && (
+                              <div className="p-4">
+                                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse flex-shrink-0" />
+                                    <h4 className="text-sm font-bold text-blue-800">New Booking Request</h4>
+                                  </div>
+                                  <p className="text-xs text-blue-700">A customer has requested your services. Accept to confirm the booking or decline to reject it.</p>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleAcceptBooking(booking.id)}
+                                      disabled={!!acceptLoading[booking.id]}
+                                      className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-green-700 transition-colors disabled:opacity-50"
+                                    >
+                                      {acceptLoading[booking.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                                      Accept
+                                    </button>
+                                    <button
+                                      onClick={() => handleRejectBooking(booking.id)}
+                                      disabled={!!acceptLoading[booking.id]}
+                                      className="flex-1 py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-red-50 transition-colors disabled:opacity-50"
+                                    >
+                                      {acceptLoading[booking.id] ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Decline'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Extra charges — active only */}
+                            {booking.status === 'active' && (
                             <div className="p-4 space-y-3">
                               <h4 className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
                                 <IndianRupee className="w-3.5 h-3.5" /> Extra Charges

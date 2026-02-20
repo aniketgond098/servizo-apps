@@ -193,42 +193,39 @@ export class DB {
   static async createBooking(booking: Omit<Booking, 'id' | 'createdAt' | 'status'>): Promise<Booking> {
     try {
       const newBooking: Booking = {
-        ...booking,
-        id: `BK-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-        createdAt: new Date().toISOString(),
-        status: 'active'
-      };
-      await setDoc(doc(db, 'bookings', newBooking.id), newBooking);
-      
-        // Get specialist and user info in parallel
-        const [specialists, user] = await Promise.all([this.getSpecialists(), this.getUserById(booking.userId)]);
-        const specialist = specialists.find(s => s.id === booking.specialistId);
+          ...booking,
+          id: `BK-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          createdAt: new Date().toISOString(),
+          status: 'pending_worker_acceptance'
+        };
+        await setDoc(doc(db, 'bookings', newBooking.id), newBooking);
         
-        // Notify worker and user in parallel
-        const notifs: Promise<any>[] = [];
-        if (specialist?.userId) {
+          // Get specialist and user info in parallel
+          const [specialists, user] = await Promise.all([this.getSpecialists(), this.getUserById(booking.userId)]);
+          const specialist = specialists.find(s => s.id === booking.specialistId);
+          
+          // Notify worker of new booking request (not yet confirmed)
+          const notifs: Promise<any>[] = [];
+          if (specialist?.userId) {
+            notifs.push(this.createNotification({
+              userId: specialist.userId,
+              type: 'booking',
+              title: 'New Booking Request',
+              message: `${user?.name || 'A user'} has requested your services. Please accept or decline.`,
+              link: '/worker-dashboard',
+              bookingId: newBooking.id
+            }));
+          }
+          // Notify user that request is pending worker acceptance
           notifs.push(this.createNotification({
-            userId: specialist.userId,
+            userId: booking.userId,
             type: 'booking',
-            title: 'New Booking Received',
-            message: `${user?.name || 'A user'} has booked your services.`,
-            link: '/worker-dashboard',
+            title: 'Booking Request Sent',
+            message: `Your request has been sent to ${specialist?.name || 'the specialist'}. Waiting for them to accept.`,
+            link: '/booking',
             bookingId: newBooking.id
           }));
-        }
-        notifs.push(this.createNotification({
-          userId: booking.userId,
-          type: 'booking',
-          title: 'Booking Confirmed',
-          message: `Your booking with ${specialist?.name || 'specialist'} has been confirmed.`,
-          link: '/booking',
-          bookingId: newBooking.id
-        }));
-        const updates: Promise<any>[] = [...notifs];
-        if (specialist) {
-          updates.push(updateDoc(doc(db, 'specialists', specialist.id), { availability: 'busy' }));
-        }
-        await Promise.all(updates);
+          await Promise.all(notifs);
       
       return newBooking;
     } catch (error) {
@@ -962,6 +959,51 @@ export class DB {
       }
     } catch (error) {
       console.error('Mark booking paid error:', error);
+    }
+  }
+
+  static async acceptBooking(bookingId: string) {
+    try {
+      const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
+      if (!bookingDoc.exists()) return;
+      const booking = bookingDoc.data() as Booking;
+      await updateDoc(doc(db, 'bookings', bookingId), { status: 'active' });
+      const specialists = await this.getSpecialists();
+      const specialist = specialists.find(s => s.id === booking.specialistId);
+      if (specialist) {
+        await updateDoc(doc(db, 'specialists', specialist.id), { availability: 'busy' });
+      }
+      await this.createNotification({
+        userId: booking.userId,
+        type: 'booking',
+        title: 'Booking Accepted!',
+        message: `${specialist?.name || 'The worker'} has accepted your booking and is on the way.`,
+        link: '/booking',
+        bookingId
+      });
+    } catch (error) {
+      console.error('Accept booking error:', error);
+    }
+  }
+
+  static async rejectBooking(bookingId: string) {
+    try {
+      const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
+      if (!bookingDoc.exists()) return;
+      const booking = bookingDoc.data() as Booking;
+      await updateDoc(doc(db, 'bookings', bookingId), { status: 'cancelled' });
+      const specialists = await this.getSpecialists();
+      const specialist = specialists.find(s => s.id === booking.specialistId);
+      await this.createNotification({
+        userId: booking.userId,
+        type: 'booking',
+        title: 'Booking Declined',
+        message: `${specialist?.name || 'The worker'} is unable to take your booking. Please try another specialist.`,
+        link: '/listing',
+        bookingId
+      });
+    } catch (error) {
+      console.error('Reject booking error:', error);
     }
   }
 

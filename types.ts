@@ -65,7 +65,7 @@ export interface Booking {
   userId: string; // The user who hired
   userLat: number;
   userLng: number;
-  status: 'active' | 'pending_payment' | 'completed' | 'cancelled' | 'cancellation_pending';
+  status: 'pending_worker_acceptance' | 'active' | 'pending_payment' | 'completed' | 'cancelled' | 'cancellation_pending';
   startTime: string;
   createdAt: string;
   totalValue: number;
