@@ -291,7 +291,7 @@ export default function Listing() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Price Range (₹/hr)</label>
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2 block">Price Range (₹/visit)</label>
                   <div className="flex gap-3 items-center">
                     <input 
                       type="number" 
@@ -394,7 +394,7 @@ export default function Listing() {
                 <div className="flex justify-between items-center px-5 py-3.5 border-t border-gray-100 mt-auto bg-gray-50/50">
                   <div>
                     <span className="text-[10px] text-gray-400 uppercase tracking-wide">From</span>
-                    <p className="text-lg font-bold text-[#000000]">₹{specialist.hourlyRate}<span className="text-xs font-normal text-gray-400">/hr</span></p>
+                    <p className="text-lg font-bold text-[#000000]">₹{specialist.hourlyRate}<span className="text-xs font-normal text-gray-400">/visit</span></p>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />

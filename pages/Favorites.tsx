@@ -112,7 +112,7 @@ export default function Favorites() {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-base font-bold text-[#000000]">{'\u20B9'}{specialist.hourlyRate}<span className="text-xs font-normal text-gray-400">/hr</span></span>
+                    <span className="text-base font-bold text-[#000000]">{'\u20B9'}{specialist.hourlyRate}<span className="text-xs font-normal text-gray-400">/visit</span></span>
                     <div className="w-7 h-7 rounded-full border border-gray-200 flex items-center justify-center group-hover:bg-[#000000] group-hover:text-white group-hover:border-[#000000] transition-all">
                       <ChevronRight className="w-3.5 h-3.5" />
                     </div>

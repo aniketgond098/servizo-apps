@@ -405,7 +405,7 @@ export default function WorkerDashboard() {
                       </select>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-gray-500 mb-1.5 block">Hourly Rate (₹)</label>
+                      <label className="text-xs font-medium text-gray-500 mb-1.5 block">Visit Rate (₹)</label>
                       <input type="number" disabled={!isEditing} value={profile.hourlyRate || 1500} onChange={e => setProfile({ ...profile, hourlyRate: Number(e.target.value) })}
                         className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm disabled:bg-gray-50 disabled:text-gray-500 focus:outline-none focus:border-[#4169E1]" />
                     </div>

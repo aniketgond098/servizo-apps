@@ -231,7 +231,7 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
                     <h3 className="font-semibold text-[#000000]">{spec.name}</h3>
                     <p className="text-xs text-[#4169E1] font-medium">{spec.category}</p>
                     <div className="flex gap-3 mt-0.5 text-xs text-gray-400">
-                      <span>Rating: {spec.rating}</span><span>₹{spec.hourlyRate}/hr</span><span>{spec.projects} projects</span>
+                      <span>Rating: {spec.rating}</span><span>₹{spec.hourlyRate}/visit</span><span>{spec.projects} projects</span>
                     </div>
                   </div>
                 </div>

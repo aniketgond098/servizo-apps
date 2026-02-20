@@ -462,7 +462,7 @@ export default function Profile() {
                   <div className="bg-gray-900 p-6 text-center">
                     <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Starting from</p>
                     <p className="text-4xl font-bold text-white">₹{specialist.hourlyRate}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">per hour</p>
+                    <p className="text-xs text-gray-400 mt-0.5">per visit</p>
                   </div>
 
                   <div className="p-5 space-y-3">

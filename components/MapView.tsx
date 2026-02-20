@@ -148,7 +148,7 @@ export const MapView: React.FC<MapViewProps> = ({ specialists, userLoc, getAvail
               </div>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid #f3f4f6;">
-              <span style="font-size:14px;font-weight:700;color:#111827;">₹${specialist.hourlyRate}<span style="font-size:10px;font-weight:400;color:#9ca3af;">/hr</span></span>
+              <span style="font-size:14px;font-weight:700;color:#111827;">₹${specialist.hourlyRate}<span style="font-size:10px;font-weight:400;color:#9ca3af;">/visit</span></span>
               <div style="display:flex;align-items:center;gap:3px;">
                 <span style="color:#facc15;font-size:12px;">★</span>
                 <span style="font-size:12px;font-weight:600;color:#111827;">${specialist.rating}</span>
