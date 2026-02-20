@@ -29,7 +29,12 @@ const ICE_SERVERS = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:stun2.l.google.com:19302' },
+    { urls: 'stun:stun3.l.google.com:19302' },
+    { urls: 'stun:stun4.l.google.com:19302' },
+    { urls: 'stun:stun.stunprotocol.org:3478' },
   ],
+  iceCandidatePoolSize: 10,
 };
 
 export default function Chat() {
@@ -50,6 +55,15 @@ export default function Chat() {
   const [activeCall, setActiveCall] = useState<Call | null>(null);
   const [callState, setCallState] = useState<'idle' | 'ringing' | 'connected' | 'ended' | 'not_answering'>('idle');
   const [callDuration, setCallDuration] = useState(0);
+  // Keep refs in sync so async WebRTC callbacks always see the latest values
+  const setActiveCallSync = (call: Call | null) => { activeCallRef.current = call; setActiveCall(call); };
+  const setCallDurationSync = (d: number | ((p: number) => number)) => {
+    setCallDuration(prev => {
+      const next = typeof d === 'function' ? d(prev) : d;
+      callDurationRef.current = next;
+      return next;
+    });
+  };
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
@@ -61,9 +75,10 @@ export default function Chat() {
   const emojiRef = useRef<HTMLDivElement>(null);
   const attachRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-    const callTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const callTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const localVideoRef = useRef<HTMLVideoElement>(null);
+  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const callTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const disconnectGraceRef = useRef<NodeJS.Timeout | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
@@ -72,6 +87,9 @@ export default function Chat() {
   const unsubCallRef = useRef<(() => void) | null>(null);
   const unsubIceRef = useRef<(() => void) | null>(null);
   const pendingCandidatesRef = useRef<RTCIceCandidate[]>([]);
+  // Refs to always have latest state inside async callbacks
+  const activeCallRef = useRef<Call | null>(null);
+  const callDurationRef = useRef(0);
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
@@ -125,7 +143,7 @@ export default function Chat() {
   // Call timer
   useEffect(() => {
     if (callState === 'connected') {
-      callTimerRef.current = setInterval(() => setCallDuration(prev => prev + 1), 1000);
+      callTimerRef.current = setInterval(() => setCallDurationSync(prev => prev + 1), 1000);
     } else {
       if (callTimerRef.current) { clearInterval(callTimerRef.current); callTimerRef.current = null; }
     }
@@ -158,6 +176,7 @@ export default function Chat() {
     const cleanupCall = () => {
       stopOutgoingRing();
       if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
+      if (disconnectGraceRef.current) { clearTimeout(disconnectGraceRef.current); disconnectGraceRef.current = null; }
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach(t => t.stop());
         localStreamRef.current = null;
@@ -227,243 +246,199 @@ export default function Chat() {
 
   // ─── WebRTC Call Functions (Caller side) ───
 
-    const startCall = async (type: 'voice' | 'video') => {
-      if (!currentUser || !userId || !chatUser) return;
+      const startCall = async (type: 'voice' | 'video') => {
+        if (!currentUser || !userId || !chatUser) return;
 
-      setCallState('ringing');
-      setCallDuration(0);
-      setIsMuted(false);
-      setIsSpeaker(false);
-      setIsCameraOff(false);
-      setIsMinimized(false);
+        setCallState('ringing');
+        setCallDurationSync(0);
+        setIsMuted(false);
+        setIsSpeaker(false);
+        setIsCameraOff(false);
+        setIsMinimized(false);
 
-      try {
-        // Get local media with fallbacks
-        let stream: MediaStream;
         try {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          const hasAudio = devices.some(d => d.kind === 'audioinput');
-          const hasVideo = devices.some(d => d.kind === 'videoinput');
-
-          const constraints: MediaStreamConstraints = {
-            audio: hasAudio ? true : false,
-            video: type === 'video' && hasVideo ? true : false,
-          };
-
-          // Need at least one track
-          if (!constraints.audio && !constraints.video) {
-            // Create a silent audio track as fallback
+          let stream: MediaStream;
+          try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const hasAudio = devices.some(d => d.kind === 'audioinput');
+            const hasVideo = devices.some(d => d.kind === 'videoinput');
+            const constraints: MediaStreamConstraints = {
+              audio: hasAudio ? true : false,
+              video: type === 'video' && hasVideo ? true : false,
+            };
+            if (!constraints.audio && !constraints.video) {
+              const ctx = new AudioContext();
+              const osc = ctx.createOscillator();
+              const dst = ctx.createMediaStreamDestination();
+              osc.connect(dst); osc.start(); osc.frequency.setValueAtTime(0, ctx.currentTime);
+              stream = dst.stream;
+              if (type === 'video') setIsCameraOff(true);
+              setIsMuted(true);
+            } else {
+              stream = await navigator.mediaDevices.getUserMedia(constraints);
+              if (type === 'video' && !hasVideo) setIsCameraOff(true);
+              if (!hasAudio) setIsMuted(true);
+            }
+          } catch (mediaErr: any) {
+            console.warn('Media access failed, using silent fallback:', mediaErr.message);
             const ctx = new AudioContext();
-            const oscillator = ctx.createOscillator();
+            const osc = ctx.createOscillator();
             const dst = ctx.createMediaStreamDestination();
-            oscillator.connect(dst);
-            oscillator.start();
-            oscillator.frequency.setValueAtTime(0, ctx.currentTime);
+            osc.connect(dst); osc.start(); osc.frequency.setValueAtTime(0, ctx.currentTime);
             stream = dst.stream;
             if (type === 'video') setIsCameraOff(true);
             setIsMuted(true);
-          } else {
-            stream = await navigator.mediaDevices.getUserMedia(constraints);
-            if (type === 'video' && !hasVideo) setIsCameraOff(true);
-            if (!hasAudio) setIsMuted(true);
           }
-        } catch (mediaErr: any) {
-          // Permission denied or no devices - create silent fallback
-          console.warn('Media access failed, using silent fallback:', mediaErr.message);
-          const ctx = new AudioContext();
-          const oscillator = ctx.createOscillator();
-          const dst = ctx.createMediaStreamDestination();
-          oscillator.connect(dst);
-          oscillator.start();
-          oscillator.frequency.setValueAtTime(0, ctx.currentTime);
-          stream = dst.stream;
-          if (type === 'video') setIsCameraOff(true);
-          setIsMuted(true);
-        }
 
-        localStreamRef.current = stream;
-        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+          localStreamRef.current = stream;
+          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
 
-      // Create peer connection
-      const pc = new RTCPeerConnection(ICE_SERVERS);
-      pcRef.current = pc;
+          const pc = new RTCPeerConnection(ICE_SERVERS);
+          pcRef.current = pc;
+          stream.getTracks().forEach(track => pc.addTrack(track, stream));
 
-      // Add local tracks
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+          // Always keep remote stream in ref; useEffect re-attaches to DOM when connected UI mounts
+          remoteStreamRef.current = new MediaStream();
+          pc.ontrack = (event) => {
+            event.streams[0].getTracks().forEach(track => remoteStreamRef.current!.addTrack(track));
+            if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStreamRef.current;
+            if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStreamRef.current;
+          };
 
-      // Handle remote stream
-      remoteStreamRef.current = new MediaStream();
-      pc.ontrack = (event) => {
-        event.streams[0].getTracks().forEach(track => {
-          remoteStreamRef.current!.addTrack(track);
-        });
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = remoteStreamRef.current;
-        if (remoteAudioRef.current) remoteAudioRef.current.srcObject = remoteStreamRef.current;
-      };
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
 
-      // Create offer
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+          const call = await DB.createCall({
+            callerId: currentUser.id,
+            callerName: currentUser.name,
+            receiverId: userId,
+            receiverName: chatUser.name || 'User',
+            type,
+            status: 'ringing',
+            offer: JSON.stringify(offer),
+          });
 
-      // Create call in Firestore
-      const call = await DB.createCall({
-        callerId: currentUser.id,
-        callerName: currentUser.name,
-        receiverId: userId,
-        receiverName: chatUser.name || 'User',
-        type,
-        status: 'ringing',
-        offer: JSON.stringify(offer),
-      });
+          setActiveCallSync(call);
+          startOutgoingRing();
 
-      setActiveCall(call);
+          pc.onicecandidate = (event) => {
+            if (event.candidate && call) DB.addIceCandidate(call.id, currentUser.id, event.candidate);
+          };
 
-      // Start ringing sound
-      startOutgoingRing();
+          // Grace period: 'disconnected' can be transient during ICE renegotiation
+          pc.onconnectionstatechange = () => {
+            const state = pc.connectionState;
+            if (state === 'connected') {
+              if (disconnectGraceRef.current) { clearTimeout(disconnectGraceRef.current); disconnectGraceRef.current = null; }
+              stopOutgoingRing();
+              playConnectedSound();
+              setCallState('connected');
+            } else if (state === 'failed') {
+              endCall();
+            } else if (state === 'disconnected') {
+              disconnectGraceRef.current = setTimeout(() => {
+                if (pcRef.current?.connectionState === 'disconnected' || pcRef.current?.connectionState === 'failed') {
+                  endCall();
+                }
+              }, 4000);
+            } else if (state === 'connected' && disconnectGraceRef.current) {
+              clearTimeout(disconnectGraceRef.current);
+              disconnectGraceRef.current = null;
+            }
+          };
 
-      // ICE candidates - send to Firestore
-      pc.onicecandidate = (event) => {
-        if (event.candidate && call) {
-          DB.addIceCandidate(call.id, currentUser.id, event.candidate);
-        }
-      };
+          unsubCallRef.current = DB.onCallUpdated(call.id, async (updatedCall) => {
+            if (!updatedCall) return;
+            if (updatedCall.status === 'connected' && updatedCall.answer && pc.signalingState !== 'stable') {
+              try {
+                stopOutgoingRing();
+                playConnectedSound();
+                const answer = JSON.parse(updatedCall.answer);
+                await pc.setRemoteDescription(new RTCSessionDescription(answer));
+                for (const candidate of pendingCandidatesRef.current) await pc.addIceCandidate(candidate);
+                pendingCandidatesRef.current = [];
+                setCallState('connected');
+              } catch (e) { console.error('Error setting remote description:', e); }
+            }
+            if (updatedCall.status === 'rejected') {
+              stopOutgoingRing();
+              playBusySound();
+              setCallState('not_answering');
+              cleanupCall();
+              if (userId && currentUser) {
+                await DB.sendMessage({ senderId: currentUser.id, receiverId: userId, content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · Declined`, messageType: 'text' }, currentUser.name);
+              }
+              setTimeout(() => { setActiveCallSync(null); setCallState('idle'); }, 3000);
+              return;
+            }
+            if (updatedCall.status === 'missed' || updatedCall.status === 'ended') endCall();
+          });
 
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === 'connected') {
-          stopOutgoingRing();
-          playConnectedSound();
-          setCallState('connected');
-        } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-          endCall();
-        }
-      };
+          unsubIceRef.current = DB.onIceCandidates(call.id, currentUser.id, async (candidate) => {
+            try {
+              if (pc.remoteDescription) await pc.addIceCandidate(candidate);
+              else pendingCandidatesRef.current.push(candidate);
+            } catch (e) { console.error('Error adding ICE candidate:', e); }
+          });
 
-      // Listen for answer and status changes
-      unsubCallRef.current = DB.onCallUpdated(call.id, async (updatedCall) => {
-        if (!updatedCall) return;
-
-        if (updatedCall.status === 'connected' && updatedCall.answer && pc.signalingState !== 'stable') {
-          try {
+          callTimeoutRef.current = setTimeout(async () => {
             stopOutgoingRing();
-            playConnectedSound();
-            const answer = JSON.parse(updatedCall.answer);
-            await pc.setRemoteDescription(new RTCSessionDescription(answer));
-            // Flush pending ICE candidates
-            for (const candidate of pendingCandidatesRef.current) {
-              await pc.addIceCandidate(candidate);
+            playBusySound();
+            setCallState('not_answering');
+            cleanupCall();
+            await DB.updateCall(call.id, { status: 'missed', endedAt: new Date().toISOString() });
+            if (userId && currentUser) {
+              await DB.sendMessage({ senderId: currentUser.id, receiverId: userId, content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · No answer`, messageType: 'text' }, currentUser.name);
             }
-            pendingCandidatesRef.current = [];
-            setCallState('connected');
-          } catch (e) {
-            console.error('Error setting remote description:', e);
-          }
-        }
+            setTimeout(() => { setActiveCallSync(null); setCallState('idle'); }, 3000);
+          }, 30000);
 
-        if (updatedCall.status === 'rejected') {
-          stopOutgoingRing();
-          playBusySound();
-          setCallState('not_answering');
+        } catch (error) {
+          console.error('Failed to start call:', error);
+          setCallState('idle');
           cleanupCall();
-          if (userId && currentUser) {
-              await DB.sendMessage({
-                senderId: currentUser.id,
-                receiverId: userId,
-                content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · Declined`,
-                messageType: 'text',
-              }, currentUser.name);
-            }
-          setTimeout(() => {
-            setActiveCall(null);
-            setCallState('idle');
-          }, 3000);
-          return;
         }
+      };
 
-        if (updatedCall.status === 'missed' || updatedCall.status === 'ended') {
-          endCall();
-        }
-      });
+      const endCall = async () => {
+        const call = activeCallRef.current;
+        const duration = callDurationRef.current;
+        const type = call?.type;
 
-      // Listen for ICE candidates from receiver
-      unsubIceRef.current = DB.onIceCandidates(call.id, currentUser.id, async (candidate) => {
-        try {
-          if (pc.remoteDescription) {
-            await pc.addIceCandidate(candidate);
-          } else {
-            pendingCandidatesRef.current.push(candidate);
-          }
-        } catch (e) {
-          console.error('Error adding ICE candidate:', e);
-        }
-      });
-
-      // Auto-timeout after 30s - "not answering"
-      callTimeoutRef.current = setTimeout(async () => {
         stopOutgoingRing();
-        playBusySound();
-        setCallState('not_answering');
+        playEndCallSound();
         cleanupCall();
-        await DB.updateCall(call.id, { status: 'missed', endedAt: new Date().toISOString() });
-          if (userId && currentUser) {
+        setCallState('ended');
+
+      if (call && currentUser) {
+        await DB.updateCall(call.id, { status: 'ended', endedAt: new Date().toISOString() });
+
+        if (duration > 0 && userId) {
+          const emoji = type === 'video' ? '📹' : '📞';
+          const m = Math.floor(duration / 60);
+          const s = duration % 60;
+          const dur = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             await DB.sendMessage({
               senderId: currentUser.id,
               receiverId: userId,
-              content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · No answer`,
+              content: `${emoji} ${type === 'video' ? 'Video' : 'Voice'} call · ${dur}`,
               messageType: 'text',
             }, currentUser.name);
-          }
-        setTimeout(() => {
-          setActiveCall(null);
-          setCallState('idle');
-        }, 3000);
-      }, 30000);
+        }
 
-    } catch (error) {
-      console.error('Failed to start call:', error);
-      setCallState('idle');
-      cleanupCall();
-    }
-  };
-
-    const endCall = async () => {
-      const call = activeCall;
-      const duration = callDuration;
-      const type = call?.type;
-
-      stopOutgoingRing();
-      playEndCallSound();
-      cleanupCall();
-      setCallState('ended');
-
-    if (call && currentUser) {
-      await DB.updateCall(call.id, { status: 'ended', endedAt: new Date().toISOString() });
-
-      if (duration > 0 && userId) {
-        const emoji = type === 'video' ? '📹' : '📞';
-        const m = Math.floor(duration / 60);
-        const s = duration % 60;
-        const dur = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-          await DB.sendMessage({
-            senderId: currentUser.id,
-            receiverId: userId,
-            content: `${emoji} ${type === 'video' ? 'Video' : 'Voice'} call · ${dur}`,
-            messageType: 'text',
-          }, currentUser.name);
+        setTimeout(() => DB.cleanupCall(call.id), 5000);
       }
 
-      setTimeout(() => DB.cleanupCall(call.id), 5000);
-    }
-
-    setTimeout(() => {
-      setActiveCall(null);
-      setCallState('idle');
-      setCallDuration(0);
-      setIsMuted(false);
-      setIsSpeaker(false);
-      setIsCameraOff(false);
-      setIsMinimized(false);
-    }, 1500);
-  };
+      setTimeout(() => {
+        setActiveCallSync(null);
+        setCallState('idle');
+        setCallDurationSync(0);
+        setIsMuted(false);
+        setIsSpeaker(false);
+        setIsCameraOff(false);
+        setIsMinimized(false);
+      }, 1500);
+    };
 
   const toggleMute = () => {
     setIsMuted(prev => {
