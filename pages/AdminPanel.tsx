@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, XCircle, FileText, User, Users, Briefcase, Calendar, Trash2, Edit, Shield, Eye, X, Download, Image, File, CheckCircle2, DatabaseZap } from 'lucide-react';
+import { CheckCircle, XCircle, FileText, User, Users, Briefcase, Calendar, Trash2, Edit, Shield, Eye, X, Download, Image, File, CheckCircle2 } from 'lucide-react';
 import { DB } from '../services/db';
-import { seedNewWorkers } from '../services/seedWorkers';
 import type { VerificationRequest, User as UserType, Specialist, Booking } from '../types';
 
 type TabType = 'verifications' | 'users' | 'specialists' | 'bookings';
@@ -18,8 +17,6 @@ export default function AdminPanel({ currentUser }: { currentUser: any }) {
   const [editingUser, setEditingUser] = useState<UserType | null>(null);
   const [editingSpecialist, setEditingSpecialist] = useState<Specialist | null>(null);
   const [viewingDoc, setViewingDoc] = useState<{ url: string; label: string } | null>(null);
-  const [seeding, setSeeding] = useState(false);
-  const [seedResult, setSeedResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (!currentUser || currentUser.role !== 'admin') { navigate('/', { replace: true }); return; }
@@ -49,20 +46,6 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
 
   const filteredRequests = requests.filter(r => filter === 'all' || r.status === filter);
 
-  const handleSeedWorkers = async () => {
-    setSeeding(true);
-    setSeedResult(null);
-    try {
-      const { seeded, skipped } = await seedNewWorkers();
-      setSeedResult(`Done — ${seeded} added, ${skipped} already existed.`);
-      if (seeded > 0) loadAllData();
-    } catch (e: any) {
-      setSeedResult(`Error: ${e.message}`);
-    } finally {
-      setSeeding(false);
-    }
-  };
-
   if (!currentUser || currentUser.role !== 'admin') return null;
 
   const tabs = [
@@ -77,17 +60,9 @@ const [reqData, userData, specData, bookData] = await Promise.all([DB.getVerific
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
           <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-[#000000]">Admin Panel</h1>
-              <p className="text-sm text-gray-500 mt-1">Manage users, specialists, and bookings</p>
-            </div>
-            <div className="flex items-center gap-3">
-              {seedResult && <span className="text-xs text-green-600 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg">{seedResult}</span>}
-              <button onClick={handleSeedWorkers} disabled={seeding}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#4169E1] text-white text-sm font-semibold disabled:opacity-50 hover:bg-[#2f54c8] transition-all shadow-sm">
-                <DatabaseZap className="w-4 h-4" />
-                {seeding ? 'Seeding…' : 'Seed 30 Workers'}
-              </button>
-            </div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-[#000000]">Admin Panel</h1>
+                <p className="text-sm text-gray-500 mt-1">Manage users, specialists, and bookings</p>
+              </div>
           </div>
 
         {/* Tabs */}
