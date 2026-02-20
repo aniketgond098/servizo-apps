@@ -70,18 +70,17 @@ export default function WorkerDashboard() {
 
     const loadData = async () => {
       const freshUser = await DB.getUserById(user.id);
-      if (freshUser) {
-        AuthService.updateSession(freshUser);
-        if (!freshUser.verificationStatus || freshUser.verificationStatus === 'rejected' || freshUser.verificationStatus === 'pending') {
-          navigate('/document-upload', { replace: true }); return;
-        }
-      } else {
-        if (!user.verificationStatus || user.verificationStatus === 'rejected' || user.verificationStatus === 'pending') {
-          navigate('/document-upload', { replace: true }); return;
-        }
+      const resolvedUser = freshUser || user;
+      if (freshUser) AuthService.updateSession(freshUser);
+      // Only redirect to document-upload if verification is explicitly not approved
+      if (resolvedUser.verificationStatus && resolvedUser.verificationStatus !== 'approved') {
+        navigate('/document-upload', { replace: true }); return;
       }
       const specialists = await DB.getSpecialists();
-      let sp = specialists.find(s => s.userId === user.id);
+      // Match by userId first; fall back to matching by specialist id for seeded workers
+      // whose specialist.id may equal the user.id directly (e.g. legacy seed format)
+      let sp = specialists.find(s => s.userId === user.id)
+            || specialists.find(s => s.id === user.id);
       if (!sp) { navigate('/create-profile', { replace: true }); return; }
 
       setProfile(sp);
