@@ -43,6 +43,8 @@ export interface Specialist {
   skills: string[];
   credentials: string[];
   availability: AvailabilityStatus;
+  busyFrom?: string;   // ISO datetime string
+  busyUntil?: string;  // ISO datetime string
   verified?: boolean;
   backgroundChecked?: boolean;
   insuranceVerified?: boolean;
@@ -123,7 +125,7 @@ export interface Message {
   attachment?: MessageAttachment;
 }
 
-export type NotificationType = 'booking' | 'message' | 'booking_status' | 'emergency_booking' | 'push' | 'review_request';
+export type NotificationType = 'booking' | 'message' | 'booking_status' | 'emergency_booking' | 'push' | 'review_request' | 'availability';
 
 export interface Notification {
   id: string;

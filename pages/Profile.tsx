@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Shield, Star, MapPin, ArrowLeft, CheckCircle2, Loader2, Award, Briefcase, Clock, MessageCircle, Heart, AlertTriangle, Zap, Users, ThumbsUp, Calendar, Globe, Share2, BadgeCheck, Sparkles, TrendingUp } from 'lucide-react';
+import { Shield, Star, MapPin, ArrowLeft, CheckCircle2, Loader2, Award, Briefcase, Clock, MessageCircle, Heart, AlertTriangle, Zap, Users, ThumbsUp, Calendar, Globe, Share2, BadgeCheck, Sparkles, TrendingUp, Bell, BellOff } from 'lucide-react';
 import { DB } from '../services/db';
 import { AuthService } from '../services/auth';
 import { Review, User } from '../types';
@@ -49,13 +49,18 @@ export default function Profile() {
   const [activeTab, setActiveTab] = useState<'about' | 'reviews'>('about');
   const [userLoc, setUserLoc] = useState<{ lat: number; lng: number } | null>(null);
   const [reviewers, setReviewers] = useState<Record<string, User | undefined>>({});
+  const [isWatching, setIsWatching] = useState(false);
+  const [notifyLoading, setNotifyLoading] = useState(false);
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
+    let unsub: (() => void) | null = null;
     const loadData = async () => {
       const specialists = await DB.getSpecialists();
       const found = specialists.find(s => s.id === id) || specialists[0];
       setSpecialist(found);
+      // Subscribe to real-time updates for this specialist
+      unsub = DB.onSpecialist(found.id, (updated) => setSpecialist(updated));
       const r = await DB.getReviewsBySpecialist(found.id);
       setReviews(r);
       // Pre-load reviewer data
@@ -66,12 +71,15 @@ export default function Profile() {
       setReviewers(reviewerMap);
       if (currentUser) {
         setIsFavorite(currentUser.favorites?.includes(found.id) || false);
+        const watching = await DB.isWatchingAvailability(found.id, currentUser.id);
+        setIsWatching(watching);
       }
     };
     loadData();
     navigator.geolocation.getCurrentPosition((pos) => {
       setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     });
+    return () => { unsub?.(); };
   }, [id]);
 
   const handleBooking = () => {
@@ -108,6 +116,19 @@ export default function Profile() {
   const handleMessage = () => {
     if (!currentUser) { navigate('/login'); return; }
     navigate(`/chat/${specialist.id}`);
+  };
+
+  const handleToggleNotify = async () => {
+    if (!currentUser) { navigate('/login'); return; }
+    setNotifyLoading(true);
+    if (isWatching) {
+      await DB.unsubscribeAvailabilityNotify(specialist.id, currentUser.id);
+      setIsWatching(false);
+    } else {
+      await DB.subscribeAvailabilityNotify(specialist.id, currentUser.id);
+      setIsWatching(true);
+    }
+    setNotifyLoading(false);
   };
 
   const getDistance = () => {
@@ -325,29 +346,45 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Availability Info */}
-                <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
-                  <div className="flex items-center gap-2 mb-5">
-                    <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
-                      <Calendar className="w-4 h-4 text-indigo-600" />
+                  {/* Availability Info */}
+                  <div className="bg-white border border-gray-100 rounded-2xl p-6 sm:p-8">
+                    <div className="flex items-center gap-2 mb-5">
+                      <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+                        <Calendar className="w-4 h-4 text-indigo-600" />
+                      </div>
+                      <h3 className="text-base font-bold text-gray-900">Availability & Details</h3>
                     </div>
-                    <h3 className="text-base font-bold text-gray-900">Availability & Details</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="p-4 bg-gray-50 rounded-xl text-center">
+                        <p className="text-xs text-gray-400 mb-1">Languages</p>
+                        <p className="text-sm font-semibold text-gray-900">English, Hindi</p>
+                      </div>
+                      <div className="p-4 bg-gray-50 rounded-xl text-center">
+                        <p className="text-xs text-gray-400 mb-1">Working Hours</p>
+                        <p className="text-sm font-semibold text-gray-900">9 AM - 7 PM</p>
+                      </div>
+                      <div className="p-4 bg-gray-50 rounded-xl text-center">
+                        <p className="text-xs text-gray-400 mb-1">Service Area</p>
+                        <p className="text-sm font-semibold text-gray-900">{specialist.location}</p>
+                      </div>
+                    </div>
+                    {specialist.busyUntil && new Date(specialist.busyUntil) > new Date() && (
+                      <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
+                        <Clock className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        <div>
+                            <p className="text-xs font-semibold text-amber-700 mb-0.5">Currently Busy</p>
+                            <p className="text-xs text-amber-600">
+                              Available{' '}
+                              {specialist.busyFrom
+                                ? new Date(specialist.busyFrom).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+                                : '—'}{' '}
+                              {' → '}{' '}
+                              {new Date(specialist.busyUntil).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="p-4 bg-gray-50 rounded-xl text-center">
-                      <p className="text-xs text-gray-400 mb-1">Languages</p>
-                      <p className="text-sm font-semibold text-gray-900">English, Hindi</p>
-                    </div>
-                    <div className="p-4 bg-gray-50 rounded-xl text-center">
-                      <p className="text-xs text-gray-400 mb-1">Working Hours</p>
-                      <p className="text-sm font-semibold text-gray-900">9 AM - 7 PM</p>
-                    </div>
-                    <div className="p-4 bg-gray-50 rounded-xl text-center">
-                      <p className="text-xs text-gray-400 mb-1">Service Area</p>
-                      <p className="text-sm font-semibold text-gray-900">{specialist.location}</p>
-                    </div>
-                  </div>
-                </div>
               </>
             )}
 
@@ -434,10 +471,35 @@ export default function Profile() {
                       {emergencyBookingInProgress ? 'Booking...' : specialist.availability === 'available' ? 'Emergency Hire (+20%)' : 'Currently Unavailable'}
                     </button>
 
-                  <button onClick={handleMessage}
-                    className="w-full border border-gray-200 text-gray-700 py-3.5 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
-                    <MessageCircle className="w-4 h-4" /> Send Message
-                  </button>
+                    <button onClick={handleMessage}
+                      className="w-full border border-gray-200 text-gray-700 py-3.5 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
+                      <MessageCircle className="w-4 h-4" /> Send Message
+                    </button>
+
+                    {specialist.availability !== 'available' && currentUser?.role === 'user' && (
+                      <button
+                        onClick={handleToggleNotify}
+                        disabled={notifyLoading}
+                        className={`w-full py-3.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed border ${
+                          isWatching
+                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100'
+                            : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        {notifyLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : isWatching ? (
+                          <BellOff className="w-4 h-4" />
+                        ) : (
+                          <Bell className="w-4 h-4" />
+                        )}
+                        {notifyLoading
+                          ? 'Saving...'
+                          : isWatching
+                          ? 'Cancel Notification'
+                          : 'Notify Me When Available'}
+                      </button>
+                    )}
                 </div>
               </div>
 

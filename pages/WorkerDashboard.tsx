@@ -1,10 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
 import { Specialist, ServiceCategory, Booking, Message } from '../types';
-import { Save, Star, Activity, Zap, TrendingUp, DollarSign, MessageCircle, Camera, Plus, Trash2, Send, IndianRupee, ChevronDown } from 'lucide-react';
+import { Save, Star, Activity, Zap, TrendingUp, DollarSign, MessageCircle, Camera, Plus, Trash2, Send, IndianRupee, ChevronDown, Clock, X, CalendarClock } from 'lucide-react';
 import { PhotoGallery } from '../components/PhotoGallery';
 const ImageCropper = React.lazy(() => import('../components/ImageCropper'));
 
@@ -21,10 +21,17 @@ export default function WorkerDashboard() {
   const [chargeDesc, setChargeDesc] = useState<Record<string, string>>({});
   const [chargeAmt, setChargeAmt] = useState<Record<string, string>>({});
   const [chargeLoading, setChargeLoading] = useState<Record<string, boolean>>({});
-    const [submitLoading, setSubmitLoading] = useState<Record<string, boolean>>({});
-    const [senderNames, setSenderNames] = useState<Record<string, string>>({});
-    const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
-    const [cancelActionLoading, setCancelActionLoading] = useState<Record<string, boolean>>({});
+  const [submitLoading, setSubmitLoading] = useState<Record<string, boolean>>({});
+  const [senderNames, setSenderNames] = useState<Record<string, string>>({});
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const [cancelActionLoading, setCancelActionLoading] = useState<Record<string, boolean>>({});
+
+  // Availability window state
+  const [showWindowPicker, setShowWindowPicker] = useState(false);
+  const [windowFrom, setWindowFrom] = useState('');
+  const [windowUntil, setWindowUntil] = useState('');
+  const [windowSaving, setWindowSaving] = useState(false);
+  const autoStatusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,6 +45,8 @@ export default function WorkerDashboard() {
 
   useEffect(() => {
     if (!user || user.role !== 'worker') { navigate('/login', { replace: true }); return; }
+    let unsubSpecialist: (() => void) | null = null;
+
     const loadData = async () => {
       // Refresh user data from DB to get latest verificationStatus
       const freshUser = await DB.getUserById(user.id);
@@ -57,7 +66,18 @@ export default function WorkerDashboard() {
       const specialists = await DB.getSpecialists();
       let sp = specialists.find(s => s.userId === user.id);
       if (!sp) { navigate('/create-profile', { replace: true }); return; }
-      if (sp) setProfile(sp);
+
+      setProfile(sp);
+      // Pre-fill window picker from saved values
+      if (sp.busyFrom) setWindowFrom(toLocalInput(sp.busyFrom));
+      if (sp.busyUntil) setWindowUntil(toLocalInput(sp.busyUntil));
+
+      // Subscribe to real-time specialist updates
+      unsubSpecialist = DB.onSpecialist(sp.id, (updated) => {
+        setProfile(updated);
+        scheduleAutoStatus(updated.busyFrom ?? null, updated.busyUntil ?? null, updated.id);
+      });
+
       setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user.id));
       // Resolve sender names for messages
       const [allMsgs, allUsers] = await Promise.all([DB.getMessages(), DB.getUsers()]);
@@ -73,9 +93,58 @@ export default function WorkerDashboard() {
       setSenderNames(names);
     };
     loadData();
+
+    return () => {
+      unsubSpecialist?.();
+      if (autoStatusTimerRef.current) clearTimeout(autoStatusTimerRef.current);
+    };
   }, [navigate]);
 
   const handleSave = async () => { if (profile.id) { await DB.updateSpecialist(profile as Specialist); setIsEditing(false); } };
+
+  // Convert ISO string → local datetime-local input value
+  const toLocalInput = (iso: string) => {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  // Schedule a timer to flip status back to 'available' when busyUntil arrives
+  const scheduleAutoStatus = (busyFrom: string | null, busyUntil: string | null, spId: string) => {
+    if (autoStatusTimerRef.current) clearTimeout(autoStatusTimerRef.current);
+    if (!busyUntil) return;
+    const msUntilEnd = new Date(busyUntil).getTime() - Date.now();
+    if (msUntilEnd <= 0) {
+      // Window already passed — clear it now
+      DB.setAvailabilityWindow(spId, null, null);
+      return;
+    }
+    autoStatusTimerRef.current = setTimeout(() => {
+      DB.setAvailabilityWindow(spId, null, null);
+    }, msUntilEnd);
+  };
+
+  const handleSaveWindow = async () => {
+    if (!profile.id || !windowFrom || !windowUntil) return;
+    if (new Date(windowFrom) >= new Date(windowUntil)) {
+      alert('"Available from" must be before "Available until".');
+      return;
+    }
+    setWindowSaving(true);
+    try {
+      await DB.setAvailabilityWindow(profile.id, new Date(windowFrom).toISOString(), new Date(windowUntil).toISOString());
+      setShowWindowPicker(false);
+    } finally {
+      setWindowSaving(false);
+    }
+  };
+
+  const handleClearWindow = async () => {
+    if (!profile.id) return;
+    await DB.setAvailabilityWindow(profile.id, null, null);
+    setWindowFrom('');
+    setWindowUntil('');
+  };
 
   const startLocationSharing = () => {
     if (!navigator.geolocation) { alert('Geolocation not supported'); return; }
@@ -461,38 +530,115 @@ export default function WorkerDashboard() {
                 <h4 className="text-xl font-bold text-[#000000]">{profile.name}</h4>
                 <p className="text-xs text-[#4169E1] font-medium">{profile.title}</p>
 
-                {/* Status Toggle */}
-                <div className="relative mt-4">
-                  <button
-                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-lg border ${currentStatus.border} ${currentStatus.bg} transition-all hover:shadow-sm`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={`w-2.5 h-2.5 rounded-full ${currentStatus.color} ${profile.availability === 'available' ? 'animate-pulse' : ''}`} />
-                      <span className={`text-sm font-semibold ${currentStatus.text}`}>{currentStatus.label}</span>
-                    </div>
-                    <ChevronDown className={`w-4 h-4 ${currentStatus.text} transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
-                  </button>
+                  {/* Status Toggle */}
+                  <div className="relative mt-4">
+                    <button
+                      onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                      className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 rounded-lg border ${currentStatus.border} ${currentStatus.bg} transition-all hover:shadow-sm`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${currentStatus.color} ${profile.availability === 'available' ? 'animate-pulse' : ''}`} />
+                        <span className={`text-sm font-semibold ${currentStatus.text}`}>{currentStatus.label}</span>
+                      </div>
+                      <ChevronDown className={`w-4 h-4 ${currentStatus.text} transition-transform ${statusDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
 
-                  {statusDropdownOpen && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setStatusDropdownOpen(false)} />
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
-                        {(Object.entries(statusConfig) as [string, typeof currentStatus][]).map(([key, cfg]) => (
-                          <button
-                            key={key}
-                            onClick={() => handleStatusChange(key as 'available' | 'busy' | 'unavailable')}
-                            className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${profile.availability === key ? 'bg-gray-50' : ''}`}
-                          >
-                            <div className={`w-2.5 h-2.5 rounded-full ${cfg.color}`} />
-                            <span className={`text-sm font-medium ${cfg.text}`}>{cfg.label}</span>
-                            {profile.availability === key && <span className="ml-auto text-xs text-gray-400">Current</span>}
+                    {statusDropdownOpen && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setStatusDropdownOpen(false)} />
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 overflow-hidden">
+                          {(Object.entries(statusConfig) as [string, typeof currentStatus][]).map(([key, cfg]) => (
+                            <button
+                              key={key}
+                              onClick={() => handleStatusChange(key as 'available' | 'busy' | 'unavailable')}
+                              className={`w-full flex items-center gap-2.5 px-4 py-2.5 text-left hover:bg-gray-50 transition-colors ${profile.availability === key ? 'bg-gray-50' : ''}`}
+                            >
+                              <div className={`w-2.5 h-2.5 rounded-full ${cfg.color}`} />
+                              <span className={`text-sm font-medium ${cfg.text}`}>{cfg.label}</span>
+                              {profile.availability === key && <span className="ml-auto text-xs text-gray-400">Current</span>}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Availability Window */}
+                  <div className="mt-3">
+                    {profile.busyUntil && new Date(profile.busyUntil) > new Date() ? (
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <CalendarClock className="w-3.5 h-3.5 text-amber-600" />
+                            <span className="text-xs font-semibold text-amber-700">Availability Window Set</span>
+                          </div>
+                          <button onClick={handleClearWindow} className="p-0.5 text-amber-500 hover:text-amber-700 transition-colors">
+                            <X className="w-3.5 h-3.5" />
                           </button>
-                        ))}
+                        </div>
+                          <p className="text-[11px] text-amber-600">
+                          Available{' '}
+                          {profile.busyFrom ? new Date(profile.busyFrom).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                          {' → '}
+                          {new Date(profile.busyUntil!).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowWindowPicker(true)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-dashed border-gray-300 text-gray-500 hover:border-[#4169E1] hover:text-[#4169E1] text-xs font-medium transition-colors"
+                      >
+                          <Clock className="w-3.5 h-3.5" /> Set Availability Window
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Busy Window Picker modal */}
+                  {showWindowPicker && (
+                    <>
+                      <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setShowWindowPicker(false)} />
+                      <div className="fixed z-50 inset-x-4 top-1/2 -translate-y-1/2 sm:inset-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-96 bg-white rounded-2xl shadow-2xl p-6">
+                        <div className="flex items-center justify-between mb-5">
+                          <div className="flex items-center gap-2">
+                            <CalendarClock className="w-5 h-5 text-[#4169E1]" />
+                              <h3 className="text-base font-bold text-[#000000]">Set Availability Window</h3>
+                          </div>
+                          <button onClick={() => setShowWindowPicker(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                              <label className="text-xs font-medium text-gray-500 mb-1.5 block">Available From</label>
+                            <input
+                              type="datetime-local"
+                              value={windowFrom}
+                              onChange={e => setWindowFrom(e.target.value)}
+                              className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:border-[#4169E1]"
+                            />
+                          </div>
+                          <div>
+                              <label className="text-xs font-medium text-gray-500 mb-1.5 block">Available Until</label>
+                            <input
+                              type="datetime-local"
+                              value={windowUntil}
+                              onChange={e => setWindowUntil(e.target.value)}
+                              className="w-full border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:border-[#4169E1]"
+                            />
+                          </div>
+                            <p className="text-xs text-gray-400">Your status will automatically switch to <strong>Busy</strong> outside this window and back to <strong>Available</strong> when the window is active.</p>
+                          <button
+                            onClick={handleSaveWindow}
+                            disabled={!windowFrom || !windowUntil || windowSaving}
+                            className="w-full py-3 bg-[#000000] text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-[#1a1a1a] transition-colors disabled:opacity-50"
+                          >
+                            {windowSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CalendarClock className="w-4 h-4" />}
+                            Save Window
+                          </button>
+                        </div>
                       </div>
                     </>
                   )}
-                </div>
 
                 <div className="grid grid-cols-2 gap-3 mt-5">
                 <div className="p-3 bg-gray-50 rounded-lg">

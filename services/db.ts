@@ -130,6 +130,40 @@ export class DB {
     }
   }
 
+  // Real-time listener for a single specialist document
+  static onSpecialist(id: string, callback: (specialist: Specialist) => void): () => void {
+    return onSnapshot(doc(db, 'specialists', id), (snap) => {
+      if (snap.exists()) callback({ ...snap.data(), id: snap.id } as Specialist);
+    }, (err) => console.error('onSpecialist error:', err));
+  }
+
+  // Set a busy window: marks the worker busy from `from` to `until` (ISO strings)
+  // Pass null/null to clear the window and restore availability
+  static async setAvailabilityWindow(
+    specialistId: string,
+    from: string | null,
+    until: string | null
+  ) {
+    try {
+      const now = new Date();
+      const isBusy = from && until && new Date(from) <= now && now < new Date(until);
+      const newStatus = isBusy ? 'busy' : 'available';
+      await updateDoc(doc(db, 'specialists', specialistId), {
+        busyFrom: from ?? null,
+        busyUntil: until ?? null,
+        availability: newStatus,
+      });
+      // If the worker just became available, fire notifications to watchers
+      if (newStatus === 'available') {
+        const snap = await getDoc(doc(db, 'specialists', specialistId));
+        const name = snap.exists() ? (snap.data().name as string) : 'Your worker';
+        await this.notifyAvailabilityWatchers(specialistId, name);
+      }
+    } catch (error) {
+      console.error('setAvailabilityWindow error:', error);
+    }
+  }
+
   static async deleteSpecialist(id: string) {
     try {
       await deleteDoc(doc(db, 'specialists', id));
@@ -1183,6 +1217,70 @@ export class DB {
     });
 
     return () => { unsub1(); unsub2(); };
+  }
+
+  // ─── Availability Notify Requests ───
+
+  /** Register interest: notify `userId` when specialist `specialistId` becomes available */
+  static async subscribeAvailabilityNotify(specialistId: string, userId: string): Promise<void> {
+    try {
+      const id = `AVAIL-${specialistId}-${userId}`;
+      await setDoc(doc(db, 'availabilityNotifyRequests', id), {
+        id,
+        specialistId,
+        userId,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('subscribeAvailabilityNotify error:', error);
+    }
+  }
+
+  /** Remove interest */
+  static async unsubscribeAvailabilityNotify(specialistId: string, userId: string): Promise<void> {
+    try {
+      const id = `AVAIL-${specialistId}-${userId}`;
+      await deleteDoc(doc(db, 'availabilityNotifyRequests', id));
+    } catch (error) {
+      console.error('unsubscribeAvailabilityNotify error:', error);
+    }
+  }
+
+  /** Check if a user is already watching a specialist */
+  static async isWatchingAvailability(specialistId: string, userId: string): Promise<boolean> {
+    try {
+      const id = `AVAIL-${specialistId}-${userId}`;
+      const snap = await getDoc(doc(db, 'availabilityNotifyRequests', id));
+      return snap.exists();
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Fire in-app notifications to every watcher of `specialistId` and then
+   * delete those watcher records (one-shot notify).
+   * Called internally by setAvailabilityWindow when the worker goes available.
+   */
+  static async notifyAvailabilityWatchers(specialistId: string, specialistName: string): Promise<void> {
+    try {
+      const q = query(collection(db, 'availabilityNotifyRequests'), where('specialistId', '==', specialistId));
+      const snap = await getDocs(q);
+      if (snap.empty) return;
+      await Promise.all(snap.docs.map(async (d) => {
+        const { userId } = d.data();
+        await this.createNotification({
+          userId,
+          type: 'availability',
+          title: `${specialistName} is now available!`,
+          message: `${specialistName} has become available for bookings. Tap to book now.`,
+          link: `/profile/${specialistId}`,
+        });
+        await deleteDoc(d.ref);
+      }));
+    } catch (error) {
+      console.error('notifyAvailabilityWatchers error:', error);
+    }
   }
 
   static async cleanupCall(callId: string) {
