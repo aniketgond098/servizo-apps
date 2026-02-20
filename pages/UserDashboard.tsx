@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Activity, Clock, Star, ChevronRight, Heart, Calendar, TrendingUp, CheckCircle2, MessageSquare } from 'lucide-react';
+import { Activity, Clock, Star, ChevronRight, Heart, Calendar, TrendingUp, CheckCircle2, MessageSquare, Download, Mail, FileText, X } from 'lucide-react';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
-import { Booking, Specialist, Review } from '../types';
+import { Booking, Specialist, Review, User } from '../types';
+import { downloadBillAsPDF, emailBill } from '../utils/generateBill';
 
 export default function UserDashboard() {
   const user = AuthService.getCurrentUser();
@@ -14,12 +15,18 @@ export default function UserDashboard() {
   const [favorites, setFavorites] = useState<Specialist[]>([]);
   const [specialists, setSpecialists] = useState<Specialist[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [userProfile, setUserProfile] = useState<User | null>(null);
+  const [billBooking, setBillBooking] = useState<Booking | null>(null);
 
   useEffect(() => {
     if (!user || user.role !== 'user') { navigate('/login'); return; }
     const loadData = async () => {
-      const allBookings = (await DB.getBookings()).filter(b => b.userId === user.id);
+      const [allBookings, profile] = await Promise.all([
+        DB.getBookings().then(bs => bs.filter(b => b.userId === user.id)),
+        DB.getUserById(user.id),
+      ]);
       setBookings(allBookings);
+      if (profile) setUserProfile(profile);
       const favoriteIds = user.favorites || [];
       const allSpecialists = await DB.getSpecialists();
       setSpecialists(allSpecialists);
@@ -96,31 +103,40 @@ export default function UserDashboard() {
                 <Link to="/booking-history" className="text-xs text-[#4169E1] font-semibold hover:underline">View All</Link>
               </div>
               <div className="space-y-3">
-                {pastBookings.slice(0, 5).map(b => {
-                    const sp = specialists.find(s => s.id === b.specialistId);
-                    const hasReviewed = reviews.some(r => r.bookingId === b.id);
-                    return (
-                      <div key={b.id} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center">
-                        <div>
-                          <h4 className="font-semibold text-[#000000] text-sm">{sp?.name}</h4>
-                          <p className="text-xs text-gray-400">{new Date(b.createdAt).toLocaleDateString()} · <span className={b.status === 'completed' ? 'text-green-600' : 'text-red-500'}>{b.status}</span></p>
+                  {pastBookings.slice(0, 5).map(b => {
+                      const sp = specialists.find(s => s.id === b.specialistId);
+                      const hasReviewed = reviews.some(r => r.bookingId === b.id);
+                      const isPaid = b.status === 'completed' && b.paymentStatus === 'paid';
+                      return (
+                        <div key={b.id} className="bg-white border border-gray-100 rounded-xl p-4 flex justify-between items-center">
+                          <div>
+                            <h4 className="font-semibold text-[#000000] text-sm">{sp?.name}</h4>
+                            <p className="text-xs text-gray-400">{new Date(b.createdAt).toLocaleDateString()} · <span className={b.status === 'completed' ? 'text-green-600' : 'text-red-500'}>{b.status}</span></p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isPaid && (
+                              <button
+                                onClick={() => setBillBooking(b)}
+                                className="px-3 py-1.5 bg-gray-50 text-gray-700 border border-gray-200 rounded-lg text-xs font-semibold hover:bg-gray-100 transition-colors flex items-center gap-1.5"
+                              >
+                                <FileText className="w-3.5 h-3.5" /> Bill
+                              </button>
+                            )}
+                            {b.status === 'completed' && !hasReviewed && (
+                              <Link to={`/review/${b.id}`} className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold hover:bg-amber-100 transition-colors flex items-center gap-1.5">
+                                <Star className="w-3.5 h-3.5" /> Review
+                              </Link>
+                            )}
+                            {b.status === 'completed' && hasReviewed && (
+                              <span className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-xs font-semibold flex items-center gap-1.5">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Reviewed
+                              </span>
+                            )}
+                            <span className="font-bold text-[#000000]">₹{b.totalValue}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          {b.status === 'completed' && !hasReviewed && (
-                            <Link to={`/review/${b.id}`} className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold hover:bg-amber-100 transition-colors flex items-center gap-1.5">
-                              <Star className="w-3.5 h-3.5" /> Review
-                            </Link>
-                          )}
-                          {b.status === 'completed' && hasReviewed && (
-                            <span className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-xs font-semibold flex items-center gap-1.5">
-                              <CheckCircle2 className="w-3.5 h-3.5" /> Reviewed
-                            </span>
-                          )}
-                          <span className="font-bold text-[#000000]">₹{b.totalValue}</span>
-                        </div>
-                      </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </section>
           </div>
@@ -171,6 +187,72 @@ export default function UserDashboard() {
           </aside>
         </div>
       </div>
+
+      {/* E-Bill Modal */}
+      {billBooking && (() => {
+        const sp = specialists.find(s => s.id === billBooking.specialistId);
+        if (!sp || !userProfile) return null;
+        return (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-gray-100 overflow-hidden">
+              <div className="bg-[#000000] px-6 py-5 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">E-Bill</h3>
+                    <p className="text-xs text-gray-400">{billBooking.id}</p>
+                  </div>
+                </div>
+                <button onClick={() => setBillBooking(null)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+                  <X className="w-4 h-4 text-white" />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="space-y-2.5">
+                  <div className="flex justify-between py-1.5 border-b border-gray-100">
+                    <span className="text-sm text-gray-500">Service Provider</span>
+                    <span className="text-sm font-semibold">{sp.name}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-gray-100">
+                    <span className="text-sm text-gray-500">Date</span>
+                    <span className="text-sm font-semibold">{billBooking.paidAt ? new Date(billBooking.paidAt).toLocaleDateString('en-IN') : new Date(billBooking.createdAt).toLocaleDateString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between py-1.5 border-b border-gray-100">
+                    <span className="text-sm text-gray-500">Base Charge</span>
+                    <span className="text-sm font-semibold">₹{billBooking.totalValue.toLocaleString('en-IN')}</span>
+                  </div>
+                  {(billBooking.extraCharges || []).map(c => (
+                    <div key={c.id} className="flex justify-between py-1.5 border-b border-gray-100">
+                      <span className="text-sm text-gray-500">{c.description}</span>
+                      <span className="text-sm font-semibold text-amber-600">+₹{c.amount.toLocaleString('en-IN')}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between py-2">
+                    <span className="text-base font-bold">Total Paid</span>
+                    <span className="text-lg font-bold text-[#4169E1]">₹{(billBooking.finalTotal || billBooking.totalValue).toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <button
+                    onClick={() => downloadBillAsPDF({ booking: billBooking, specialist: sp, user: userProfile })}
+                    className="py-3 bg-[#000000] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#1a1a1a] transition-colors"
+                  >
+                    <Download className="w-4 h-4" /> Download PDF
+                  </button>
+                  <button
+                    onClick={() => emailBill({ booking: billBooking, specialist: sp, user: userProfile })}
+                    className="py-3 border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+                  >
+                    <Mail className="w-4 h-4" /> Email Bill
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

@@ -1,47 +1,46 @@
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Clock, MapPin, CreditCard, MessageCircle, Phone, RefreshCw, Activity, CheckCircle2, Star, Loader2, Share2, X, ArrowLeft, Navigation, Info, IndianRupee, Check, XCircle, FileText } from 'lucide-react';
+import { Shield, Clock, MapPin, CreditCard, MessageCircle, Phone, RefreshCw, Activity, CheckCircle2, Star, Loader2, Share2, X, ArrowLeft, Navigation, Info, IndianRupee, Check, XCircle, FileText, Download, Mail } from 'lucide-react';
 import { DB } from '../services/db';
 import { Specialist, Booking as BookingType, User } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/auth';
 const MapView = React.lazy(() => import('../components/MapView').then(m => ({ default: m.MapView })));
 import { PhotoGallery } from '../components/PhotoGallery';
-import { EBill } from '../components/EBill';
+import { downloadBillAsPDF, emailBill } from '../utils/generateBill';
 
 export default function Booking() {
   const navigate = useNavigate();
   const [activeBooking, setActiveBooking] = useState<BookingType | null>(null);
   const [specialist, setSpecialist] = useState<Specialist | null>(null);
+  const [userProfile, setUserProfile] = useState<User | null>(null);
   const [eta, setEta] = useState(12);
   const [showMap, setShowMap] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'review' | 'paying' | 'done'>('review');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [showBill, setShowBill] = useState(false);
-  const [userData, setUserData] = useState<User | null>(null);
+  const [showBillModal, setShowBillModal] = useState(false);
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
     if (!currentUser) { navigate('/login'); return; }
     const loadData = async () => {
-      const [bookings, user] = await Promise.all([DB.getBookings(), DB.getUserById(currentUser.id)]);
-      if (user) setUserData(user);
-      // Find active, pending or most recent completed booking for this user
-      const userBookings = bookings
-        .filter(b => b.userId === currentUser.id && (
-          b.status === 'pending_worker_acceptance' || b.status === 'active' ||
-          b.status === 'pending_payment' || b.status === 'cancellation_pending' ||
-          b.status === 'completed'
-        ))
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      const booking = userBookings[0] || null;
+      const bookings = await DB.getBookings();
+      // Find active or pending_payment booking for this user
+        const userBookings = bookings
+           .filter(b => b.userId === currentUser.id && (b.status === 'pending_worker_acceptance' || b.status === 'active' || b.status === 'pending_payment' || b.status === 'cancellation_pending'))
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const booking = userBookings[0] || null;
       if (booking) {
         setActiveBooking(booking);
-        const specialists = await DB.getSpecialists();
+        const [specialists, user] = await Promise.all([
+          DB.getSpecialists(),
+          DB.getUserById(currentUser.id),
+        ]);
         const s = specialists.find(sp => sp.id === booking.specialistId);
         if (s) setSpecialist(s);
+        if (user) setUserProfile(user);
       }
     };
     loadData();
@@ -59,11 +58,17 @@ export default function Booking() {
     await new Promise(r => setTimeout(r, 2000));
     await DB.markBookingPaid(activeBooking.id);
     setPaymentStep('done');
-    // Refresh booking data then show bill
-    const bookings = await DB.getBookings();
-    const updated = bookings.find(b => b.id === activeBooking.id);
-    if (updated) setActiveBooking(updated);
-    setTimeout(() => setShowBill(true), 800);
+    setTimeout(() => setShowBillModal(true), 800);
+  };
+
+  const handleDownloadBill = () => {
+    if (!activeBooking || !specialist || !userProfile) return;
+    downloadBillAsPDF({ booking: activeBooking, specialist, user: userProfile });
+  };
+
+  const handleEmailBill = () => {
+    if (!activeBooking || !specialist || !userProfile) return;
+    emailBill({ booking: activeBooking, specialist, user: userProfile });
   };
 
   const handleRequestCancel = async () => {
@@ -204,17 +209,17 @@ export default function Booking() {
                       </div>
                     </div>
 
-                  <div className="relative opacity-40">
-                    <div className="absolute -left-8 top-0 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-semibold text-gray-500">Arrival & Service</h4>
-                      <p className="text-xs text-gray-400 mt-0.5">Waiting for professional to arrive</p>
-                    </div>
+                <div className="relative opacity-40">
+                  <div className="absolute -left-8 top-0 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-500">Arrival & Service</h4>
+                    <p className="text-xs text-gray-400 mt-0.5">Waiting for professional to arrive</p>
                   </div>
                 </div>
               </div>
+            </div>
 
             {/* Photo Gallery */}
             <PhotoGallery
@@ -370,35 +375,30 @@ export default function Booking() {
                           <CheckCircle2 className="w-5 h-5 text-green-600" />
                           <span className="text-sm font-bold text-green-700">Payment Successful!</span>
                         </div>
-                        <button
-                          onClick={() => setShowBill(true)}
-                          className="w-full py-3 bg-[#4169E1] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
-                        >
-                          <FileText className="w-4 h-4" /> View & Download Receipt
-                        </button>
-                        <button onClick={() => navigate('/dashboard')} className="w-full py-2.5 border border-gray-200 text-gray-500 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
-                          Go to Dashboard
-                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={handleDownloadBill}
+                            className="py-2.5 bg-[#000000] text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#1a1a1a] transition-colors"
+                          >
+                            <Download className="w-3.5 h-3.5" /> Download Bill
+                          </button>
+                          <button
+                            onClick={handleEmailBill}
+                            className="py-2.5 border border-gray-200 text-gray-700 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-colors"
+                          >
+                            <Mail className="w-3.5 h-3.5" /> Email Bill
+                          </button>
+                        </div>
                       </div>
                     )}
 
-                      <p className="text-[10px] text-center text-gray-400 mt-3">This is a demo payment. No real charges will be made.</p>
-                    </div>
-                  )}
-
-                  {/* View bill for already-completed bookings */}
-                  {activeBooking.status === 'completed' && (
-                    <button
-                      onClick={() => setShowBill(true)}
-                      className="w-full bg-[#4169E1] text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
-                    >
-                      <FileText className="w-4 h-4" /> View Receipt / E-Bill
-                    </button>
-                  )}
-                </div>
-            </div>
+                    <p className="text-[10px] text-center text-gray-400 mt-3">This is a demo payment. No real charges will be made.</p>
+                  </div>
+                )}
+              </div>
           </div>
         </div>
+      </div>
 
       {/* Track Live Modal */}
       {showMap && activeBooking && specialist && (
@@ -526,17 +526,88 @@ export default function Booking() {
             </div>
           </div>
         </div>
-        )}
-      </div>
+      )}
 
       {/* E-Bill Modal */}
-      {showBill && activeBooking && specialist && userData && (
-        <EBill
-          booking={activeBooking}
-          specialist={specialist}
-          user={userData}
-          onClose={() => setShowBill(false)}
-        />
+      {showBillModal && activeBooking && specialist && userProfile && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-gray-100 overflow-hidden">
+            {/* Header */}
+            <div className="bg-[#000000] px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">E-Bill Ready</h3>
+                  <p className="text-xs text-gray-400">Booking {activeBooking.id}</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowBillModal(false); navigate('/dashboard'); }} className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 transition-colors">
+                <X className="w-4 h-4 text-white" />
+              </button>
+            </div>
+
+            {/* Bill Summary */}
+            <div className="p-6 space-y-4">
+              <div className="bg-green-50 border border-green-100 rounded-xl p-4 flex items-center gap-3">
+                <CheckCircle2 className="w-6 h-6 text-green-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-green-800">Payment Confirmed</p>
+                  <p className="text-xs text-green-600">₹{(activeBooking.finalTotal || activeBooking.totalValue).toLocaleString('en-IN')} paid successfully</p>
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                  <span className="text-sm text-gray-500">Service Provider</span>
+                  <span className="text-sm font-semibold text-[#000000]">{specialist.name}</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                  <span className="text-sm text-gray-500">Category</span>
+                  <span className="text-sm font-semibold text-[#000000]">{specialist.category}</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                  <span className="text-sm text-gray-500">Base Charge</span>
+                  <span className="text-sm font-semibold text-[#000000]">₹{activeBooking.totalValue.toLocaleString('en-IN')}</span>
+                </div>
+                {(activeBooking.extraCharges || []).map(c => (
+                  <div key={c.id} className="flex justify-between items-center py-1.5 border-b border-gray-100">
+                    <span className="text-sm text-gray-500">{c.description}</span>
+                    <span className="text-sm font-semibold text-amber-600">+₹{c.amount.toLocaleString('en-IN')}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-base font-bold text-[#000000]">Total Paid</span>
+                  <span className="text-lg font-bold text-[#4169E1]">₹{(activeBooking.finalTotal || activeBooking.totalValue).toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="grid grid-cols-2 gap-3 pt-2">
+                <button
+                  onClick={handleDownloadBill}
+                  className="py-3 bg-[#000000] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#1a1a1a] transition-colors"
+                >
+                  <Download className="w-4 h-4" /> Download PDF
+                </button>
+                <button
+                  onClick={handleEmailBill}
+                  className="py-3 border border-gray-200 text-gray-700 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors"
+                >
+                  <Mail className="w-4 h-4" /> Email Bill
+                </button>
+              </div>
+
+              <button
+                onClick={() => { setShowBillModal(false); navigate('/dashboard'); }}
+                className="w-full py-2.5 text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Skip — Go to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

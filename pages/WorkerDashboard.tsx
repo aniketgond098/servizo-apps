@@ -3,15 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
-import { Specialist, ServiceCategory, Booking, Message, User } from '../types';
+import { Specialist, ServiceCategory, Booking, Message } from '../types';
 import {
   Save, Star, Activity, Zap, TrendingUp, DollarSign, MessageCircle,
   Camera, Plus, Trash2, Send, IndianRupee, ChevronDown, Clock, X,
   CalendarClock, CheckCircle2, AlertCircle, Loader2, LayoutDashboard,
-  Briefcase, BarChart2, Mail, User as UserIcon, ChevronRight, FileText
+  Briefcase, BarChart2, Mail, User, ChevronRight
 } from 'lucide-react';
 import { PhotoGallery } from '../components/PhotoGallery';
-import { EBill } from '../components/EBill';
 const ImageCropper = React.lazy(() => import('../components/ImageCropper'));
 
 type Tab = 'overview' | 'bookings' | 'earnings' | 'messages';
@@ -37,8 +36,6 @@ export default function WorkerDashboard() {
   const [acceptLoading, setAcceptLoading] = useState<Record<string, boolean>>({});
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [bookingFilter, setBookingFilter] = useState<BookingFilter>('new');
-  const [billBooking, setBillBooking] = useState<Booking | null>(null);
-  const [billUser, setBillUser] = useState<User | null>(null);
 
   // Availability window state
   const [showWindowPicker, setShowWindowPicker] = useState(false);
@@ -222,12 +219,6 @@ export default function WorkerDashboard() {
       await DB.rejectBooking(bookingId);
       setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
     } finally { setAcceptLoading(p => ({ ...p, [bookingId]: false })); }
-  };
-
-  const handleViewBill = async (booking: Booking) => {
-    const u = await DB.getUserById(booking.userId);
-    if (u) setBillUser(u);
-    setBillBooking(booking);
   };
 
   const statusConfig = {
@@ -686,24 +677,12 @@ export default function WorkerDashboard() {
                             </div>
                           )}
 
-                            {/* Photo gallery for active bookings */}
-                            {booking.status === 'active' && (
-                              <div className="px-4 pb-4">
-                                <PhotoGallery bookingId={booking.id} beforePhotos={booking.beforePhotos} afterPhotos={booking.afterPhotos} problemPhotos={booking.problemPhotos} canUpload={true} uploadType="before" />
-                              </div>
-                            )}
-
-                            {/* View bill for completed bookings */}
-                            {booking.status === 'completed' && (
-                              <div className="px-4 pb-4">
-                                <button
-                                  onClick={() => handleViewBill(booking)}
-                                  className="w-full py-2.5 bg-[#4169E1] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
-                                >
-                                  <FileText className="w-3.5 h-3.5" /> View Receipt / E-Bill
-                                </button>
-                              </div>
-                            )}
+                          {/* Photo gallery for active bookings */}
+                          {booking.status === 'active' && (
+                            <div className="px-4 pb-4">
+                              <PhotoGallery bookingId={booking.id} beforePhotos={booking.beforePhotos} afterPhotos={booking.afterPhotos} problemPhotos={booking.problemPhotos} canUpload={true} uploadType="before" />
+                            </div>
+                          )}
                         </div>
                       );
                     })}
@@ -846,17 +825,6 @@ export default function WorkerDashboard() {
             onCancel={() => setRawAvatarImage(null)}
           />
         </React.Suspense>
-        )}
-      </div>
-
-      {/* E-Bill Modal */}
-      {billBooking && profile.id && billUser && (
-        <EBill
-          booking={billBooking}
-          specialist={profile as Specialist}
-          user={billUser}
-          onClose={() => { setBillBooking(null); setBillUser(null); }}
-        />
       )}
     </div>
   );

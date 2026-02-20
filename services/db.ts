@@ -2,6 +2,7 @@ import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, 
 import { db } from './firebase';
 import { Specialist, Booking, User, Review, Message, MessageAttachment, VerificationRequest, Notification, Call, IceCandidate, ExtraCharge, CallFeedback } from '../types';
 import { seedNewWorkers } from './seedWorkers';
+import { buildBillHTML } from '../utils/generateBill';
 
 const INITIAL_SPECIALISTS: Specialist[] = [
   {
@@ -922,41 +923,57 @@ export class DB {
         completedAt: paidAt
       });
 
-      const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
-      if (bookingDoc.exists()) {
-        const booking = bookingDoc.data() as Booking;
-        const specialists = await this.getSpecialists();
-        const specialist = specialists.find(s => s.id === booking.specialistId);
+        const bookingDoc = await getDoc(doc(db, 'bookings', bookingId));
+        if (bookingDoc.exists()) {
+          const booking = { ...bookingDoc.data(), id: bookingId, paidAt } as Booking;
+          const [specialists, user] = await Promise.all([this.getSpecialists(), this.getUserById(booking.userId)]);
+          const specialist = specialists.find(s => s.id === booking.specialistId);
 
-          if (specialist) {
-            await updateDoc(doc(db, 'specialists', specialist.id), {
-              projects: (specialist.projects || 0) + 1,
-              availability: 'available'
+            if (specialist) {
+              await updateDoc(doc(db, 'specialists', specialist.id), {
+                projects: (specialist.projects || 0) + 1,
+                availability: 'available'
+              });
+            }
+
+            // Generate and save e-bill
+            if (specialist && user) {
+              const billHtml = buildBillHTML({ booking, specialist, user });
+              await this.saveBill(bookingId, billHtml);
+            }
+
+            // Notify worker
+          if (specialist?.userId) {
+            await this.createNotification({
+              userId: specialist.userId,
+              type: 'booking_status',
+              title: 'Payment Received',
+              message: `Payment of ₹${booking.finalTotal || booking.totalValue} has been received for booking ${bookingId}.`,
+              link: '/worker-dashboard',
+              bookingId
             });
           }
 
-          // Notify worker
-        if (specialist?.userId) {
-          await this.createNotification({
-            userId: specialist.userId,
-            type: 'booking_status',
-            title: 'Payment Received',
-            message: `Payment of ₹${booking.finalTotal || booking.totalValue} has been received for booking ${bookingId}.`,
-            link: '/worker-dashboard',
-            bookingId
-          });
+          // Notify user: bill ready + leave a review
+          await Promise.all([
+            this.createNotification({
+              userId: booking.userId,
+              type: 'booking_status',
+              title: 'E-Bill Ready',
+              message: `Your e-bill for booking ${bookingId} is ready. Download or email it from your booking page.`,
+              link: `/booking`,
+              bookingId
+            }),
+            this.createNotification({
+              userId: booking.userId,
+              type: 'review_request',
+              title: 'Leave a Review',
+              message: `How was your experience with ${specialist?.name || 'the specialist'}? Your feedback helps others.`,
+              link: `/review/${bookingId}`,
+              bookingId
+            }),
+          ]);
         }
-
-        // Notify user: leave a review
-        await this.createNotification({
-          userId: booking.userId,
-          type: 'review_request',
-          title: 'Leave a Review',
-          message: `How was your experience with ${specialist?.name || 'the specialist'}? Your feedback helps others.`,
-          link: `/review/${bookingId}`,
-          bookingId
-        });
-      }
     } catch (error) {
       console.error('Mark booking paid error:', error);
     }
@@ -1300,6 +1317,30 @@ export class DB {
   /** @deprecated — kept for back-compat, no longer used for the primary flow */
   static async notifyAvailabilityWatchers(_specialistId: string, _specialistName: string): Promise<void> {
     // Real-time client watchers now handle this. No-op.
+  }
+
+  // ─── Bills ───
+
+  static async saveBill(bookingId: string, billHtml: string) {
+    try {
+      await setDoc(doc(db, 'bills', bookingId), {
+        bookingId,
+        html: billHtml,
+        createdAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error('Save bill error:', error);
+    }
+  }
+
+  static async getBill(bookingId: string): Promise<string | null> {
+    try {
+      const snap = await getDoc(doc(db, 'bills', bookingId));
+      return snap.exists() ? (snap.data().html as string) : null;
+    } catch (error) {
+      console.error('Get bill error:', error);
+      return null;
+    }
   }
 
   static async cleanupCall(callId: string) {
