@@ -93,7 +93,7 @@ export default function WorkerDashboard() {
         scheduleAutoStatus(updated.busyFrom ?? null, updated.busyUntil ?? null, updated.id);
       });
 
-      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user.id));
+      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === sp.id));
       const [allMsgs, allUsers] = await Promise.all([DB.getMessages(), DB.getUsers()]);
       setAllUsers(allUsers);
       const msgs = allMsgs.filter(m => m.receiverId === user.id);
@@ -167,21 +167,21 @@ export default function WorkerDashboard() {
       await DB.addExtraCharge(bookingId, desc, amt);
       setChargeDesc(p => ({ ...p, [bookingId]: '' }));
       setChargeAmt(p => ({ ...p, [bookingId]: '' }));
-      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
-    } finally { setChargeLoading(p => ({ ...p, [bookingId]: false })); }
-  };
+      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === profile.id));
+      } finally { setChargeLoading(p => ({ ...p, [bookingId]: false })); }
+    };
 
-  const handleRemoveCharge = async (bookingId: string, chargeId: string) => {
-    await DB.removeExtraCharge(bookingId, chargeId);
-    setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
-  };
+    const handleRemoveCharge = async (bookingId: string, chargeId: string) => {
+      await DB.removeExtraCharge(bookingId, chargeId);
+      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === profile.id));
+    };
 
-  const handleSubmitForPayment = async (bookingId: string) => {
-    setSubmitLoading(p => ({ ...p, [bookingId]: true }));
-    try {
-      await DB.submitForPayment(bookingId);
-      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
-    } finally { setSubmitLoading(p => ({ ...p, [bookingId]: false })); }
+    const handleSubmitForPayment = async (bookingId: string) => {
+      setSubmitLoading(p => ({ ...p, [bookingId]: true }));
+      try {
+        await DB.submitForPayment(bookingId);
+        setMyBookings((await DB.getBookings()).filter(b => b.specialistId === profile.id));
+      } finally { setSubmitLoading(p => ({ ...p, [bookingId]: false })); }
   };
 
   const handleStatusChange = async (status: 'available' | 'busy' | 'unavailable') => {
@@ -193,37 +193,37 @@ export default function WorkerDashboard() {
     setStatusDropdownOpen(false);
   };
 
-  const handleApproveCancellation = async (bookingId: string) => {
-    setCancelActionLoading(p => ({ ...p, [bookingId]: true }));
-    try {
-      await DB.approveCancellation(bookingId);
-      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
-    } finally { setCancelActionLoading(p => ({ ...p, [bookingId]: false })); }
-  };
+    const handleApproveCancellation = async (bookingId: string) => {
+      setCancelActionLoading(p => ({ ...p, [bookingId]: true }));
+      try {
+        await DB.approveCancellation(bookingId);
+        setMyBookings((await DB.getBookings()).filter(b => b.specialistId === profile.id));
+      } finally { setCancelActionLoading(p => ({ ...p, [bookingId]: false })); }
+    };
 
-  const handleRejectCancellation = async (bookingId: string) => {
-    setCancelActionLoading(p => ({ ...p, [bookingId]: true }));
-    try {
-      await DB.rejectCancellation(bookingId);
-      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
-    } finally { setCancelActionLoading(p => ({ ...p, [bookingId]: false })); }
-  };
+    const handleRejectCancellation = async (bookingId: string) => {
+      setCancelActionLoading(p => ({ ...p, [bookingId]: true }));
+      try {
+        await DB.rejectCancellation(bookingId);
+        setMyBookings((await DB.getBookings()).filter(b => b.specialistId === profile.id));
+      } finally { setCancelActionLoading(p => ({ ...p, [bookingId]: false })); }
+    };
 
-  const handleAcceptBooking = async (bookingId: string) => {
-    setAcceptLoading(p => ({ ...p, [bookingId]: true }));
-    try {
-      await DB.acceptBooking(bookingId);
-      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
-    } finally { setAcceptLoading(p => ({ ...p, [bookingId]: false })); }
-  };
+    const handleAcceptBooking = async (bookingId: string) => {
+      setAcceptLoading(p => ({ ...p, [bookingId]: true }));
+      try {
+        await DB.acceptBooking(bookingId);
+        setMyBookings((await DB.getBookings()).filter(b => b.specialistId === profile.id));
+      } finally { setAcceptLoading(p => ({ ...p, [bookingId]: false })); }
+    };
 
-  const handleRejectBooking = async (bookingId: string) => {
-    setAcceptLoading(p => ({ ...p, [bookingId]: true }));
-    try {
-      await DB.rejectBooking(bookingId);
-      setMyBookings((await DB.getBookings()).filter(b => b.specialistId === user!.id));
-    } finally { setAcceptLoading(p => ({ ...p, [bookingId]: false })); }
-  };
+    const handleRejectBooking = async (bookingId: string) => {
+      setAcceptLoading(p => ({ ...p, [bookingId]: true }));
+      try {
+        await DB.rejectBooking(bookingId);
+        setMyBookings((await DB.getBookings()).filter(b => b.specialistId === profile.id));
+      } finally { setAcceptLoading(p => ({ ...p, [bookingId]: false })); }
+    };
 
   const openBillModal = (booking: Booking) => setBillModalBooking(booking);
 
