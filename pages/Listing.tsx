@@ -352,11 +352,11 @@ export default function Listing() {
           </div>
         ) : viewMode === 'map' ? (
           <React.Suspense fallback={<div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 text-[#4169E1] animate-spin" /></div>}>
-            <MapView 
-              specialists={specialists} 
-              userLoc={userLoc} 
-              getAvailabilityColor={getAvailabilityColor}
-            />
+              <MapView 
+                specialists={visibleSpecialists} 
+                userLoc={userLoc} 
+                getAvailabilityColor={getAvailabilityColor}
+              />
           </React.Suspense>
         ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
