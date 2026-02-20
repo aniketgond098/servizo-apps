@@ -1221,7 +1221,82 @@ export class DB {
 
   // ─── Availability Notify Requests ───
 
-  /** Register interest: notify `userId` when specialist `specialistId` becomes available */
+  /**
+   * Active client-side watchers: key = `${specialistId}:${userId}`
+   * Value = { unsubscribe, prevAvailability }
+   * Stored at module level so they survive component re-mounts.
+   */
+  private static _availWatchers = new Map<string, { unsub: () => void; prevAvail: string }>();
+
+  /**
+   * Start a real-time listener on this specialist.
+   * The moment `availability` flips to `'available'` (and was not already
+   * `'available'` before), fire an in-app notification to `userId` and
+   * automatically stop the watcher (one-shot).
+   *
+   * Safe to call multiple times with the same key — idempotent.
+   */
+  static startAvailabilityWatcher(specialistId: string, userId: string): void {
+    const key = `${specialistId}:${userId}`;
+    if (this._availWatchers.has(key)) return; // already watching
+
+    const ref = doc(db, 'specialists', specialistId);
+
+    // State lives outside the callback so there's no timing race with _availWatchers.set
+    let isFirst = true;
+    let prevAvail = '';
+
+    const unsub = onSnapshot(ref, async (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const current: string = data.availability ?? 'available';
+
+      // First snapshot: just record the current state, don't fire anything
+      if (isFirst) {
+        isFirst = false;
+        prevAvail = current;
+        return;
+      }
+
+      // Worker just flipped to available from a non-available state
+      if (current === 'available' && prevAvail !== 'available') {
+        const name: string = data.name ?? 'Your worker';
+        try {
+          await this.createNotification({
+            userId,
+            type: 'availability',
+            title: `${name} is now available!`,
+            message: `${name} is now available for bookings. Tap to book now.`,
+            link: `/profile/${specialistId}`,
+          });
+        } catch (e) {
+          console.error('availability notification error:', e);
+        }
+        // One-shot: stop watching and clean up Firestore record
+        this.stopAvailabilityWatcher(specialistId, userId);
+        try {
+          await deleteDoc(doc(db, 'availabilityNotifyRequests', `AVAIL-${specialistId}-${userId}`));
+        } catch (_) { /* ignore */ }
+        return;
+      }
+
+      prevAvail = current;
+    }, (err) => console.error('availability watcher error:', err));
+
+    this._availWatchers.set(key, { unsub, prevAvail: '' });
+  }
+
+  /** Stop an active watcher without firing a notification */
+  static stopAvailabilityWatcher(specialistId: string, userId: string): void {
+    const key = `${specialistId}:${userId}`;
+    const entry = this._availWatchers.get(key);
+    if (entry) {
+      entry.unsub();
+      this._availWatchers.delete(key);
+    }
+  }
+
+  /** Register interest: persist to Firestore AND start real-time watcher */
   static async subscribeAvailabilityNotify(specialistId: string, userId: string): Promise<void> {
     try {
       const id = `AVAIL-${specialistId}-${userId}`;
@@ -1231,14 +1306,16 @@ export class DB {
         userId,
         createdAt: new Date().toISOString(),
       });
+      this.startAvailabilityWatcher(specialistId, userId);
     } catch (error) {
       console.error('subscribeAvailabilityNotify error:', error);
     }
   }
 
-  /** Remove interest */
+  /** Remove interest: stop real-time watcher AND delete Firestore record */
   static async unsubscribeAvailabilityNotify(specialistId: string, userId: string): Promise<void> {
     try {
+      this.stopAvailabilityWatcher(specialistId, userId);
       const id = `AVAIL-${specialistId}-${userId}`;
       await deleteDoc(doc(db, 'availabilityNotifyRequests', id));
     } catch (error) {
@@ -1257,30 +1334,9 @@ export class DB {
     }
   }
 
-  /**
-   * Fire in-app notifications to every watcher of `specialistId` and then
-   * delete those watcher records (one-shot notify).
-   * Called internally by setAvailabilityWindow when the worker goes available.
-   */
-  static async notifyAvailabilityWatchers(specialistId: string, specialistName: string): Promise<void> {
-    try {
-      const q = query(collection(db, 'availabilityNotifyRequests'), where('specialistId', '==', specialistId));
-      const snap = await getDocs(q);
-      if (snap.empty) return;
-      await Promise.all(snap.docs.map(async (d) => {
-        const { userId } = d.data();
-        await this.createNotification({
-          userId,
-          type: 'availability',
-          title: `${specialistName} is now available!`,
-          message: `${specialistName} has become available for bookings. Tap to book now.`,
-          link: `/profile/${specialistId}`,
-        });
-        await deleteDoc(d.ref);
-      }));
-    } catch (error) {
-      console.error('notifyAvailabilityWatchers error:', error);
-    }
+  /** @deprecated — kept for back-compat, no longer used for the primary flow */
+  static async notifyAvailabilityWatchers(_specialistId: string, _specialistName: string): Promise<void> {
+    // Real-time client watchers now handle this. No-op.
   }
 
   static async cleanupCall(callId: string) {

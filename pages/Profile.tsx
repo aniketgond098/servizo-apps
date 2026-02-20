@@ -69,11 +69,28 @@ export default function Profile() {
         reviewerMap[rev.userId] = await DB.getUserById(rev.userId);
       }));
       setReviewers(reviewerMap);
-      if (currentUser) {
-        setIsFavorite(currentUser.favorites?.includes(found.id) || false);
-        const watching = await DB.isWatchingAvailability(found.id, currentUser.id);
-        setIsWatching(watching);
-      }
+        if (currentUser) {
+          setIsFavorite(currentUser.favorites?.includes(found.id) || false);
+          const watching = await DB.isWatchingAvailability(found.id, currentUser.id);
+            setIsWatching(watching);
+            if (watching) {
+              // If worker already became available while user was away, notify immediately
+              if (found.availability === 'available') {
+                await DB.createNotification({
+                  userId: currentUser.id,
+                  type: 'availability',
+                  title: `${found.name} is now available!`,
+                  message: `${found.name} is now available for bookings. Tap to book now.`,
+                  link: `/profile/${found.id}`,
+                });
+                await DB.unsubscribeAvailabilityNotify(found.id, currentUser.id);
+                setIsWatching(false);
+              } else {
+                // Still busy — reattach the real-time watcher
+                DB.startAvailabilityWatcher(found.id, currentUser.id);
+              }
+            }
+        }
     };
     loadData();
     navigator.geolocation.getCurrentPosition((pos) => {
