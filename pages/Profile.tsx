@@ -92,9 +92,10 @@ export default function Profile() {
         }
     };
     loadData();
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-    });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {}
+    );
     return () => { unsub?.(); };
   }, [id]);
 

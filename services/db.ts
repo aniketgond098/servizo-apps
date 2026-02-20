@@ -1,6 +1,7 @@
 import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, addDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 import { Specialist, Booking, User, Review, Message, MessageAttachment, VerificationRequest, Notification, Call, IceCandidate, ExtraCharge, CallFeedback } from '../types';
+import { seedNewWorkers } from './seedWorkers';
 
 const INITIAL_SPECIALISTS: Specialist[] = [
   {
@@ -103,14 +104,17 @@ export class DB {
           }
         ];
         
-        for (const user of demoUsers) {
-          await setDoc(doc(db, 'users', user.id), user);
+          for (const user of demoUsers) {
+            await setDoc(doc(db, 'users', user.id), user);
+          }
         }
+
+        // Always ensure the 30 seeded workers exist (idempotent)
+        await seedNewWorkers();
+      } catch (error) {
+        console.error('Init error:', error);
       }
-    } catch (error) {
-      console.error('Init error:', error);
     }
-  }
 
   static async getSpecialists(): Promise<Specialist[]> {
     try {

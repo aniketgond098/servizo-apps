@@ -38,9 +38,10 @@ export default function Listing() {
       setFavorites(currentUser.favorites || []);
     }
     
-    navigator.geolocation.getCurrentPosition((pos) => {
-      setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-    });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => {}
+    );
   }, [searchParams, availabilityFilter, sortBy, priceRange]);
 
   const performSearch = async (query: string, category: string) => {
