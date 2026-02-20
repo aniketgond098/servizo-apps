@@ -892,7 +892,8 @@ export default function WorkerDashboard() {
       {showWindowPicker && (
         <>
           <div className="fixed inset-0 z-40 bg-black/40" onClick={() => setShowWindowPicker(false)} />
-          <div className="fixed z-50 inset-x-4 top-1/2 -translate-y-1/2 sm:inset-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-96 bg-white rounded-2xl shadow-2xl p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4 pointer-events-none">
+            <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto pointer-events-auto">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
                 <CalendarClock className="w-5 h-5 text-[#4169E1]" />
@@ -922,10 +923,11 @@ export default function WorkerDashboard() {
                 {windowSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CalendarClock className="w-4 h-4" />}
                 Save Window
               </button>
+              </div>
             </div>
           </div>
-        </>
-      )}
+          </>
+        )}
 
       {rawAvatarImage && (
         <React.Suspense fallback={null}>
