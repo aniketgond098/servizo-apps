@@ -1,12 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Clock, MapPin, CreditCard, MessageCircle, Phone, RefreshCw, Activity, CheckCircle2, Star, Loader2, Share2, X, ArrowLeft, Navigation, Info, IndianRupee, Check, XCircle } from 'lucide-react';
+import { Shield, Clock, MapPin, CreditCard, MessageCircle, Phone, RefreshCw, Activity, CheckCircle2, Star, Loader2, Share2, X, ArrowLeft, Navigation, Info, IndianRupee, Check, XCircle, FileText } from 'lucide-react';
 import { DB } from '../services/db';
-import { Specialist, Booking as BookingType } from '../types';
+import { Specialist, Booking as BookingType, User } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/auth';
 const MapView = React.lazy(() => import('../components/MapView').then(m => ({ default: m.MapView })));
 import { PhotoGallery } from '../components/PhotoGallery';
+import { EBill } from '../components/EBill';
 
 export default function Booking() {
   const navigate = useNavigate();
@@ -18,17 +19,24 @@ export default function Booking() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [showBill, setShowBill] = useState(false);
+  const [userData, setUserData] = useState<User | null>(null);
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
     if (!currentUser) { navigate('/login'); return; }
     const loadData = async () => {
-      const bookings = await DB.getBookings();
-      // Find active or pending_payment booking for this user
-        const userBookings = bookings
-           .filter(b => b.userId === currentUser.id && (b.status === 'pending_worker_acceptance' || b.status === 'active' || b.status === 'pending_payment' || b.status === 'cancellation_pending'))
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        const booking = userBookings[0] || null;
+      const [bookings, user] = await Promise.all([DB.getBookings(), DB.getUserById(currentUser.id)]);
+      if (user) setUserData(user);
+      // Find active, pending or most recent completed booking for this user
+      const userBookings = bookings
+        .filter(b => b.userId === currentUser.id && (
+          b.status === 'pending_worker_acceptance' || b.status === 'active' ||
+          b.status === 'pending_payment' || b.status === 'cancellation_pending' ||
+          b.status === 'completed'
+        ))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      const booking = userBookings[0] || null;
       if (booking) {
         setActiveBooking(booking);
         const specialists = await DB.getSpecialists();
@@ -51,7 +59,11 @@ export default function Booking() {
     await new Promise(r => setTimeout(r, 2000));
     await DB.markBookingPaid(activeBooking.id);
     setPaymentStep('done');
-    setTimeout(() => navigate('/dashboard'), 3000);
+    // Refresh booking data then show bill
+    const bookings = await DB.getBookings();
+    const updated = bookings.find(b => b.id === activeBooking.id);
+    if (updated) setActiveBooking(updated);
+    setTimeout(() => setShowBill(true), 800);
   };
 
   const handleRequestCancel = async () => {
@@ -192,17 +204,17 @@ export default function Booking() {
                       </div>
                     </div>
 
-                <div className="relative opacity-40">
-                  <div className="absolute -left-8 top-0 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
-                    <MapPin className="w-4 h-4 text-gray-400" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-500">Arrival & Service</h4>
-                    <p className="text-xs text-gray-400 mt-0.5">Waiting for professional to arrive</p>
+                  <div className="relative opacity-40">
+                    <div className="absolute -left-8 top-0 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-500">Arrival & Service</h4>
+                      <p className="text-xs text-gray-400 mt-0.5">Waiting for professional to arrive</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
             {/* Photo Gallery */}
             <PhotoGallery
@@ -353,19 +365,40 @@ export default function Booking() {
                       </div>
                     )}
                     {paymentStep === 'done' && (
-                      <div className="w-full mt-5 py-3.5 bg-green-50 border border-green-200 rounded-xl flex items-center justify-center gap-2">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        <span className="text-sm font-bold text-green-700">Payment Successful!</span>
+                      <div className="space-y-3 mt-5">
+                        <div className="w-full py-3.5 bg-green-50 border border-green-200 rounded-xl flex items-center justify-center gap-2">
+                          <CheckCircle2 className="w-5 h-5 text-green-600" />
+                          <span className="text-sm font-bold text-green-700">Payment Successful!</span>
+                        </div>
+                        <button
+                          onClick={() => setShowBill(true)}
+                          className="w-full py-3 bg-[#4169E1] text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
+                        >
+                          <FileText className="w-4 h-4" /> View & Download Receipt
+                        </button>
+                        <button onClick={() => navigate('/dashboard')} className="w-full py-2.5 border border-gray-200 text-gray-500 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                          Go to Dashboard
+                        </button>
                       </div>
                     )}
 
-                    <p className="text-[10px] text-center text-gray-400 mt-3">This is a demo payment. No real charges will be made.</p>
-                  </div>
-                )}
-              </div>
+                      <p className="text-[10px] text-center text-gray-400 mt-3">This is a demo payment. No real charges will be made.</p>
+                    </div>
+                  )}
+
+                  {/* View bill for already-completed bookings */}
+                  {activeBooking.status === 'completed' && (
+                    <button
+                      onClick={() => setShowBill(true)}
+                      className="w-full bg-[#4169E1] text-white py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-600 transition-colors"
+                    >
+                      <FileText className="w-4 h-4" /> View Receipt / E-Bill
+                    </button>
+                  )}
+                </div>
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Track Live Modal */}
       {showMap && activeBooking && specialist && (
@@ -493,6 +526,17 @@ export default function Booking() {
             </div>
           </div>
         </div>
+        )}
+      </div>
+
+      {/* E-Bill Modal */}
+      {showBill && activeBooking && specialist && userData && (
+        <EBill
+          booking={activeBooking}
+          specialist={specialist}
+          user={userData}
+          onClose={() => setShowBill(false)}
+        />
       )}
     </div>
   );
