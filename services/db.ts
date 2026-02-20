@@ -55,66 +55,34 @@ const INITIAL_SPECIALISTS: Specialist[] = [
 export class DB {
   static async init() {
     try {
-      const specialistsRef = collection(db, 'specialists');
-      const snapshot = await getDocs(specialistsRef);
-      
-      if (snapshot.empty) {
-        for (const specialist of INITIAL_SPECIALISTS) {
-          await setDoc(doc(db, 'specialists', specialist.id), specialist);
-        }
-      }
+      // Run both flag checks in parallel — 2 reads total, no full collection scans
+      const [initFlag, seedFlag] = await Promise.all([
+        getDoc(doc(db, '_meta', 'appInit')),
+        getDoc(doc(db, '_meta', 'workerSeedV2')),
+      ]);
 
-      const usersRef = collection(db, 'users');
-      const usersSnapshot = await getDocs(usersRef);
-      
-      if (usersSnapshot.empty) {
+      if (!initFlag.exists()) {
+        const specialistWrites = INITIAL_SPECIALISTS.map(s =>
+          setDoc(doc(db, 'specialists', s.id), s)
+        );
         const demoUsers: User[] = [
-          {
-            id: 'ADMIN-001',
-            email: 'admin@servizo.in',
-            password: 'admin',
-            name: 'System Administrator',
-            role: 'admin',
-            avatar: 'https://i.pravatar.cc/150?u=admin',
-            createdAt: new Date().toISOString(),
-            favorites: [],
-            theme: 'dark'
-          },
-          {
-            id: 'WORKER-001',
-            email: 'worker@servizo.in',
-            password: 'worker123',
-            name: 'Demo Worker',
-            role: 'worker',
-            avatar: 'https://i.pravatar.cc/150?u=worker',
-            createdAt: new Date().toISOString(),
-            favorites: [],
-            theme: 'dark'
-          },
-          {
-            id: 'USER-001',
-            email: 'user@servizo.in',
-            password: 'user123',
-            name: 'Demo User',
-            role: 'user',
-            avatar: 'https://i.pravatar.cc/150?u=user',
-            createdAt: new Date().toISOString(),
-            favorites: [],
-            theme: 'dark'
-          }
+          { id: 'ADMIN-001', email: 'admin@servizo.in', password: 'admin', name: 'System Administrator', role: 'admin', avatar: 'https://i.pravatar.cc/150?u=admin', createdAt: new Date().toISOString(), favorites: [], theme: 'dark' },
+          { id: 'WORKER-001', email: 'worker@servizo.in', password: 'worker123', name: 'Demo Worker', role: 'worker', avatar: 'https://i.pravatar.cc/150?u=worker', createdAt: new Date().toISOString(), favorites: [], theme: 'dark' },
+          { id: 'USER-001', email: 'user@servizo.in', password: 'user123', name: 'Demo User', role: 'user', avatar: 'https://i.pravatar.cc/150?u=user', createdAt: new Date().toISOString(), favorites: [], theme: 'dark' },
         ];
-        
-          for (const user of demoUsers) {
-            await setDoc(doc(db, 'users', user.id), user);
-          }
-        }
-
-        // Always ensure the 30 seeded workers exist (idempotent)
-        await seedNewWorkers();
-      } catch (error) {
-        console.error('Init error:', error);
+        const userWrites = demoUsers.map(u => setDoc(doc(db, 'users', u.id), u));
+        await Promise.all([...specialistWrites, ...userWrites]);
+        await setDoc(doc(db, '_meta', 'appInit'), { seededAt: new Date().toISOString() });
       }
+
+      if (!seedFlag.exists()) {
+        await seedNewWorkers();
+        await setDoc(doc(db, '_meta', 'workerSeedV2'), { seededAt: new Date().toISOString() });
+      }
+    } catch (error) {
+      console.error('Init error:', error);
     }
+  }
 
   static async getSpecialists(): Promise<Specialist[]> {
     try {

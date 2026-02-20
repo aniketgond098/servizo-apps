@@ -557,26 +557,25 @@ export async function seedNewWorkers(): Promise<{ seeded: number; skipped: numbe
   let seeded = 0;
   let skipped = 0;
 
-  for (const { specialist, user } of NEW_WORKERS) {
-    const specSnap = await getDoc(doc(db, 'specialists', specialist.id));
-    if (!specSnap.exists()) {
-      await setDoc(doc(db, 'specialists', specialist.id), specialist);
-      seeded++;
-    } else {
-      // Update verificationStatus on existing user docs that may be missing it
-      skipped++;
-    }
+  // Write all docs in parallel batches of 10 to avoid blocking the UI
+  const chunks = [];
+  for (let i = 0; i < NEW_WORKERS.length; i += 10) chunks.push(NEW_WORKERS.slice(i, i + 10));
 
-    const userSnap = await getDoc(doc(db, 'users', user.id));
-    if (!userSnap.exists()) {
-      await setDoc(doc(db, 'users', user.id), user);
-    } else {
-      // Patch verificationStatus if missing
-      const existing = userSnap.data();
-      if (!existing.verificationStatus) {
-        await setDoc(doc(db, 'users', user.id), { ...existing, verificationStatus: 'approved' });
+  for (const chunk of chunks) {
+    await Promise.all(chunk.map(async ({ specialist, user }) => {
+      const specSnap = await getDoc(doc(db, 'specialists', specialist.id));
+      if (!specSnap.exists()) {
+        await setDoc(doc(db, 'specialists', specialist.id), specialist);
+        seeded++;
+      } else {
+        // Always ensure the specialist has the latest data (force-patch)
+        await setDoc(doc(db, 'specialists', specialist.id), specialist);
+        skipped++;
       }
-    }
+
+      // Always force-write user with verificationStatus: 'approved'
+      await setDoc(doc(db, 'users', user.id), user);
+    }));
   }
 
   return { seeded, skipped };
