@@ -13,36 +13,52 @@ export default function Messages() {
 
   useEffect(() => {
     if (!currentUser) { navigate('/login'); return; }
-    const loadMessages = async () => {
-      const allMessages = await DB.getMessages();
-      const userMessages = allMessages.filter(m => m.senderId === currentUser.id || m.receiverId === currentUser.id);
-      const convMap = new Map<string, Message[]>();
-      userMessages.forEach(msg => {
-        const otherId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
-        if (!convMap.has(otherId)) convMap.set(otherId, []);
-        convMap.get(otherId)!.push(msg);
-      });
-      const [allUsers, allSpecialists] = await Promise.all([DB.getUsers(), DB.getSpecialists()]);
-      const userMap = new Map(allUsers.map(u => [u.id, u]));
-      const specialistByUserId = new Map(allSpecialists.map(s => [s.userId, s]));
-      const convList = Array.from(convMap.entries()).map(([userId, msgs]) => {
-            const sortedMsgs = msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-            const unread = msgs.filter(m => m.receiverId === currentUser.id && !m.read).length;
-            const user = userMap.get(userId);
-            let displayName = 'User';
-            let specialistId: string | undefined;
-            if (user) {
-              if (user.role === 'worker') {
-                const specialist = specialistByUserId.get(user.id) || allSpecialists.find(s => s.id === user.id);
-                displayName = specialist ? `${user.name} (${specialist.category})` : `${user.name} (Service Provider)`;
-                specialistId = specialist?.id;
-              } else { displayName = user.name; }
-            }
-            return { userId, userName: displayName, lastMessage: sortedMsgs[0], unread, specialistId };
-          });
-      setConversations(convList.sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()));
+
+    let allUsers: any[] = [];
+    let allSpecialists: any[] = [];
+
+    // Pre-fetch user/specialist lookup tables once, then keep messages live
+    const init = async () => {
+      [allUsers, allSpecialists] = await Promise.all([DB.getUsers(), DB.getSpecialists()]);
+      startListener();
     };
-    loadMessages();
+
+    let unsub: (() => void) | null = null;
+
+    const startListener = () => {
+      unsub = DB.onUserMessages(currentUser.id, (userMessages) => {
+        const userMap = new Map(allUsers.map((u: any) => [u.id, u]));
+        const specialistByUserId = new Map(allSpecialists.map((s: any) => [s.userId, s]));
+
+        const convMap = new Map<string, Message[]>();
+        userMessages.forEach(msg => {
+          const otherId = msg.senderId === currentUser.id ? msg.receiverId : msg.senderId;
+          if (!convMap.has(otherId)) convMap.set(otherId, []);
+          convMap.get(otherId)!.push(msg);
+        });
+
+        const convList = Array.from(convMap.entries()).map(([userId, msgs]) => {
+          const sortedMsgs = msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          const unread = msgs.filter(m => m.receiverId === currentUser.id && !m.read).length;
+          const user = userMap.get(userId);
+          let displayName = 'User';
+          let specialistId: string | undefined;
+          if (user) {
+            if (user.role === 'worker') {
+              const specialist = (specialistByUserId.get(user.id) as any) || allSpecialists.find((s: any) => s.id === user.id);
+              displayName = specialist ? `${user.name} (${specialist.category})` : `${user.name} (Service Provider)`;
+              specialistId = specialist?.id;
+            } else { displayName = user.name; }
+          }
+          return { userId, userName: displayName, lastMessage: sortedMsgs[0], unread, specialistId };
+        });
+
+        setConversations(convList.sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()));
+      });
+    };
+
+    init();
+    return () => { if (unsub) unsub(); };
   }, []);
 
   if (!currentUser) return null;

@@ -76,30 +76,37 @@ export default function Chat() {
 
   useEffect(() => {
     if (!currentUser) { navigate('/login'); return; }
-    const loadData = async () => {
-      if (userId) {
-        loadMessages();
-        DB.markMessagesAsRead(currentUser.id, userId);
-        const user = await DB.getUserById(userId);
-        if (user) {
-          if (user.role === 'worker') {
-            const specialists = await DB.getSpecialists();
-            const specialist = specialists.find(s => s.userId === user.id || s.id === user.id);
-            if (specialist) {
-              setChatUser({ ...user, displayName: `${user.name} (${specialist.category})` });
-              setSpecialistId(specialist.id);
-            } else {
-              setChatUser({ ...user, displayName: `${user.name} (Service Provider)` });
-            }
+    if (!userId) return;
+
+    // Load chat user info
+    (async () => {
+      const user = await DB.getUserById(userId);
+      if (user) {
+        if (user.role === 'worker') {
+          const specialists = await DB.getSpecialists();
+          const specialist = specialists.find(s => s.userId === user.id || s.id === user.id);
+          if (specialist) {
+            setChatUser({ ...user, displayName: `${user.name} (${specialist.category})` });
+            setSpecialistId(specialist.id);
           } else {
-            setChatUser({ ...user, displayName: user.name });
+            setChatUser({ ...user, displayName: `${user.name} (Service Provider)` });
           }
         } else {
-          setChatUser({ id: userId, name: 'User', displayName: 'User', role: 'user' as const });
+          setChatUser({ ...user, displayName: user.name });
         }
+      } else {
+        setChatUser({ id: userId, name: 'User', displayName: 'User', role: 'user' as const });
       }
-    };
-    loadData();
+    })();
+
+    // Real-time conversation listener
+    DB.markMessagesAsRead(currentUser.id, userId);
+    const unsubMessages = DB.onConversation(currentUser.id, userId, (msgs) => {
+      setMessages(msgs);
+      DB.markMessagesAsRead(currentUser.id, userId);
+    });
+
+    return () => { unsubMessages(); };
   }, [userId]);
 
   useEffect(() => {
@@ -161,25 +168,16 @@ export default function Chat() {
       pendingCandidatesRef.current = [];
     };
 
-  const loadMessages = async () => {
-    const user = AuthService.getCurrentUser();
-    if (user && userId) {
-      const msgs = await DB.getConversation(user.id, userId);
-      setMessages(msgs);
-    }
-  };
-
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !currentUser || !userId) return;
     setLoading(true);
     const text = newMessage;
     setNewMessage('');
-    const sent = await DB.sendMessage(
+    await DB.sendMessage(
       { senderId: currentUser.id, receiverId: userId, content: text, messageType: 'text' },
       currentUser.name
     );
-    setMessages(prev => [...prev, sent]);
     setLoading(false);
   };
 
@@ -194,13 +192,12 @@ export default function Chat() {
     if (!file.type.startsWith('image/') || file.size > 10 * 1024 * 1024) return;
     setUploadingFile(true); setShowAttachMenu(false);
     try {
-      const url = await DB.uploadPhoto(file);
-      const sent = await DB.sendMessage(
-        { senderId: currentUser.id, receiverId: userId, content: '📷 Photo', messageType: 'image', attachment: { type: 'image', url, name: file.name, size: file.size } },
-        currentUser.name
-      );
-      setMessages(prev => [...prev, sent]);
-    } catch (err) { console.error('Photo upload failed:', err); }
+        const url = await DB.uploadPhoto(file);
+        await DB.sendMessage(
+          { senderId: currentUser.id, receiverId: userId, content: '📷 Photo', messageType: 'image', attachment: { type: 'image', url, name: file.name, size: file.size } },
+          currentUser.name
+        );
+      } catch (err) { console.error('Photo upload failed:', err); }
     setUploadingFile(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -211,13 +208,12 @@ export default function Chat() {
     if (file.size > 25 * 1024 * 1024) return;
     setUploadingFile(true); setShowAttachMenu(false);
     try {
-      const url = await DB.uploadPhoto(file);
-      const sent = await DB.sendMessage(
-        { senderId: currentUser.id, receiverId: userId, content: `📎 ${file.name}`, messageType: 'document', attachment: { type: 'document', url, name: file.name, size: file.size } },
-        currentUser.name
-      );
-      setMessages(prev => [...prev, sent]);
-    } catch (err) { console.error('Document upload failed:', err); }
+        const url = await DB.uploadPhoto(file);
+        await DB.sendMessage(
+          { senderId: currentUser.id, receiverId: userId, content: `📎 ${file.name}`, messageType: 'document', attachment: { type: 'document', url, name: file.name, size: file.size } },
+          currentUser.name
+        );
+      } catch (err) { console.error('Document upload failed:', err); }
     setUploadingFile(false);
     if (docInputRef.current) docInputRef.current.value = '';
   };
@@ -369,14 +365,13 @@ export default function Chat() {
           setCallState('not_answering');
           cleanupCall();
           if (userId && currentUser) {
-            const sent = await DB.sendMessage({
-              senderId: currentUser.id,
-              receiverId: userId,
-              content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · Declined`,
-              messageType: 'text',
-            }, currentUser.name);
-            setMessages(prev => [...prev, sent]);
-          }
+              await DB.sendMessage({
+                senderId: currentUser.id,
+                receiverId: userId,
+                content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · Declined`,
+                messageType: 'text',
+              }, currentUser.name);
+            }
           setTimeout(() => {
             setActiveCall(null);
             setCallState('idle');
@@ -410,13 +405,12 @@ export default function Chat() {
         cleanupCall();
         await DB.updateCall(call.id, { status: 'missed', endedAt: new Date().toISOString() });
           if (userId && currentUser) {
-            const sent = await DB.sendMessage({
+            await DB.sendMessage({
               senderId: currentUser.id,
               receiverId: userId,
               content: `📞 ${type === 'video' ? 'Video' : 'Voice'} call · No answer`,
               messageType: 'text',
             }, currentUser.name);
-            setMessages(prev => [...prev, sent]);
           }
         setTimeout(() => {
           setActiveCall(null);
@@ -449,13 +443,12 @@ export default function Chat() {
         const m = Math.floor(duration / 60);
         const s = duration % 60;
         const dur = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        const sent = await DB.sendMessage({
-          senderId: currentUser.id,
-          receiverId: userId,
-          content: `${emoji} ${type === 'video' ? 'Video' : 'Voice'} call · ${dur}`,
-          messageType: 'text',
-        }, currentUser.name);
-        setMessages(prev => [...prev, sent]);
+          await DB.sendMessage({
+            senderId: currentUser.id,
+            receiverId: userId,
+            content: `${emoji} ${type === 'video' ? 'Video' : 'Voice'} call · ${dur}`,
+            messageType: 'text',
+          }, currentUser.name);
       }
 
       setTimeout(() => DB.cleanupCall(call.id), 5000);

@@ -1103,6 +1103,88 @@ export class DB {
     }
   }
 
+  // ─── Real-time message listeners ───
+
+  /**
+   * Subscribe to a conversation between two users in real time.
+   * Returns an unsubscribe function.
+   */
+  static onConversation(
+    userId1: string,
+    userId2: string,
+    callback: (messages: Message[]) => void
+  ): () => void {
+    const q1 = query(
+      collection(db, 'messages'),
+      where('senderId', '==', userId1),
+      where('receiverId', '==', userId2)
+    );
+    const q2 = query(
+      collection(db, 'messages'),
+      where('senderId', '==', userId2),
+      where('receiverId', '==', userId1)
+    );
+
+    // Keep two separate snapshots and merge them
+    let snap1Msgs: Message[] = [];
+    let snap2Msgs: Message[] = [];
+
+    const merge = () => {
+      const all = [...snap1Msgs, ...snap2Msgs].sort(
+        (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      );
+      callback(all);
+    };
+
+    const unsub1 = onSnapshot(q1, (snap) => {
+      snap1Msgs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Message));
+      merge();
+    });
+
+    const unsub2 = onSnapshot(q2, (snap) => {
+      snap2Msgs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Message));
+      merge();
+    });
+
+    return () => { unsub1(); unsub2(); };
+  }
+
+  /**
+   * Subscribe to all messages involving a user in real time.
+   * Returns an unsubscribe function.
+   */
+  static onUserMessages(
+    userId: string,
+    callback: (messages: Message[]) => void
+  ): () => void {
+    const qSent = query(collection(db, 'messages'), where('senderId', '==', userId));
+    const qRecv = query(collection(db, 'messages'), where('receiverId', '==', userId));
+
+    let sentMsgs: Message[] = [];
+    let recvMsgs: Message[] = [];
+
+    const merge = () => {
+      const seen = new Set<string>();
+      const all: Message[] = [];
+      for (const m of [...sentMsgs, ...recvMsgs]) {
+        if (!seen.has(m.id)) { seen.add(m.id); all.push(m); }
+      }
+      callback(all);
+    };
+
+    const unsub1 = onSnapshot(qSent, (snap) => {
+      sentMsgs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Message));
+      merge();
+    });
+
+    const unsub2 = onSnapshot(qRecv, (snap) => {
+      recvMsgs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Message));
+      merge();
+    });
+
+    return () => { unsub1(); unsub2(); };
+  }
+
   static async cleanupCall(callId: string) {
     try {
       // Delete ICE candidates subcollection
