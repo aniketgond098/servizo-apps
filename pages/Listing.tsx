@@ -29,6 +29,7 @@ export default function Listing() {
   const [aiLoading, setAiLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [aiTip, setAiTip] = useState('');
+  const [showAllWorkers, setShowAllWorkers] = useState(false);
   const currentUser = AuthService.getCurrentUser();
 
   useEffect(() => {
@@ -73,12 +74,12 @@ export default function Listing() {
       );
     }
     if (sortBy === 'rating') all.sort((a, b) => b.rating - a.rating);
-    else if (sortBy === 'price-low') all.sort((a, b) => a.hourlyRate - b.hourlyRate);
-    else if (sortBy === 'price-high') all.sort((a, b) => b.hourlyRate - a.hourlyRate);
-    else if (sortBy === 'experience') all.sort((a, b) => b.experience - a.experience);
-    else if (sortBy === 'distance' && userLoc) {
-      all.sort((a, b) => calculateDistance(userLoc.lat, userLoc.lng, a.lat, a.lng) - calculateDistance(userLoc.lat, userLoc.lng, b.lat, b.lng));
-    }
+      else if (sortBy === 'price-low') all.sort((a, b) => a.hourlyRate - b.hourlyRate);
+      else if (sortBy === 'price-high') all.sort((a, b) => b.hourlyRate - a.hourlyRate);
+      else if (sortBy === 'experience') all.sort((a, b) => b.experience - a.experience);
+      else if (sortBy === 'distance' && userLoc) {
+        all.sort((a, b) => calculateDistance(userLoc.lat, userLoc.lng, a.lat, a.lng) - calculateDistance(userLoc.lat, userLoc.lng, b.lat, b.lng));
+      }
 
     setSpecialists(all);
     setLoading(false);
@@ -156,6 +157,10 @@ export default function Listing() {
 
   const categories = ['All', 'Plumbing', 'Mechanical', 'Electrical', 'Automation', 'Aesthetics', 'Architecture'];
 
+  const visibleSpecialists = (!showAllWorkers && userLoc)
+    ? specialists.filter(s => calculateDistance(userLoc.lat, userLoc.lng, s.lat, s.lng) <= 5)
+    : specialists;
+
   return (
     <div className="bg-gray-50 min-h-[calc(100vh-64px)]">
       {/* Header */}
@@ -164,7 +169,7 @@ export default function Listing() {
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-[#000000]">Find Specialists</h1>
-              <p className="text-sm text-gray-500 mt-1">{specialists.length} professionals available</p>
+                <p className="text-sm text-gray-500 mt-1">{visibleSpecialists.length} professionals available</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
@@ -318,6 +323,23 @@ export default function Listing() {
               </div>
             </div>
           )}
+          {/* Distance Filter Banner */}
+          {userLoc && (
+            <div className="flex items-center justify-between px-4 py-2.5 bg-blue-50 border border-blue-100 rounded-xl mt-3">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#4169E1] flex-shrink-0" />
+                <p className="text-sm text-[#4169E1] font-medium">
+                  {showAllWorkers ? 'Showing all workers regardless of location' : 'Showing workers within 5 km of you'}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAllWorkers(prev => !prev)}
+                className="text-xs font-semibold text-[#4169E1] underline hover:text-blue-800 whitespace-nowrap ml-4"
+              >
+                {showAllWorkers ? 'Show nearby only' : 'Show all workers'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -337,8 +359,8 @@ export default function Listing() {
             />
           </React.Suspense>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {specialists.length > 0 ? specialists.map(specialist => {
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {visibleSpecialists.length > 0 ? visibleSpecialists.map(specialist => {
               const distance = getDistance(specialist.lat, specialist.lng);
               const isFavorite = favorites.includes(specialist.id);
               const isLoading = cardLoading.includes(specialist.id);
@@ -405,9 +427,16 @@ export default function Listing() {
               </Link>
             )}) : (
               <div className="col-span-full py-20 text-center space-y-3">
-                <p className="text-gray-500 text-sm">No specialists found matching your criteria.</p>
-                <button onClick={clearFilters} className="text-[#4169E1] font-semibold text-sm hover:underline">Clear all filters</button>
-              </div>
+                  <p className="text-gray-500 text-sm">
+                    {!showAllWorkers && userLoc ? 'No specialists found within 5 km.' : 'No specialists found matching your criteria.'}
+                  </p>
+                  <div className="flex flex-col items-center gap-2">
+                    {!showAllWorkers && userLoc && (
+                      <button onClick={() => setShowAllWorkers(true)} className="text-[#4169E1] font-semibold text-sm hover:underline">Show all workers</button>
+                    )}
+                    <button onClick={clearFilters} className="text-[#4169E1] font-semibold text-sm hover:underline">Clear all filters</button>
+                  </div>
+                </div>
             )}
           </div>
         )}
