@@ -61,6 +61,14 @@ export class AuthService {
     return true;
   }
 
+  static async resetPassword(email: string, newPassword: string): Promise<boolean> {
+    const users = await DB.getUsers();
+    const user = users.find(u => u.email === email);
+    if (!user) return false;
+    await DB.updateUser({ ...user, password: newPassword });
+    return true;
+  }
+
   private static setSession(user: User) {
     const { password, ...safeUser } = user;
     localStorage.setItem('prolux_session', JSON.stringify(safeUser));
