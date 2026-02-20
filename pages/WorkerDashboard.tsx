@@ -667,10 +667,13 @@ export default function WorkerDashboard() {
                             {booking.status === 'completed' && (
                               <div className="p-4">
                                 <button
-                                  onClick={() => openBillModal(booking)}
+                                  onClick={() => {
+                    const customer = allUsers.find(u => u.id === booking.userId);
+                    if (customer) downloadBillAsPDF({ booking, specialist: profile as Specialist, user: customer });
+                  }}
                                   className="w-full py-2.5 border border-[#4169E1] text-[#4169E1] rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors"
                                 >
-                                  <FileText className="w-4 h-4" /> View E-Bill
+                                  <Download className="w-4 h-4" /> Download E-Bill
                                 </button>
                               </div>
                             )}

@@ -1,3 +1,4 @@
+import { jsPDF } from 'jspdf';
 import { Booking, Specialist, User } from '../types';
 
 export interface BillData {
@@ -116,18 +117,144 @@ export function buildBillHTML(data: BillData): string {
 </html>`;
 }
 
-/** Downloads the bill as an HTML file directly to the user's device */
+/** Downloads the bill as a PDF directly to the user's device */
 export function downloadBillAsPDF(data: BillData) {
-  const html = buildBillHTML(data);
-  const blob = new Blob([html], { type: 'text/html' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `servizo-bill-${data.booking.id}.html`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  const { booking, specialist, user } = data;
+  const base = booking.totalValue;
+  const extras = booking.extraCharges || [];
+  const total = booking.finalTotal || base;
+  const paidAt = booking.paidAt ? new Date(booking.paidAt).toLocaleString('en-IN') : new Date().toLocaleString('en-IN');
+  const bookedAt = new Date(booking.createdAt).toLocaleString('en-IN');
+
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210;
+  const margin = 20;
+  const col2 = 130;
+  let y = 0;
+
+  // Header bar
+  doc.setFillColor(0, 0, 0);
+  doc.rect(0, 0, W, 38, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Servizo', margin, 18);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(180, 180, 180);
+  doc.text('E-Bill / Tax Invoice', margin, 26);
+
+  // PAID badge
+  doc.setFillColor(34, 197, 94);
+  doc.roundedRect(margin, 30, 22, 6, 2, 2, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PAID', margin + 4, 34.5);
+
+  y = 50;
+
+  // Section helper
+  const sectionLabel = (label: string) => {
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(150, 150, 150);
+    doc.text(label.toUpperCase(), margin, y);
+    y += 5;
+    doc.setDrawColor(230, 230, 230);
+    doc.line(margin, y, W - margin, y);
+    y += 5;
+  };
+
+  const row = (key: string, val: string, valColor?: [number, number, number]) => {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(key, margin, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...(valColor || [30, 30, 30] as [number,number,number]));
+    doc.text(val, col2, y, { align: 'right' });
+    y += 7;
+  };
+
+  // Invoice details
+  sectionLabel('Invoice Details');
+  row('Invoice No.', booking.id);
+  row('Booking Date', bookedAt);
+  row('Payment Date', paidAt);
+  row('Payment Status', 'Paid', [22, 163, 74]);
+  y += 4;
+
+  // Customer
+  sectionLabel('Customer');
+  row('Name', user.name);
+  row('Email', user.email);
+  if (booking.serviceAddress) row('Service Address', booking.serviceAddress);
+  y += 4;
+
+  // Service provider
+  sectionLabel('Service Provider');
+  row('Name', specialist.name);
+  row('Speciality', specialist.title);
+  row('Category', specialist.category);
+  row('Location', specialist.location);
+  y += 4;
+
+  // Charges table header
+  sectionLabel('Charges');
+  doc.setFillColor(248, 248, 248);
+  doc.rect(margin, y - 2, W - margin * 2, 8, 'F');
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(130, 130, 130);
+  doc.text('DESCRIPTION', margin + 2, y + 4);
+  doc.text('AMOUNT', col2, y + 4, { align: 'right' });
+  y += 10;
+
+  // Base charge
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(50, 50, 50);
+  doc.setFontSize(10);
+  doc.text('Base Service Charge', margin + 2, y);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Rs.${base.toLocaleString('en-IN')}`, col2, y, { align: 'right' });
+  y += 7;
+
+  // Extra charges
+  for (const charge of extras) {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(charge.description, margin + 2, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(180, 83, 9);
+    doc.text(`+Rs.${charge.amount.toLocaleString('en-IN')}`, col2, y, { align: 'right' });
+    y += 7;
+  }
+
+  // Total row
+  y += 2;
+  doc.setFillColor(248, 248, 248);
+  doc.rect(margin, y - 4, W - margin * 2, 10, 'F');
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 30, 30);
+  doc.text('Total Paid', margin + 2, y + 2);
+  doc.setTextColor(65, 105, 225);
+  doc.text(`Rs.${total.toLocaleString('en-IN')}`, col2, y + 2, { align: 'right' });
+  y += 14;
+
+  // Footer
+  doc.setDrawColor(230, 230, 230);
+  doc.line(margin, y, W - margin, y);
+  y += 6;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(150, 150, 150);
+  doc.text('Thank you for using Servizo. This is a computer-generated invoice.', W / 2, y, { align: 'center' });
+  y += 5;
+  doc.text('For support: support@servizo.in', W / 2, y, { align: 'center' });
+
+  doc.save(`servizo-bill-${booking.id}.pdf`);
 }
 
 /** Sends the bill HTML to the user's email via mailto: */
