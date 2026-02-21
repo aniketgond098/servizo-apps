@@ -684,27 +684,31 @@ export default function WorkerDashboard() {
                                   ))}
                                 </div>
                               )}
-                              <div className="flex gap-2">
-                                <input
-                                  placeholder="Description"
-                                  value={chargeDesc[booking.id] || ''}
-                                  onChange={e => setChargeDesc(p => ({ ...p, [booking.id]: e.target.value }))}
-                                  className="flex-1 border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-[#4169E1]"
-                                />
-                                <input
-                                  type="number" placeholder="₹"
-                                  value={chargeAmt[booking.id] || ''}
-                                  onChange={e => setChargeAmt(p => ({ ...p, [booking.id]: e.target.value }))}
-                                  className="w-24 border border-gray-200 rounded-lg py-2 px-3 text-sm focus:outline-none focus:border-[#4169E1]"
-                                />
-                                <button
-                                  onClick={() => handleAddCharge(booking.id)}
-                                  disabled={chargeLoading[booking.id]}
-                                  className="px-3 py-2 bg-[#4169E1] text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
-                                >
-                                  {chargeLoading[booking.id] ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
-                                </button>
-                              </div>
+                              <div className="flex flex-col gap-2">
+                                  <div className="flex gap-2">
+                                    <input
+                                      placeholder="Description (e.g. Extra parts)"
+                                      value={chargeDesc[booking.id] || ''}
+                                      onChange={e => setChargeDesc(p => ({ ...p, [booking.id]: e.target.value }))}
+                                      className="flex-1 border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:border-[#4169E1]"
+                                    />
+                                    <input
+                                      type="number" placeholder="₹ Amt"
+                                      value={chargeAmt[booking.id] || ''}
+                                      onChange={e => setChargeAmt(p => ({ ...p, [booking.id]: e.target.value }))}
+                                      className="w-24 border border-gray-200 rounded-lg py-2.5 px-3 text-sm focus:outline-none focus:border-[#4169E1]"
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={() => handleAddCharge(booking.id)}
+                                    disabled={chargeLoading[booking.id]}
+                                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-[#4169E1] text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 text-sm font-semibold"
+                                  >
+                                    {chargeLoading[booking.id]
+                                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                                      : <><Plus className="w-4 h-4" /> Add Charge</>}
+                                  </button>
+                                </div>
                               <button
                                 onClick={() => handleSubmitForPayment(booking.id)}
                                 disabled={submitLoading[booking.id]}
