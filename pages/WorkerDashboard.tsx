@@ -95,7 +95,7 @@ export default function WorkerDashboard() {
       setMyBookings((await DB.getBookings()).filter(b => b.specialistId === sp.id));
       const [allMsgs, allUsers] = await Promise.all([DB.getMessages(), DB.getUsers()]);
       setAllUsers(allUsers);
-      const msgs = allMsgs.filter(m => m.receiverId === user.id);
+        const msgs = allMsgs.filter(m => m.receiverId === user.id || m.receiverId === sp.id);
       setMessages(msgs);
       const userMap = new Map(allUsers.map(u => [u.id, u.name]));
       const names: Record<string, string> = {};

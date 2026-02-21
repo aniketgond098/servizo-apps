@@ -436,24 +436,43 @@ export class DB {
     }
   }
 
+  /**
+   * Resolves a specialist doc ID (e.g. 'deepak-s') to the actual user ID (e.g. 'WORKER-008').
+   * If the id is already a user ID (no specialist doc matches), returns it unchanged.
+   */
+  static async resolveToUserId(id: string): Promise<string> {
+    try {
+      const specialists = await this.getSpecialists();
+      const specialist = specialists.find(s => s.id === id);
+      if (specialist?.userId) return specialist.userId;
+    } catch (_) {}
+    return id;
+  }
+
   static async sendMessage(message: Omit<Message, 'id' | 'createdAt' | 'read'>, senderName?: string): Promise<Message> {
     try {
+      // Normalize: if receiverId is a specialist doc ID, resolve to actual user ID
+      const resolvedReceiverId = await this.resolveToUserId(message.receiverId);
+      const resolvedSenderId = await this.resolveToUserId(message.senderId);
+
       const newMessage: Message = {
         ...message,
+        senderId: resolvedSenderId,
+        receiverId: resolvedReceiverId,
         id: `MSG-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         createdAt: new Date().toISOString(),
         read: false,
         messageType: message.messageType || 'text',
-          ...(message.attachment ? { attachment: message.attachment } : {})
-        };
+        ...(message.attachment ? { attachment: message.attachment } : {})
+      };
       // Fire-and-forget: save message + notification in parallel
       const saveMsg = setDoc(doc(db, 'messages', newMessage.id), newMessage);
       const saveNotif = this.createNotification({
-        userId: message.receiverId,
+        userId: resolvedReceiverId,
         type: 'message',
         title: 'New Message',
         message: `${senderName || 'Someone'} sent you a message.`,
-        link: `/chat/${message.senderId}`
+        link: `/chat/${resolvedSenderId}`
       });
       await Promise.all([saveMsg, saveNotif]);
       return newMessage;

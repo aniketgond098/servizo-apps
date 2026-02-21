@@ -126,14 +126,17 @@ export default function Chat() {
         }
       })();
 
-    // Real-time conversation listener
-    DB.markMessagesAsRead(currentUser.id, userId);
-    const unsubMessages = DB.onConversation(currentUser.id, userId, (msgs) => {
-      setMessages(msgs);
-      DB.markMessagesAsRead(currentUser.id, userId);
-    });
+      // Resolve specialist doc ID → actual user ID for conversation queries
+      const resolvedUserId = await DB.resolveToUserId(userId);
 
-    return () => { unsubMessages(); };
+      // Real-time conversation listener
+      DB.markMessagesAsRead(currentUser.id, resolvedUserId);
+      const unsubMessages = DB.onConversation(currentUser.id, resolvedUserId, (msgs) => {
+        setMessages(msgs);
+        DB.markMessagesAsRead(currentUser.id, resolvedUserId);
+      });
+
+      return () => { unsubMessages(); };
   }, [userId]);
 
   useEffect(() => {
@@ -327,10 +330,12 @@ export default function Chat() {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
+      const resolvedReceiverId = await DB.resolveToUserId(userId);
+
       const call = await DB.createCall({
         callerId: currentUser.id,
         callerName: currentUser.name,
-        receiverId: userId,
+        receiverId: resolvedReceiverId,
         receiverName: chatUser.name || 'User',
         type,
         status: 'ringing',
