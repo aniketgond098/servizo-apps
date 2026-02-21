@@ -389,11 +389,12 @@ export default function Chat() {
               try { await pc.addIceCandidate(c); } catch (_) {}
             }
             pendingCandidatesRef.current = [];
-            stopOutgoingRing();
-            playConnectedSound();
-            setCallState('connected');
-          } catch (e) { console.error('setRemoteDescription failed (caller):', e); }
-          return;
+              stopOutgoingRing();
+              playConnectedSound();
+              setCallState('connected');
+              if (callTimeoutRef.current) { clearTimeout(callTimeoutRef.current); callTimeoutRef.current = null; }
+            } catch (e) { console.error('setRemoteDescription failed (caller):', e); }
+            return;
         }
 
         if (updatedCall.status === 'rejected') {
