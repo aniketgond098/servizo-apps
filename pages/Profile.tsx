@@ -92,11 +92,12 @@ export default function Profile() {
         }
     };
     loadData();
+    let geoCancelled = false;
     navigator.geolocation.getCurrentPosition(
-      (pos) => setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (pos) => { if (!geoCancelled) setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
       () => {}
     );
-    return () => { unsub?.(); };
+    return () => { geoCancelled = true; unsub?.(); };
   }, [id]);
 
   const handleBooking = () => {

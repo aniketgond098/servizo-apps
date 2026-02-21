@@ -39,10 +39,12 @@ export default function Listing() {
       setFavorites(currentUser.favorites || []);
     }
     
+    let cancelled = false;
     navigator.geolocation.getCurrentPosition(
-      (pos) => setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      (pos) => { if (!cancelled) setUserLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }); },
       () => {}
     );
+    return () => { cancelled = true; };
   }, [searchParams, availabilityFilter, sortBy, priceRange]);
 
   const performSearch = async (query: string, category: string) => {
