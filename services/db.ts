@@ -95,6 +95,16 @@ export class DB {
     }
   }
 
+  static async getSpecialistById(id: string): Promise<Specialist | undefined> {
+    try {
+      const docSnap = await getDoc(doc(db, 'specialists', id));
+      return docSnap.exists() ? { ...docSnap.data(), id: docSnap.id } as Specialist : undefined;
+    } catch (error) {
+      console.error('Get specialist by ID error:', error);
+      return undefined;
+    }
+  }
+
   static async updateSpecialist(specialist: Specialist) {
     try {
       await setDoc(doc(db, 'specialists', specialist.id), specialist);
@@ -188,6 +198,16 @@ export class DB {
     } catch (error) {
       console.error('Get bookings error:', error);
       return [];
+    }
+  }
+
+  static async getBookingById(id: string): Promise<Booking | undefined> {
+    try {
+      const docSnap = await getDoc(doc(db, 'bookings', id));
+      return docSnap.exists() ? { ...docSnap.data(), id: docSnap.id } as Booking : undefined;
+    } catch (error) {
+      console.error('Get booking by ID error:', error);
+      return undefined;
     }
   }
 
