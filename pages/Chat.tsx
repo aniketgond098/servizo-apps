@@ -117,26 +117,27 @@ export default function Chat() {
           if (user.role === 'worker') {
             const sp = specialists.find(s => s.userId === user!.id);
             setChatUser({ ...user, displayName: sp ? `${user.name} (${sp.category})` : `${user.name} (Service Provider)` });
-            if (sp) setSpecialistId(sp.id);
+        if (sp) setSpecialistId(sp.id);
+            } else {
+              setChatUser({ ...user, displayName: user.name });
+            }
           } else {
-            setChatUser({ ...user, displayName: user.name });
+            setChatUser({ id: userId, name: 'Unknown User', displayName: 'Unknown User', role: 'user' as const });
           }
-        } else {
-          setChatUser({ id: userId, name: 'Unknown User', displayName: 'Unknown User', role: 'user' as const });
-        }
-      })();
+        })();
 
-      // Resolve specialist doc ID → actual user ID for conversation queries
-      const resolvedUserId = await DB.resolveToUserId(userId);
+        // Resolve specialist doc ID → actual user ID for conversation queries
+        let unsubMessages = () => {};
+        (async () => {
+          const resolvedUserId = await DB.resolveToUserId(userId);
+          DB.markMessagesAsRead(currentUser.id, resolvedUserId);
+          unsubMessages = DB.onConversation(currentUser.id, resolvedUserId, (msgs) => {
+            setMessages(msgs);
+            DB.markMessagesAsRead(currentUser.id, resolvedUserId);
+          });
+        })();
 
-      // Real-time conversation listener
-      DB.markMessagesAsRead(currentUser.id, resolvedUserId);
-      const unsubMessages = DB.onConversation(currentUser.id, resolvedUserId, (msgs) => {
-        setMessages(msgs);
-        DB.markMessagesAsRead(currentUser.id, resolvedUserId);
-      });
-
-      return () => { unsubMessages(); };
+        return () => { unsubMessages(); };
   }, [userId]);
 
   useEffect(() => {
