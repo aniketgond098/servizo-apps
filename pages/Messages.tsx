@@ -37,21 +37,40 @@ export default function Messages() {
           convMap.get(otherId)!.push(msg);
         });
 
-        const convList = Array.from(convMap.entries()).map(([userId, msgs]) => {
-          const sortedMsgs = msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          const unread = msgs.filter(m => m.receiverId === currentUser.id && !m.read).length;
-          const user = userMap.get(userId);
-          let displayName = 'User';
-          let specialistId: string | undefined;
-          if (user) {
-            if (user.role === 'worker') {
-              const specialist = (specialistByUserId.get(user.id) as any) || allSpecialists.find((s: any) => s.id === user.id);
-              displayName = specialist ? `${user.name} (${specialist.category})` : `${user.name} (Service Provider)`;
-              specialistId = specialist?.id;
-            } else { displayName = user.name; }
-          }
-          return { userId, userName: displayName, lastMessage: sortedMsgs[0], unread, specialistId };
-        });
+        // Also build a map: specialistId → specialist doc (for when otherId is a specialist doc id)
+          const specialistById = new Map(allSpecialists.map((s: any) => [s.id, s]));
+
+          const convList = Array.from(convMap.entries()).map(([otherId, msgs]) => {
+            const sortedMsgs = msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            const unread = msgs.filter(m => m.receiverId === currentUser.id && !m.read).length;
+
+            // otherId may be a user ID or a specialist doc ID — resolve both
+            let user = userMap.get(otherId);
+            let specialist: any = specialistById.get(otherId) || specialistByUserId.get(otherId);
+
+            // If otherId is a specialist doc id, get the backing user via specialist.userId
+            if (!user && specialist) {
+              user = userMap.get(specialist.userId);
+            }
+
+            let displayName = 'User';
+            let specialistId: string | undefined;
+
+            if (specialist) {
+              displayName = `${specialist.name} (${specialist.category})`;
+              specialistId = specialist.id;
+            } else if (user) {
+              if (user.role === 'worker') {
+                const sp = specialistByUserId.get(user.id) as any;
+                displayName = sp ? `${user.name} (${sp.category})` : `${user.name} (Service Provider)`;
+                specialistId = sp?.id;
+              } else {
+                displayName = user.name;
+              }
+            }
+
+            return { userId: otherId, userName: displayName, lastMessage: sortedMsgs[0], unread, specialistId };
+          });
 
         setConversations(convList.sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()));
       });

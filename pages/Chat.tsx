@@ -96,26 +96,35 @@ export default function Chat() {
     if (!currentUser) { navigate('/login'); return; }
     if (!userId) return;
 
-    // Load chat user info
-    (async () => {
-      const user = await DB.getUserById(userId);
-      if (user) {
-        if (user.role === 'worker') {
-          const specialists = await DB.getSpecialists();
-          const specialist = specialists.find(s => s.userId === user.id || s.id === user.id);
-          if (specialist) {
-            setChatUser({ ...user, displayName: `${user.name} (${specialist.category})` });
-            setSpecialistId(specialist.id);
+      // Load chat user info
+      (async () => {
+        const specialists = await DB.getSpecialists();
+
+        // userId in the URL may be a user ID or a specialist doc ID — resolve both
+        let user = await DB.getUserById(userId);
+        let specialist = specialists.find(s => s.id === userId || s.userId === userId);
+
+        // If not found by user ID, try resolving via the specialist doc
+        if (!user && specialist) {
+          user = await DB.getUserById(specialist.userId);
+        }
+
+        if (specialist) {
+          const displayName = `${specialist.name} (${specialist.category})`;
+          setChatUser({ ...(user || { id: userId, role: 'worker' }), name: specialist.name, displayName });
+          setSpecialistId(specialist.id);
+        } else if (user) {
+          if (user.role === 'worker') {
+            const sp = specialists.find(s => s.userId === user!.id);
+            setChatUser({ ...user, displayName: sp ? `${user.name} (${sp.category})` : `${user.name} (Service Provider)` });
+            if (sp) setSpecialistId(sp.id);
           } else {
-            setChatUser({ ...user, displayName: `${user.name} (Service Provider)` });
+            setChatUser({ ...user, displayName: user.name });
           }
         } else {
-          setChatUser({ ...user, displayName: user.name });
+          setChatUser({ id: userId, name: 'Unknown User', displayName: 'Unknown User', role: 'user' as const });
         }
-      } else {
-        setChatUser({ id: userId, name: 'User', displayName: 'User', role: 'user' as const });
-      }
-    })();
+      })();
 
     // Real-time conversation listener
     DB.markMessagesAsRead(currentUser.id, userId);
