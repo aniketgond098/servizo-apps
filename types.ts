@@ -198,6 +198,26 @@ export interface CallFeedback {
   createdAt: string;
 }
 
+export type EmergencyStatus = 'open' | 'accepted' | 'cancelled';
+
+export interface EmergencyRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  category: ServiceCategory;
+  description: string;
+  address: string;
+  lat: number;
+  lng: number;
+  status: EmergencyStatus;
+  createdAt: string;
+  acceptedBy?: string;       // specialist ID
+  acceptedByName?: string;
+  acceptedAt?: string;
+  baseRate: number;          // original specialist hourly rate
+  emergencyRate: number;     // baseRate * 1.2
+}
+
 export interface BookingAnalytics {
   totalBookings: number;
   totalSpent: number;

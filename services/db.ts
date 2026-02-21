@@ -1,6 +1,6 @@
 import { collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, query, where, orderBy, addDoc, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
-import { Specialist, Booking, User, Review, Message, MessageAttachment, VerificationRequest, Notification, Call, IceCandidate, ExtraCharge, CallFeedback } from '../types';
+import { Specialist, Booking, User, Review, Message, MessageAttachment, VerificationRequest, Notification, Call, IceCandidate, ExtraCharge, CallFeedback, EmergencyRequest, ServiceCategory } from '../types';
 import { seedNewWorkers } from './seedWorkers';
 import { buildBillHTML } from '../utils/generateBill';
 
@@ -1398,7 +1398,6 @@ export class DB {
 
   static async cleanupCall(callId: string) {
     try {
-      // Delete ICE candidates subcollection
       const iceDocs = await getDocs(collection(db, 'calls', callId, 'iceCandidates'));
       for (const iceDoc of iceDocs.docs) {
         await deleteDoc(iceDoc.ref);
@@ -1407,5 +1406,160 @@ export class DB {
     } catch (error) {
       console.error('Cleanup call error:', error);
     }
+  }
+
+  // ─── Emergency Requests ──────────────────────────────────────────────────────
+
+  static async createEmergencyRequest(
+    req: Omit<EmergencyRequest, 'id' | 'createdAt' | 'status' | 'emergencyRate'>
+  ): Promise<EmergencyRequest> {
+    try {
+      const newReq: EmergencyRequest = {
+        ...req,
+        id: `EMG-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        createdAt: new Date().toISOString(),
+        status: 'open',
+        emergencyRate: Math.round(req.baseRate * 1.2),
+      };
+      await setDoc(doc(db, 'emergencyRequests', newReq.id), newReq);
+
+      // Notify all specialists in same category within 5 km
+      const specialists = await this.getSpecialists();
+      const nearby = specialists.filter(
+        s =>
+          s.category === req.category &&
+          s.userId &&
+          s.availability !== 'unavailable' &&
+          this._haversineKm(req.lat, req.lng, s.lat, s.lng) <= 5
+      );
+      await Promise.all(
+        nearby.map(s =>
+          this.createNotification({
+            userId: s.userId!,
+            type: 'booking',
+            title: `🚨 Emergency ${req.category} Request Nearby!`,
+            message: `${req.userName} needs urgent help — ${req.description.slice(0, 80)}. You earn 20% more (₹${newReq.emergencyRate}/hr). Open your dashboard to accept.`,
+            link: '/worker-dashboard',
+          })
+        )
+      );
+
+      return newReq;
+    } catch (error) {
+      console.error('createEmergencyRequest error:', error);
+      throw error;
+    }
+  }
+
+  static onAllOpenEmergencyRequests(
+    callback: (requests: EmergencyRequest[]) => void
+  ): () => void {
+    const q = query(collection(db, 'emergencyRequests'), where('status', '==', 'open'));
+    return onSnapshot(q, snap => {
+      const results = snap.docs
+        .map(d => ({ ...d.data(), id: d.id } as EmergencyRequest))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      callback(results);
+    });
+  }
+
+  static onEmergencyRequestsByCategory(
+    category: ServiceCategory,
+    callback: (requests: EmergencyRequest[]) => void
+  ): () => void {
+    const q = query(
+      collection(db, 'emergencyRequests'),
+      where('category', '==', category),
+      where('status', '==', 'open')
+    );
+    return onSnapshot(q, snap => {
+      const results = snap.docs
+        .map(d => ({ ...d.data(), id: d.id } as EmergencyRequest))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      callback(results);
+    });
+  }
+
+  static async acceptEmergencyRequest(
+    requestId: string,
+    specialistId: string,
+    specialistName: string
+  ): Promise<void> {
+    try {
+      const snap = await getDoc(doc(db, 'emergencyRequests', requestId));
+      if (!snap.exists()) throw new Error('Emergency request not found');
+      const req = { ...snap.data(), id: requestId } as EmergencyRequest;
+
+      const acceptedAt = new Date().toISOString();
+      await updateDoc(doc(db, 'emergencyRequests', requestId), {
+        status: 'accepted',
+        acceptedBy: specialistId,
+        acceptedByName: specialistName,
+        acceptedAt,
+      });
+
+      // Auto-create a booking at emergency rate
+      const bookingId = `BK-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+      const newBooking: Booking = {
+        id: bookingId,
+        specialistId,
+        userId: req.userId,
+        userLat: req.lat,
+        userLng: req.lng,
+        status: 'active',
+        startTime: acceptedAt,
+        createdAt: acceptedAt,
+        totalValue: req.emergencyRate,
+        serviceAddress: req.address,
+      };
+      await setDoc(doc(db, 'bookings', bookingId), newBooking);
+
+      // Notify the user
+      await this.createNotification({
+        userId: req.userId,
+        type: 'booking',
+        title: '✅ Emergency Request Accepted!',
+        message: `${specialistName} accepted your emergency ${req.category} request and is on the way.`,
+        link: '/booking',
+        bookingId,
+      });
+    } catch (error) {
+      console.error('acceptEmergencyRequest error:', error);
+      throw error;
+    }
+  }
+
+  static async cancelEmergencyRequest(requestId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'emergencyRequests', requestId), { status: 'cancelled' });
+    } catch (error) {
+      console.error('cancelEmergencyRequest error:', error);
+      throw error;
+    }
+  }
+
+  static async getUserEmergencyRequests(userId: string): Promise<EmergencyRequest[]> {
+    try {
+      const q = query(collection(db, 'emergencyRequests'), where('userId', '==', userId));
+      const snap = await getDocs(q);
+      return snap.docs
+        .map(d => ({ ...d.data(), id: d.id } as EmergencyRequest))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } catch (error) {
+      console.error('getUserEmergencyRequests error:', error);
+      return [];
+    }
+  }
+
+  private static _haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLng = ((lng2 - lng1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLng / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 }

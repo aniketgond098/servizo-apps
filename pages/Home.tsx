@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ChevronRight, Shield, CheckCircle, Wrench, Paintbrush, Plug, Bot, Droplets, Ruler, FileCheck, UserCheck, ShieldCheck, MessageSquareWarning, Lock, Eye, Sparkles, Loader2, Zap, Star, Users, TrendingUp } from 'lucide-react';
+import { Search, ChevronRight, Shield, CheckCircle, Wrench, Paintbrush, Plug, Bot, Droplets, Ruler, FileCheck, UserCheck, ShieldCheck, MessageSquareWarning, Lock, Eye, Sparkles, Loader2, Zap, Star, Users, TrendingUp, Siren } from 'lucide-react';
 import { AuthService } from '../services/auth';
 import HeroToolsAnimation from '../components/HeroToolsAnimation';
 import SnakeAnimation from '../components/SnakeAnimation';
@@ -166,9 +166,30 @@ export default function Home() {
                 </div>
           </div>
         </div>
-      </section>
+        </section>
 
-      {/* Stats Bar */}
+        {/* Emergency Booking Banner */}
+        {user && user.role === 'user' && (
+          <section className="bg-red-600 py-4 px-4 sm:px-6">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3 text-white">
+                <Siren className="w-6 h-6 shrink-0 animate-pulse" />
+                <div>
+                  <p className="font-bold text-sm sm:text-base">Need urgent help right now?</p>
+                  <p className="text-red-100 text-xs sm:text-sm">Submit an emergency request — nearby specialists respond within minutes.</p>
+                </div>
+              </div>
+              <Link
+                to="/emergency"
+                className="shrink-0 px-5 py-2.5 bg-white text-red-600 rounded-xl text-sm font-bold hover:bg-red-50 transition-colors flex items-center gap-2"
+              >
+                <Siren className="w-4 h-4" /> Book Emergency
+              </Link>
+            </div>
+          </section>
+        )}
+
+        {/* Stats Bar */}
       <section className="bg-[#000000] py-10 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">

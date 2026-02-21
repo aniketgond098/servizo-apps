@@ -3,12 +3,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthService } from '../services/auth';
 import { DB } from '../services/db';
-import { Specialist, ServiceCategory, Booking, Message, User } from '../types';
+import { Specialist, ServiceCategory, Booking, Message, User, EmergencyRequest } from '../types';
 import {
   Save, Star, Activity, Zap, TrendingUp, DollarSign, MessageCircle,
   Camera, Plus, Trash2, Send, IndianRupee, ChevronDown, Clock, X,
   CalendarClock, CheckCircle2, AlertCircle, Loader2, LayoutDashboard,
-  Briefcase, BarChart2, Mail, ChevronRight, FileText, Download
+  Briefcase, BarChart2, Mail, ChevronRight, FileText, Download,
+  Siren, MapPin, AlertOctagon
 } from 'lucide-react';
 import { downloadBillAsPDF, emailBill, BillData } from '../utils/generateBill';
 import { PhotoGallery } from '../components/PhotoGallery';
@@ -39,6 +40,8 @@ export default function WorkerDashboard() {
   const [bookingFilter, setBookingFilter] = useState<BookingFilter>('new');
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [billModalBooking, setBillModalBooking] = useState<Booking | null>(null);
+  const [emergencyRequests, setEmergencyRequests] = useState<EmergencyRequest[]>([]);
+  const [acceptingEmergency, setAcceptingEmergency] = useState<Record<string, boolean>>({});
 
   // Availability window state
   const [showWindowPicker, setShowWindowPicker] = useState(false);
@@ -92,6 +95,11 @@ export default function WorkerDashboard() {
         scheduleAutoStatus(updated.busyFrom ?? null, updated.busyUntil ?? null, updated.id);
       });
 
+      // Subscribe to open emergency requests for this worker's category
+      const unsubEmergency = DB.onEmergencyRequestsByCategory(sp.category, (reqs) => {
+        setEmergencyRequests(reqs);
+      });
+
       setMyBookings((await DB.getBookings()).filter(b => b.specialistId === sp.id));
       const [allMsgs, allUsers] = await Promise.all([DB.getMessages(), DB.getUsers()]);
       setAllUsers(allUsers);
@@ -111,6 +119,18 @@ export default function WorkerDashboard() {
       if (autoStatusTimerRef.current) clearTimeout(autoStatusTimerRef.current);
     };
   }, [navigate]);
+
+  const handleAcceptEmergency = async (req: EmergencyRequest) => {
+    if (!profile.id || !profile.name) return;
+    setAcceptingEmergency(prev => ({ ...prev, [req.id]: true }));
+    try {
+      await DB.acceptEmergencyRequest(req.id, profile.id, profile.name);
+      setEmergencyRequests(prev => prev.filter(r => r.id !== req.id));
+    } catch {
+      alert('Failed to accept request. Please try again.');
+    }
+    setAcceptingEmergency(prev => ({ ...prev, [req.id]: false }));
+  };
 
   const handleSave = async () => { if (profile.id) { await DB.updateSpecialist(profile as Specialist); setIsEditing(false); } };
 
@@ -459,13 +479,57 @@ export default function WorkerDashboard() {
                   </div>
                 </div>
 
-                {/* Quick nav cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[
-                    { tab: 'bookings' as Tab, label: 'View Bookings', sub: `${myBookings.length} total`, icon: <Briefcase className="w-5 h-5 text-[#4169E1]" />, bg: 'bg-blue-50' },
-                    { tab: 'earnings' as Tab, label: 'Earnings Report', sub: `₹${totalEarnings.toLocaleString()} earned`, icon: <BarChart2 className="w-5 h-5 text-green-600" />, bg: 'bg-green-50' },
-                    { tab: 'messages' as Tab, label: 'Messages', sub: `${unreadCount} unread`, icon: <Mail className="w-5 h-5 text-purple-500" />, bg: 'bg-purple-50' },
-                  ].map(item => (
+                  {/* ── Emergency Requests Panel ── */}
+                  {emergencyRequests.length > 0 && (
+                    <div className="bg-red-50 border border-red-200 rounded-2xl p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Siren className="w-5 h-5 text-red-600" />
+                        <h3 className="font-bold text-red-700 text-base">Emergency Requests Nearby</h3>
+                        <span className="ml-auto text-xs font-bold bg-red-600 text-white px-2 py-0.5 rounded-full">{emergencyRequests.length}</span>
+                      </div>
+                      <div className="space-y-3">
+                        {emergencyRequests.map(req => (
+                          <div key={req.id} className="bg-white rounded-xl border border-red-100 p-4 shadow-sm">
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <AlertOctagon className="w-4 h-4 text-red-500" />
+                                  <span className="text-sm font-bold text-gray-900">{req.userName}</span>
+                                  <span className="text-xs text-gray-400">{new Date(req.createdAt).toLocaleTimeString()}</span>
+                                </div>
+                                <p className="text-sm text-gray-600 line-clamp-2">{req.description}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                              <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{req.address}</span>
+                              <span className="flex items-center gap-1 font-semibold text-green-700">
+                                <IndianRupee className="w-3.5 h-3.5" />₹{req.emergencyRate}/hr
+                                <span className="text-green-500 font-normal">(+20%)</span>
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleAcceptEmergency(req)}
+                              disabled={!!acceptingEmergency[req.id]}
+                              className="w-full py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                              {acceptingEmergency[req.id]
+                                ? <><Loader2 className="w-4 h-4 animate-spin" /> Accepting...</>
+                                : <><CheckCircle2 className="w-4 h-4" /> Accept Emergency Request</>
+                              }
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quick nav cards */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {[
+                      { tab: 'bookings' as Tab, label: 'View Bookings', sub: `${myBookings.length} total`, icon: <Briefcase className="w-5 h-5 text-[#4169E1]" />, bg: 'bg-blue-50' },
+                      { tab: 'earnings' as Tab, label: 'Earnings Report', sub: `₹${totalEarnings.toLocaleString()} earned`, icon: <BarChart2 className="w-5 h-5 text-green-600" />, bg: 'bg-green-50' },
+                      { tab: 'messages' as Tab, label: 'Messages', sub: `${unreadCount} unread`, icon: <Mail className="w-5 h-5 text-purple-500" />, bg: 'bg-purple-50' },
+                    ].map(item => (
                     <button
                       key={item.tab}
                       onClick={() => setActiveTab(item.tab)}

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Search, Bell, Menu, X, User as UserIcon, LogOut, Home as HomeIcon, Grid3X3, MessageCircle, Heart, ChevronDown } from 'lucide-react';
+import { Search, Bell, Menu, X, User as UserIcon, LogOut, Home as HomeIcon, Grid3X3, MessageCircle, Heart, ChevronDown, Siren } from 'lucide-react';
 import { ServizoIcon } from './components/Logo';
 
 const Home = lazy(() => import('./pages/Home'));
@@ -23,6 +23,7 @@ const Notifications = lazy(() => import('./pages/Notifications'));
 const CreateProfile = lazy(() => import('./pages/CreateProfile'));
 const BookingHistory = lazy(() => import('./pages/BookingHistory'));
 const ReviewPage = lazy(() => import('./pages/ReviewPage'));
+const EmergencyBooking = lazy(() => import('./pages/EmergencyBooking'));
 const IncomingCall = lazy(() => import('./components/IncomingCall'));
 const NotificationToast = lazy(() => import('./components/NotificationToast'));
 import { AuthService } from './services/auth';
@@ -120,11 +121,18 @@ const Navbar = () => {
             >
               How It Works
             </button>
-            <Link to="/listing" className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-              false ? 'text-[#000000] font-semibold' : 'text-gray-500 hover:text-[#000000]'
-            }`}>
-              Top Pros
-            </Link>
+              <Link to="/listing" className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                false ? 'text-[#000000] font-semibold' : 'text-gray-500 hover:text-[#000000]'
+              }`}>
+                Top Pros
+              </Link>
+              {user && user.role === 'user' && (
+                <Link to="/emergency" className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                  isActive('/emergency') ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600 hover:bg-red-100'
+                }`}>
+                  <Siren className="w-3.5 h-3.5" /> Emergency
+                </Link>
+              )}
             {user?.role === 'admin' && (
               <Link to="/admin" className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                 isActive('/admin') ? 'text-red-600 font-semibold' : 'text-red-500 hover:text-red-600'
@@ -205,10 +213,16 @@ const Navbar = () => {
                 <HomeIcon className="w-5 h-5 text-gray-400" />
                 <span className="text-sm font-medium text-gray-700">Home</span>
               </Link>
-              <Link to="/listing" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors">
-                <Search className="w-5 h-5 text-gray-400" />
-                <span className="text-sm font-medium text-gray-700">Browse Services</span>
-              </Link>
+                <Link to="/listing" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors">
+                  <Search className="w-5 h-5 text-gray-400" />
+                  <span className="text-sm font-medium text-gray-700">Browse Services</span>
+                </Link>
+                {user?.role === 'user' && (
+                  <Link to="/emergency" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 hover:bg-red-100 transition-colors">
+                    <Siren className="w-5 h-5 text-red-500" />
+                    <span className="text-sm font-semibold text-red-600">Emergency Booking</span>
+                  </Link>
+                )}
 
               {user?.role === 'admin' && (
                 <Link to="/admin" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 transition-colors">
@@ -371,8 +385,9 @@ function AppContent() {
           <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
           <Route path="/create-profile" element={<ProtectedRoute><CreateProfile /></ProtectedRoute>} />
-          <Route path="/booking-history" element={<ProtectedRoute><BookingHistory /></ProtectedRoute>} />
-          <Route path="/review/:bookingId" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
+            <Route path="/booking-history" element={<ProtectedRoute><BookingHistory /></ProtectedRoute>} />
+            <Route path="/review/:bookingId" element={<ProtectedRoute><ReviewPage /></ProtectedRoute>} />
+            <Route path="/emergency" element={<ProtectedRoute><EmergencyBooking /></ProtectedRoute>} />
           </Routes>
           </Suspense>
         </main>
