@@ -56,8 +56,9 @@ export default function Profile() {
     let unsub: (() => void) | null = null;
     const loadData = async () => {
       const specialists = await DB.getSpecialists();
-      const found = specialists.find(s => s.id === id) || specialists[0];
-      setSpecialist(found);
+        const found = specialists.find(s => s.id === id);
+        if (!found) { navigate('/listing'); return; }
+        setSpecialist(found);
       // Subscribe to real-time updates for this specialist
       unsub = DB.onSpecialist(found.id, (updated) => setSpecialist(updated));
       const r = await DB.getReviewsBySpecialist(found.id);
